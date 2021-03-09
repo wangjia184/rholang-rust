@@ -1,2 +1,6 @@
-# rholang-rust
-Rholang runtime in rust
+# 
+
+
+```
+brew install llvm
+```

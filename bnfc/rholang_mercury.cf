@@ -1,0 +1,180 @@
+-- Custom integer token according to https://github.com/BNFC/bnfc/issues/153#issuecomment-152612231
+-- notice this shadows the built-in Integer token, which might be a problem if we need integers
+-- in the grammar for other purposes than the integer literal.
+
+position token LongLiteral digit+;
+
+-- A program is just a process. We put the coercions first, because that's what
+-- bnfc uses to determine the starting production.
+_. Proc  ::= Proc1 ;
+_. Proc1 ::= Proc2 ;
+_. Proc2 ::= Proc3 ;
+_. Proc3 ::= Proc4 ;
+_. Proc4 ::= Proc5 ;
+_. Proc5 ::= Proc6 ;
+_. Proc6 ::= Proc7 ;
+_. Proc7 ::= Proc8 ;
+_. Proc8 ::= Proc9 ;
+_. Proc9 ::= Proc10 ;
+_. Proc10 ::= Proc11 ;
+_. Proc11 ::= Proc12 ;
+_. Proc12 ::= Proc13 ;
+_. Proc13 ::= Proc14 ;
+_. Proc14 ::= Proc15 ;
+_. Proc15 ::= Proc16 ;
+_. Proc16 ::= "{" Proc "}" ;
+
+-- Processes
+-- In general the expression style processes are higher precedence.
+-- Expression style is anything that necessary resolves to a single ground value
+-- or a collection.
+PGround.         Proc16 ::= Ground ;
+PCollect.        Proc16 ::= Collection ;
+PVar.            Proc16 ::= ProcVar ;
+PVarRef.         Proc13 ::= VarRefKind Var ;
+PNil.            Proc16 ::= "Nil" ;
+PSimpleType.     Proc16 ::= SimpleType ;
+PNegation.       Proc15 ::= "~" Proc15 ;
+PConjunction.    Proc14 ::= Proc14 "/\\" Proc15 ;
+PDisjunction.    Proc13 ::= Proc13 "\\/" Proc14 ;
+PEval.           Proc12 ::= "*" Name ;
+PMethod.         Proc11 ::= Proc11 "." Var "(" [Proc] ")" ;
+PExprs.          Proc11 ::= "(" Proc4 ")" ;
+PNot.            Proc10 ::= "not" Proc10 ;
+PNeg.            Proc10 ::= "-" Proc10 ;
+PMult.           Proc9  ::= Proc9 "*" Proc10 ;
+PDiv.            Proc9  ::= Proc9 "/" Proc10 ;
+PMod.            Proc9  ::= Proc9 "%" Proc10 ;
+PPercentPercent. Proc9  ::= Proc9 "%%" Proc10 ;
+PAdd.            Proc8  ::= Proc8 "+" Proc9 ;
+PMinus.          Proc8  ::= Proc8 "-" Proc9 ;
+PPlusPlus.       Proc8  ::= Proc8 "++" Proc9 ;
+PMinusMinus.     Proc8  ::= Proc8 "--" Proc9 ;
+PLt.             Proc7  ::= Proc7 "<" Proc8 ;
+PLte.            Proc7  ::= Proc7 "<=" Proc8 ;
+PGt.             Proc7  ::= Proc7 ">" Proc8 ;
+PGte.            Proc7  ::= Proc7 ">=" Proc8 ;
+PMatches.        Proc6  ::= Proc7 "matches" Proc7 ;
+PEq.             Proc6  ::= Proc6 "==" Proc7 ;
+PNeq.            Proc6  ::= Proc6 "!=" Proc7 ;
+PAnd.            Proc5  ::= Proc5 "and" Proc6 ;
+POr.             Proc4  ::= Proc4 "or" Proc5 ;
+PSend.           Proc3  ::= Name Send "(" [Proc] ")" ;
+PContr.          Proc2  ::= "contract" Name "(" [Name] NameRemainder")" "=" "{" Proc "}" ;
+PInput.          Proc2  ::= "for" "(" Receipt ")" "{" Proc "}" ;
+PChoice.         Proc2  ::= "select" "{" [Branch] "}" ;
+PMatch.          Proc2  ::= "match" Proc4 "{" [Case] "}" ;
+PBundle.         Proc2  ::= Bundle "{" Proc "}" ;
+PIf.             Proc1  ::= "if" "(" Proc ")" Proc2 ;
+-- Use precedence to force braces around an interior if.
+PIfElse.      Proc1 ::= "if" "(" Proc ")" Proc2 "else" Proc1 ;
+PNew.         Proc1 ::= "new" [NameDecl] "in" Proc1 ;
+PPar.         Proc  ::= Proc "|" Proc1 ;
+
+separator Proc "," ;
+
+-- Process variables
+ProcVarWildcard. ProcVar ::= "_" ;
+ProcVarVar.      ProcVar ::= Var ;
+
+-- Names
+NameWildcard. Name ::= "_" ;
+NameVar.      Name ::= Var ;
+NameQuote.    Name ::= "@" Proc12 ;
+separator Name "," ;
+
+-- Bundle
+BundleWrite.    Bundle ::= "bundle+" ;
+BundleRead.     Bundle ::= "bundle-" ;
+BundleEquiv.    Bundle ::= "bundle0" ;
+BundleReadWrite. Bundle ::= "bundle"  ;
+
+-- Receipt
+ReceiptLinear.    Receipt ::= ReceiptLinearImpl ;
+ReceiptRepeated.  Receipt ::= ReceiptRepeatedImpl ;
+ReceiptPeek.      Receipt ::= ReceiptPeekImpl ;
+
+-- Linear Receipts
+LinearSimple. ReceiptLinearImpl ::= [LinearBind] ;
+-- Implementing this will be tricky.
+-- for (x <- a; y <- b if *x)
+-- LinearCond.   Linear ::= [LinearBind] "if" Proc ;
+
+-- Single Linear Bind
+LinearBindImpl. LinearBind ::= [Name] NameRemainder "<-" Name ;
+separator nonempty LinearBind ";" ;
+
+-- Repeated Receipts
+RepeatedSimple. ReceiptRepeatedImpl ::= [RepeatedBind] ;
+-- Single Repeated Bind
+RepeatedBindImpl. RepeatedBind ::= [Name] NameRemainder "<=" Name ;
+separator nonempty RepeatedBind ";" ;
+
+-- Peek Receipts
+PeekSimple. ReceiptPeekImpl ::= [PeekBind] ;
+-- Single Peek
+PeekBindImpl. PeekBind ::= [Name] NameRemainder "<<-" Name ;
+separator nonempty PeekBind ";" ;
+
+-- Types of Send:
+SendSingle.   Send ::= "!" ;
+SendMultiple. Send ::= "!!" ;
+
+-- Select Branches
+BranchImpl. Branch ::= ReceiptLinearImpl "=>" Proc3 ;
+separator nonempty Branch "" ;
+
+-- Match Cases
+CaseImpl. Case ::= Proc13 "=>" Proc3 ;
+separator nonempty Case "" ;
+
+-- Name Declarations.
+-- Eventually will have IOPairs.
+NameDeclSimpl. NameDecl ::= Var ;
+NameDeclUrn. NameDecl ::= Var "(" UriLiteral ")" ;
+separator nonempty NameDecl "," ;
+
+-- Booleans:
+BoolTrue.   BoolLiteral ::= "true" ;
+BoolFalse.  BoolLiteral ::= "false" ;
+-- Ground types:
+-- The "Literal" suffix avoids collisions with Simple Types
+GroundBool.    Ground ::= BoolLiteral ;
+GroundInt.     Ground ::= LongLiteral ;
+GroundString.  Ground ::= StringLiteral ;
+GroundUri.     Ground ::= UriLiteral ;
+token StringLiteral ( '"' ((char - ["\"\\"]) | ('\\' ["\"\\nt"]))* '"' );
+token UriLiteral ('`' ((char - ["\\`"]) | ('\\' ["`\\"]))* '`') ;
+-- Collections:
+CollectList.   Collection ::= "[" [Proc] ProcRemainder "]" ;
+CollectTuple.  Collection ::= Tuple;
+CollectSet.    Collection ::= "Set" "(" [Proc] ProcRemainder")" ;
+CollectMap.    Collection ::= "{" [KeyValuePair] ProcRemainder"}" ;
+KeyValuePairImpl.  KeyValuePair ::= Proc ":" Proc ;
+separator KeyValuePair "," ;
+
+TupleSingle.    Tuple ::= "(" Proc ",)" ;
+TupleMultiple.  Tuple ::= "(" Proc "," [Proc] ")" ;
+
+-- Remainders:
+ProcRemainderVar.   ProcRemainder ::= "..." ProcVar ;
+ProcRemainderEmpty. ProcRemainder ::= "" ;
+NameRemainderVar.   NameRemainder ::= "..." "@" ProcVar ;
+NameRemainderEmpty. NameRemainder ::= "" ;
+
+-- VarRefKind:
+VarRefKindProc. VarRefKind ::= "=" ;
+VarRefKindName. VarRefKind ::= "=" "*" ;
+
+-- Simple Types:
+SimpleTypeBool. SimpleType ::= "Bool" ;
+SimpleTypeInt. SimpleType ::= "Int" ;
+SimpleTypeString. SimpleType ::= "String" ;
+SimpleTypeUri. SimpleType ::= "Uri" ;
+SimpleTypeByteArray. SimpleType ::= "ByteArray" ;
+
+token Var (((letter | '\'') (letter | digit | '_' | '\'')*)|(('_') (letter | digit | '_' | '\'')+)) ;
+
+-- Comments:
+comment "//" ;
+comment "/*" "*/" ;
