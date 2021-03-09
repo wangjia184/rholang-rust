@@ -1,4 +1,4 @@
 /rho-runtime/target/
 /rho-runtime/Cargo.lock
-/bnfc/src
+/bnfc/src/
 /bnfc/libbnfc.a
