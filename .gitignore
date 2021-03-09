@@ -1,1 +1,4 @@
-/bnfc/src/Buffer.c
+/rho-runtime/target/
+/rho-runtime/Cargo.lock
+/bnfc/src
+/bnfc/libbnfc.a
