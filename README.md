@@ -1,6 +1,4 @@
-# 
+# Rholang Runtime
 
 
-```
-brew install llvm
-```
+A new rholang runtime written in Rust
