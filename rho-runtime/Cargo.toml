@@ -12,3 +12,7 @@ edition = "2018"
 
 [build-dependencies]
 bindgen = "0.57"
+libc = "0.2"
+
+# The generated model/rho_types.rs must match this version
+protobuf = { version = "2.22", features = ["with-bytes"] }

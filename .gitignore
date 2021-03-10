@@ -1,4 +1,5 @@
 /rho-runtime/target/
 /rho-runtime/Cargo.lock
-/bnfc/src/
-/bnfc/libbnfc.a
+/dependencies/bnfc/src/
+/dependencies/bnfc/libbnfc.a
+.vscode
