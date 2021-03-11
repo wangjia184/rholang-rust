@@ -16,4 +16,4 @@ echo $PROTOC_GEN_RUST
 PATH="$(dirname "${PROTOC_GEN_RUST}"):$PATH"
 protoc --rust_out . rho_types.proto
 
-mv -f ./rho_types.rs ../../rho-runtime/model/
+mv -f ./rho_types.rs ../../rho-runtime/src/model/
