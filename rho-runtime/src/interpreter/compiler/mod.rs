@@ -17,3 +17,7 @@ use normalize::*;
 pub struct ProcVisitInputs {
 
 }
+
+pub fn test() {
+    builder::build_ast("Nil | new X in { X!(2) }");
+}

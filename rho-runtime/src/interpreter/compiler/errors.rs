@@ -6,6 +6,9 @@ pub enum CompliationError {
     #[error("Supplied source string contain an internal 0 byte")]
     NulSourceError(#[from] std::ffi::NulError),
 
+    #[error("`fmemopen` failed")]
+    FileMemOpenFailed,
+
 
     #[error("the data for key `{0}` is not available")]
     Redaction(String),

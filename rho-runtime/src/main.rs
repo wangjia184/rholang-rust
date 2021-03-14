@@ -7,6 +7,6 @@ mod model;
 
 fn main() {
 
-
+    interpreter::test();
     println!("Hello World");
 }

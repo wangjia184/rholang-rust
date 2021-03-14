@@ -224,4 +224,5 @@ VarRefKind psVarRefKind(const char *str);
 SimpleType  pSimpleType(FILE *inp);
 SimpleType psSimpleType(const char *str);
 
+void freeProc(Proc proc);
 #endif

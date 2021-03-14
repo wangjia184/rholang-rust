@@ -10,16 +10,16 @@ fn main() {
     let _out_dir = env::var("OUT_DIR").expect("Environment variable `OUT_DIR` cannot be found.");
 
     // Tell cargo to invalidate the built crate whenever the wrapper changes
-    println!("cargo:rerun-if-changed=include/wrapper.h");
+    println!("cargo:rerun-if-changed=include/bnfc/bnfc.h");
 
     // static link to bnfc
-    println!("cargo:rustc-link-lib=bnfc");
+    println!("cargo:rustc-link-lib=static=bnfc");
 
     // specify search path of libraries
     println!("cargo:rustc-link-search=native=lib/{}/", &target);
 
     let bindings = bindgen::Builder::default()
-        .header("include/wrapper.h")
+        .header("include/bnfc/bnfc.h")
         .generate()
         .expect("Unable to generate bindings");
 
