@@ -30,7 +30,7 @@ pub fn build_ast(source: &str) -> std::result::Result<(), CompliationError> {
         
     };
 
-    visit_asc(proc);
+    traverse_ast(proc);
 
     unsafe {
         libc::fclose(mem_file);
@@ -39,24 +39,21 @@ pub fn build_ast(source: &str) -> std::result::Result<(), CompliationError> {
         CString::from_raw(raw_source);
         CString::from_raw(raw_mode);
 
-        // valgrind says no leak if does not call the following line
-        freeProc(proc);
+        libc::free(proc as *mut libc::c_void);
     }
 
     Ok(())
 
 }
 
-fn visit_asc(p : Proc) {
-    unsafe
-    {
-        let proc = *p;
-        match proc.kind {
-            is_PNil => {
-                println!("{}", proc.kind);
-            },
-            _ => { println!("Unknown kind {:?}", proc.kind); }
-        };
-    }
-    
+fn traverse_ast(p : Proc) {
+    let proc;
+    unsafe { proc = *p; }
+
+    match proc.kind {
+        is_PNil => {
+            println!("{}", proc.kind);
+        },
+        _ => { println!("Unknown kind {:?}", proc.kind); }
+    };
 }

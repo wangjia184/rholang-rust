@@ -7,13 +7,8 @@ rm -rf ./src
 # generate C source files
 bnfc -m --c ./rholang_mercury.cf -o ./src
 
-# add a release function
-sed --in-place '/#endif/i void freeProc(Proc proc);' ./src/Parser.h;
-
-sed --in-place '/\/\* Global variables holding parse results for entrypoints. \*\//i void freeProc(Proc proc) { if(proc) free(proc); }' ./src/rholang_mercury.y
-
-#printf "\n\nvoid freeProc(Proc proc);"  >> ./src/Absyn.h
-#printf "\n\nvoid freeProc(Proc proc) { if(proc) free(proc); }"  >> ./src/Absyn.c
+# add TLS to global variables
+sed --in-place --regexp-extended '/^([a-zA-Z]+)\s*YY_RESULT_\1_\s*\=/i __thread ' ./src/rholang_mercury.y
 
 
 
