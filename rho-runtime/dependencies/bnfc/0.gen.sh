@@ -24,4 +24,5 @@ cd ..
 ar rcs libbnfc.a ./src/*.o
 
 # be careful the platform
-mv -f ./libbnfc.a ../../rho-runtime/lib/aarch64-apple-darwin/
+#mv -f ./libbnfc.a ../rho-runtime/lib/x86_64-apple-darwin/
+#mv -f ./libbnfc.a ../rho-runtime/lib/aarch64-apple-darwin/

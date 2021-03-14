@@ -1,4 +1,5 @@
 
+
 #![allow(warnings, unused)]
 
 include!(concat!(env!("OUT_DIR"), "/bnfc_bindings.rs"));
@@ -22,5 +23,14 @@ pub fn parse(source: &str) -> std::result::Result<&str, std::str::Utf8Error> {
 
         return c_str.to_str();
     }
+
+}
+
+
+#[test]
+pub fn test1() {
+    let x = parse("new xxx in {}");
+
+    println!("{:?}", x);
 
 }

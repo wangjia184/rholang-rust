@@ -1,6 +1,12 @@
-mod bnfc;
+//extern crate protobuf;
+
+mod interpreter;
+mod model;
+
+
 
 fn main() {
-    let s = bnfc::parse("new xx in { xx!(1) | Nil | 0 }");
-    println!("{:?}", s);
+
+
+    println!("Hello World");
 }
