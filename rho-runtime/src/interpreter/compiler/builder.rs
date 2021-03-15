@@ -1,5 +1,5 @@
 
-use std::ffi::{ CStr, CString }; // https://bnfc.digitalgrammars.com/tutorial/bnfc-tutorial.html
+use std::ffi::{ CString }; // https://bnfc.digitalgrammars.com/tutorial/bnfc-tutorial.html
 use libc;
 
 use super::errors::*;
@@ -30,7 +30,7 @@ pub fn build_ast(source: &str) -> std::result::Result<(), CompliationError> {
         
     };
 
-    traverse_ast(proc);
+    visit_proc(proc);
 
     unsafe {
         libc::fclose(mem_file);
@@ -39,28 +39,59 @@ pub fn build_ast(source: &str) -> std::result::Result<(), CompliationError> {
         CString::from_raw(raw_source);
         CString::from_raw(raw_mode);
 
-        libc::free(proc as *mut libc::c_void);
+        
     }
 
     Ok(())
 
 }
 
-#[allow(non_snake_case)]
-fn traverse_ast(p : bnfc::Proc) {
-    let proc;
-    unsafe { proc = *p; }
+// traverse abstract syntax tree
+fn visit_proc(p : bnfc::Proc) {
+    if p == 0 as bnfc::Proc {
+        return; // NULL pointer
+    }
+
+    let proc = unsafe { *p };
 
     match proc.kind {
+        bnfc::Proc__is_PPar => {
+            trace!("PPar");
+            let proc_1 = unsafe { proc.u.ppar_.proc_1 };
+            let proc_2 = unsafe { proc.u.ppar_.proc_2 };
+            visit_proc(proc_1);
+            visit_proc(proc_2);
+        },
+        bnfc::Proc__is_PIf => {
+            trace!("PIf");
+            let proc_1 = unsafe { proc.u.pif_.proc_1 };
+            let proc_2 = unsafe { proc.u.pif_.proc_2 };
+            visit_proc(proc_1);
+            visit_proc(proc_2);
+        },
+        bnfc::Proc__is_PIfElse => {
+            trace!("PIfElse");
+            let proc_1 = unsafe { proc.u.pifelse_.proc_1 };
+            let proc_2 = unsafe { proc.u.pifelse_.proc_2 };
+            let proc_3 = unsafe { proc.u.pifelse_.proc_3 };
+            visit_proc(proc_1);
+            visit_proc(proc_2);
+            visit_proc(proc_3);
+        },
         bnfc::Proc__is_PNew => {
-            println!("{}", proc.kind);
+            trace!("PNew");
+            let _listnamedecl = unsafe { proc.u.pnew_.listnamedecl_ };
+            let sub_proc = unsafe { proc.u.pnew_.proc_ };
+
+            visit_proc(sub_proc);
         },
         bnfc::Proc__is_PNil => {
-            println!("{}", proc.kind);
+            trace!("PNil");
         },
-        bnfc::Proc__is_PPar => {
-            println!("{}", proc.kind);
-        },
+        
         _ => { println!("Unknown kind {:?}", proc.kind); }
     };
+
+    // release memory
+    unsafe { libc::free(p as *mut libc::c_void); }
 }
