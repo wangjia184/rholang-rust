@@ -1,5 +1,6 @@
 
-use std::ffi::{ CString }; // https://bnfc.digitalgrammars.com/tutorial/bnfc-tutorial.html
+use std::ffi::{ CStr, CString }; 
+use std::os::raw::c_char;
 use libc;
 
 use super::errors::*;
@@ -57,21 +58,21 @@ fn visit_proc(p : bnfc::Proc) {
 
     match proc.kind {
         bnfc::Proc__is_PPar => {
-            trace!("PPar");
+            trace!("PPar at {}:{}", proc.line_number, proc.char_number);
             let proc_1 = unsafe { proc.u.ppar_.proc_1 };
             let proc_2 = unsafe { proc.u.ppar_.proc_2 };
             visit_proc(proc_1);
             visit_proc(proc_2);
         },
         bnfc::Proc__is_PIf => {
-            trace!("PIf");
+            trace!("PIf at {}:{}", proc.line_number, proc.char_number);
             let proc_1 = unsafe { proc.u.pif_.proc_1 };
             let proc_2 = unsafe { proc.u.pif_.proc_2 };
             visit_proc(proc_1);
             visit_proc(proc_2);
         },
         bnfc::Proc__is_PIfElse => {
-            trace!("PIfElse");
+            trace!("PIfElse at {}:{}", proc.line_number, proc.char_number);
             let proc_1 = unsafe { proc.u.pifelse_.proc_1 };
             let proc_2 = unsafe { proc.u.pifelse_.proc_2 };
             let proc_3 = unsafe { proc.u.pifelse_.proc_3 };
@@ -80,19 +81,69 @@ fn visit_proc(p : bnfc::Proc) {
             visit_proc(proc_3);
         },
         bnfc::Proc__is_PNew => {
-            trace!("PNew");
-            let _listnamedecl = unsafe { proc.u.pnew_.listnamedecl_ };
+            trace!("PNew at {}:{}", proc.line_number, proc.char_number);
+            let listnamedecl = unsafe { proc.u.pnew_.listnamedecl_ };
             let sub_proc = unsafe { proc.u.pnew_.proc_ };
-
+            visit_list_name_decl(listnamedecl);
             visit_proc(sub_proc);
         },
+        bnfc::Proc__is_PContr => {
+            trace!("PContr at {}:{}", proc.line_number, proc.char_number);
+        },
+        bnfc::Proc__is_PInput => {
+            trace!("PInput at {}:{}", proc.line_number, proc.char_number);
+        },
         bnfc::Proc__is_PNil => {
-            trace!("PNil");
+            trace!("PNil at {}:{}", proc.line_number, proc.char_number);
         },
         
-        _ => { println!("Unknown kind {:?}", proc.kind); }
+        _ => { println!("Unknown token {:?}", proc.kind); }
     };
 
     // release memory
     unsafe { libc::free(p as *mut libc::c_void); }
+}
+
+
+fn visit_list_name_decl(mut listnamedecl : bnfc::ListNameDecl)
+{
+  while listnamedecl != 0 as bnfc::ListNameDecl
+  {
+    let p = unsafe { *listnamedecl };
+    visit_name_decl(p.namedecl_);
+    listnamedecl = p.listnamedecl_;
+  }
+}
+
+
+fn visit_name_decl(namedecl : bnfc::NameDecl)
+{
+    if namedecl != 0 as bnfc::NameDecl {
+        let p = unsafe { *namedecl };
+        match p.kind {
+            bnfc::NameDecl__is_NameDeclSimpl => {
+                let var = unsafe { p.u.namedeclsimpl_.var_ };
+                let var_name = get_string(var);
+                trace!("{:?} at {}:{}", &var_name, p.line_number, p.char_number);
+            },
+            bnfc::NameDecl__is_NameDeclUrn => {
+                let var = unsafe { p.u.namedeclurn_.var_ };
+                let var_name = get_string(var);
+                trace!("{:?} at {}:{}", &var_name, p.line_number, p.char_number);
+                // visitUriLiteral(p->u.namedeclurn_.uriliteral_);
+            },
+            _ => {
+                warn!("Unrecognized kind {} in bnfc::NameDecl", p.kind);
+            }
+        };
+    }
+}
+
+fn get_string(raw_str : bnfc::String) -> Result<String, std::str::Utf8Error> {
+    unsafe {
+        let raw_pointer = raw_str as *const _ as *const c_char;
+        CStr::from_ptr(raw_pointer).to_str().and_then( |s| {
+            Ok(s.to_owned())
+        })
+    }
 }

@@ -5,7 +5,7 @@
 rm -rf ./src
 
 # generate C source files
-bnfc -m --c ./rholang_mercury.cf -o ./src
+bnfc -m --c --line-numbers ./rholang_mercury.cf -o ./src
 
 # add GCC's TLS extension __thread to global variables
 # sed does not work the same in Mac OS and GNU Linux, so here use a stupid way to replace the following command
@@ -37,7 +37,7 @@ ar rcs ../libbnfc.a Absyn.o Buffer.o Lexer.o Parser.o Printer.o
 cd ..
 
 # be careful with the platform
-#mv -f ./libbnfc.a ../../lib/x86_64-apple-darwin/
+mv -f ./libbnfc.a ../../lib/x86_64-apple-darwin/
 #mv -f ./libbnfc.a ../../lib/aarch64-apple-darwin/
 #mv -f ./libbnfc.a ../../lib/x86_64-unknown-linux-gnu/
 

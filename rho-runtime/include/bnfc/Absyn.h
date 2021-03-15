@@ -120,6 +120,7 @@ typedef struct SimpleType_ *SimpleType;
 
 struct Proc_
 {
+  int line_number, char_number;
   enum { is_PGround, is_PCollect, is_PVar, is_PVarRef, is_PNil, is_PSimpleType, is_PNegation, is_PConjunction, is_PDisjunction, is_PEval, is_PMethod, is_PExprs, is_PNot, is_PNeg, is_PMult, is_PDiv, is_PMod, is_PPercentPercent, is_PAdd, is_PMinus, is_PPlusPlus, is_PMinusMinus, is_PLt, is_PLte, is_PGt, is_PGte, is_PMatches, is_PEq, is_PNeq, is_PAnd, is_POr, is_PSend, is_PContr, is_PInput, is_PChoice, is_PMatch, is_PBundle, is_PIf, is_PIfElse, is_PNew, is_PPar } kind;
   union
   {
@@ -218,6 +219,7 @@ ListProc make_ListProc(Proc p1, ListProc p2);
 
 struct ProcVar_
 {
+  int line_number, char_number;
   enum { is_ProcVarWildcard, is_ProcVarVar } kind;
   union
   {
@@ -230,6 +232,7 @@ ProcVar make_ProcVarVar(Var p0);
 
 struct Name_
 {
+  int line_number, char_number;
   enum { is_NameWildcard, is_NameVar, is_NameQuote } kind;
   union
   {
@@ -252,6 +255,7 @@ ListName make_ListName(Name p1, ListName p2);
 
 struct Bundle_
 {
+  int line_number, char_number;
   enum { is_BundleWrite, is_BundleRead, is_BundleEquiv, is_BundleReadWrite } kind;
   union
   {
@@ -265,6 +269,7 @@ Bundle make_BundleReadWrite(void);
 
 struct Receipt_
 {
+  int line_number, char_number;
   enum { is_ReceiptLinear, is_ReceiptRepeated, is_ReceiptPeek } kind;
   union
   {
@@ -280,6 +285,7 @@ Receipt make_ReceiptPeek(ReceiptPeekImpl p0);
 
 struct ReceiptLinearImpl_
 {
+  int line_number, char_number;
   enum { is_LinearSimple } kind;
   union
   {
@@ -291,6 +297,7 @@ ReceiptLinearImpl make_LinearSimple(ListLinearBind p0);
 
 struct LinearBind_
 {
+  int line_number, char_number;
   enum { is_LinearBindImpl } kind;
   union
   {
@@ -310,6 +317,7 @@ ListLinearBind make_ListLinearBind(LinearBind p1, ListLinearBind p2);
 
 struct ReceiptRepeatedImpl_
 {
+  int line_number, char_number;
   enum { is_RepeatedSimple } kind;
   union
   {
@@ -321,6 +329,7 @@ ReceiptRepeatedImpl make_RepeatedSimple(ListRepeatedBind p0);
 
 struct RepeatedBind_
 {
+  int line_number, char_number;
   enum { is_RepeatedBindImpl } kind;
   union
   {
@@ -340,6 +349,7 @@ ListRepeatedBind make_ListRepeatedBind(RepeatedBind p1, ListRepeatedBind p2);
 
 struct ReceiptPeekImpl_
 {
+  int line_number, char_number;
   enum { is_PeekSimple } kind;
   union
   {
@@ -351,6 +361,7 @@ ReceiptPeekImpl make_PeekSimple(ListPeekBind p0);
 
 struct PeekBind_
 {
+  int line_number, char_number;
   enum { is_PeekBindImpl } kind;
   union
   {
@@ -370,6 +381,7 @@ ListPeekBind make_ListPeekBind(PeekBind p1, ListPeekBind p2);
 
 struct Send_
 {
+  int line_number, char_number;
   enum { is_SendSingle, is_SendMultiple } kind;
   union
   {
@@ -381,6 +393,7 @@ Send make_SendMultiple(void);
 
 struct Branch_
 {
+  int line_number, char_number;
   enum { is_BranchImpl } kind;
   union
   {
@@ -400,6 +413,7 @@ ListBranch make_ListBranch(Branch p1, ListBranch p2);
 
 struct Case_
 {
+  int line_number, char_number;
   enum { is_CaseImpl } kind;
   union
   {
@@ -419,6 +433,7 @@ ListCase make_ListCase(Case p1, ListCase p2);
 
 struct NameDecl_
 {
+  int line_number, char_number;
   enum { is_NameDeclSimpl, is_NameDeclUrn } kind;
   union
   {
@@ -440,6 +455,7 @@ ListNameDecl make_ListNameDecl(NameDecl p1, ListNameDecl p2);
 
 struct BoolLiteral_
 {
+  int line_number, char_number;
   enum { is_BoolTrue, is_BoolFalse } kind;
   union
   {
@@ -451,6 +467,7 @@ BoolLiteral make_BoolFalse(void);
 
 struct Ground_
 {
+  int line_number, char_number;
   enum { is_GroundBool, is_GroundInt, is_GroundString, is_GroundUri } kind;
   union
   {
@@ -468,6 +485,7 @@ Ground make_GroundUri(UriLiteral p0);
 
 struct Collection_
 {
+  int line_number, char_number;
   enum { is_CollectList, is_CollectTuple, is_CollectSet, is_CollectMap } kind;
   union
   {
@@ -485,6 +503,7 @@ Collection make_CollectMap(ListKeyValuePair p0, ProcRemainder p1);
 
 struct KeyValuePair_
 {
+  int line_number, char_number;
   enum { is_KeyValuePairImpl } kind;
   union
   {
@@ -504,6 +523,7 @@ ListKeyValuePair make_ListKeyValuePair(KeyValuePair p1, ListKeyValuePair p2);
 
 struct Tuple_
 {
+  int line_number, char_number;
   enum { is_TupleSingle, is_TupleMultiple } kind;
   union
   {
@@ -517,6 +537,7 @@ Tuple make_TupleMultiple(Proc p0, ListProc p1);
 
 struct ProcRemainder_
 {
+  int line_number, char_number;
   enum { is_ProcRemainderVar, is_ProcRemainderEmpty } kind;
   union
   {
@@ -529,6 +550,7 @@ ProcRemainder make_ProcRemainderEmpty(void);
 
 struct NameRemainder_
 {
+  int line_number, char_number;
   enum { is_NameRemainderVar, is_NameRemainderEmpty } kind;
   union
   {
@@ -541,6 +563,7 @@ NameRemainder make_NameRemainderEmpty(void);
 
 struct VarRefKind_
 {
+  int line_number, char_number;
   enum { is_VarRefKindProc, is_VarRefKindName } kind;
   union
   {
@@ -552,6 +575,7 @@ VarRefKind make_VarRefKindName(void);
 
 struct SimpleType_
 {
+  int line_number, char_number;
   enum { is_SimpleTypeBool, is_SimpleTypeInt, is_SimpleTypeString, is_SimpleTypeUri, is_SimpleTypeByteArray } kind;
   union
   {

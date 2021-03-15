@@ -10,7 +10,7 @@ fn main() {
     let _out_dir = env::var("OUT_DIR").expect("Environment variable `OUT_DIR` cannot be found.");
 
     // Tell cargo to invalidate the built crate whenever the wrapper changes
-    println!("cargo:rerun-if-changed=include/bnfc/bnfc.h");
+    //println!("cargo:rerun-if-changed=include/bnfc/bnfc.h");
 
     // static link to bnfc
     println!("cargo:rustc-link-lib=static=bnfc");
