@@ -37,7 +37,7 @@ ar rcs ../libbnfc.a Absyn.o Buffer.o Lexer.o Parser.o Printer.o
 cd ..
 
 # be careful with the platform
-mv -f ./libbnfc.a ../../lib/x86_64-apple-darwin/
+#mv -f ./libbnfc.a ../../lib/x86_64-apple-darwin/
 #mv -f ./libbnfc.a ../../lib/aarch64-apple-darwin/
 #mv -f ./libbnfc.a ../../lib/x86_64-unknown-linux-gnu/
 
