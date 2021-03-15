@@ -47,6 +47,7 @@ pub fn build_ast(source: &str) -> std::result::Result<(), CompliationError> {
 }
 
 // traverse abstract syntax tree
+// note that even ifs error occurs, still we need complete the traverse to free all node's memorys
 fn visit_proc(p : bnfc::Proc) {
     if p == 0 as bnfc::Proc {
         return; // NULL pointer
