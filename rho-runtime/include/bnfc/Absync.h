@@ -1,3 +1,0 @@
-
-
-void freeProc(Proc proc);
