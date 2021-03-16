@@ -5,8 +5,7 @@ use libc;
 
 use super::errors::*;
 use super::bnfc;
-
-
+use super::context::{ SourcePosition };
 
 
 pub fn build_ast(source: &str) -> std::result::Result<(), CompliationError> {
@@ -31,6 +30,8 @@ pub fn build_ast(source: &str) -> std::result::Result<(), CompliationError> {
         
     };
 
+   
+
     visit_proc(proc);
 
     unsafe {
@@ -47,8 +48,10 @@ pub fn build_ast(source: &str) -> std::result::Result<(), CompliationError> {
 
 }
 
+
+
 // traverse abstract syntax tree
-// note that even ifs error occurs, still we need complete the traverse to free all node's memorys
+// note that even if error occurs, still we need complete the traverse to free all node's memory
 fn visit_proc(p : bnfc::Proc) {
     if p == 0 as bnfc::Proc {
         return; // NULL pointer
@@ -87,8 +90,8 @@ fn visit_proc(p : bnfc::Proc) {
             visit_list_name_decl(listnamedecl);
             visit_proc(sub_proc);
         },
-        bnfc::Proc__is_PContr => {
-            trace!("PContr at {}:{}", proc.line_number, proc.char_number);
+        bnfc::Proc__is_PSend => {
+            trace!("PSend at {}:{}", proc.line_number, proc.char_number);
         },
         bnfc::Proc__is_PInput => {
             trace!("PInput at {}:{}", proc.line_number, proc.char_number);
