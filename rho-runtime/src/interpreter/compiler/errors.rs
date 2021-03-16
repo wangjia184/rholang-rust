@@ -6,12 +6,20 @@ pub enum CompliationError {
     #[error("Supplied source string contain an internal 0 byte")]
     NulSourceError(#[from] std::ffi::NulError),
 
-    #[error("`fmemopen` failed")]
+    #[error("Unable to parse source")]
+    SourceUtf8Error(#[from] std::str::Utf8Error),
+
+    #[error("Unrecognized token `{0}`")]
+    UnrecognizedToken(u32),
+
+    #[error("Unrecognized kind `{0}` in namedecl")]
+    UnrecognizedNameDeclKind(u32),
+
+    #[error("Null pointer in {0}.")]
+    NullPointer(String),
+
+    #[error("`fmemopen()` failed")]
     FileMemOpenFailed,
-
-
-    #[error("the data for key `{0}` is not available")]
-    Redaction(String),
 
     #[error("invalid header (expected {expected:?}, found {found:?})")]
     InvalidHeader {

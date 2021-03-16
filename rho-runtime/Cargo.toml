@@ -13,6 +13,7 @@ bytes = "1.0"
 protobuf = { version = "2.22", features = ["with-bytes"] }
 thiserror = "1.0"
 libc = "0.2"
+defer = "0.1"
 
 [build-dependencies]
 bindgen = "0.57"

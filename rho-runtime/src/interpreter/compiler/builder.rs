@@ -1,11 +1,12 @@
 
-use std::ffi::{ CStr, CString }; 
-use std::os::raw::c_char;
+use std::ffi::{ CString }; 
 use libc;
+
 
 use super::errors::*;
 use super::bnfc;
-use super::context::{ SourcePosition };
+use super::normalize::*;
+
 
 
 pub fn build_ast(source: &str) -> std::result::Result<(), CompliationError> {
@@ -32,7 +33,7 @@ pub fn build_ast(source: &str) -> std::result::Result<(), CompliationError> {
 
    
 
-    visit_proc(proc);
+    normalize(proc);
 
     unsafe {
         libc::fclose(mem_file);
@@ -52,101 +53,7 @@ pub fn build_ast(source: &str) -> std::result::Result<(), CompliationError> {
 
 // traverse abstract syntax tree
 // note that even if error occurs, still we need complete the traverse to free all node's memory
-fn visit_proc(p : bnfc::Proc) {
-    if p == 0 as bnfc::Proc {
-        return; // NULL pointer
-    }
-
-    let proc = unsafe { *p };
-
-    match proc.kind {
-        bnfc::Proc__is_PPar => {
-            trace!("PPar at {}:{}", proc.line_number, proc.char_number);
-            let proc_1 = unsafe { proc.u.ppar_.proc_1 };
-            let proc_2 = unsafe { proc.u.ppar_.proc_2 };
-            visit_proc(proc_1);
-            visit_proc(proc_2);
-        },
-        bnfc::Proc__is_PIf => {
-            trace!("PIf at {}:{}", proc.line_number, proc.char_number);
-            let proc_1 = unsafe { proc.u.pif_.proc_1 };
-            let proc_2 = unsafe { proc.u.pif_.proc_2 };
-            visit_proc(proc_1);
-            visit_proc(proc_2);
-        },
-        bnfc::Proc__is_PIfElse => {
-            trace!("PIfElse at {}:{}", proc.line_number, proc.char_number);
-            let proc_1 = unsafe { proc.u.pifelse_.proc_1 };
-            let proc_2 = unsafe { proc.u.pifelse_.proc_2 };
-            let proc_3 = unsafe { proc.u.pifelse_.proc_3 };
-            visit_proc(proc_1);
-            visit_proc(proc_2);
-            visit_proc(proc_3);
-        },
-        bnfc::Proc__is_PNew => {
-            trace!("PNew at {}:{}", proc.line_number, proc.char_number);
-            let listnamedecl = unsafe { proc.u.pnew_.listnamedecl_ };
-            let sub_proc = unsafe { proc.u.pnew_.proc_ };
-            visit_list_name_decl(listnamedecl);
-            visit_proc(sub_proc);
-        },
-        bnfc::Proc__is_PSend => {
-            trace!("PSend at {}:{}", proc.line_number, proc.char_number);
-        },
-        bnfc::Proc__is_PInput => {
-            trace!("PInput at {}:{}", proc.line_number, proc.char_number);
-        },
-        bnfc::Proc__is_PNil => {
-            trace!("PNil at {}:{}", proc.line_number, proc.char_number);
-        },
-        
-        _ => { println!("Unknown token {:?}", proc.kind); }
-    };
-
-    // release memory
-    unsafe { libc::free(p as *mut libc::c_void); }
+fn normalize(p : bnfc::Proc) {
+    proc::normalize_match(p, ProcVisitInputs::default());
 }
 
-
-fn visit_list_name_decl(mut listnamedecl : bnfc::ListNameDecl)
-{
-  while listnamedecl != 0 as bnfc::ListNameDecl
-  {
-    let p = unsafe { *listnamedecl };
-    visit_name_decl(p.namedecl_);
-    listnamedecl = p.listnamedecl_;
-  }
-}
-
-
-fn visit_name_decl(namedecl : bnfc::NameDecl)
-{
-    if namedecl != 0 as bnfc::NameDecl {
-        let p = unsafe { *namedecl };
-        match p.kind {
-            bnfc::NameDecl__is_NameDeclSimpl => {
-                let var = unsafe { p.u.namedeclsimpl_.var_ };
-                let var_name = get_string(var);
-                trace!("{:?} at {}:{}", &var_name, p.line_number, p.char_number);
-            },
-            bnfc::NameDecl__is_NameDeclUrn => {
-                let var = unsafe { p.u.namedeclurn_.var_ };
-                let var_name = get_string(var);
-                trace!("{:?} at {}:{}", &var_name, p.line_number, p.char_number);
-                // visitUriLiteral(p->u.namedeclurn_.uriliteral_);
-            },
-            _ => {
-                warn!("Unrecognized kind {} in bnfc::NameDecl", p.kind);
-            }
-        };
-    }
-}
-
-fn get_string(raw_str : bnfc::String) -> Result<String, std::str::Utf8Error> {
-    unsafe {
-        let raw_pointer = raw_str as *const _ as *const c_char;
-        CStr::from_ptr(raw_pointer).to_str().and_then( |s| {
-            Ok(s.to_owned())
-        })
-    }
-}

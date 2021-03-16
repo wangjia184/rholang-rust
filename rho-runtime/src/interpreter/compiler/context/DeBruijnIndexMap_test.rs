@@ -8,14 +8,14 @@ fn test_index_map() {
     //     }
     // }
     let mut level1 = DeBruijnIndexMap::empty().create(vec![
-        ("a1".to_string(), VarSort::Name, SourcePosition{ row : 1, column : 2 } ),
-        ("a2".to_string(), VarSort::Name, SourcePosition{ row : 1, column : 5 } ),
-        ("a3".to_string(), VarSort::Name, SourcePosition{ row : 1, column : 8 } ),
+        ("a1".to_string(), VarSort::Name, SourcePosition{ row : 1, column : 2, length : 0 } ),
+        ("a2".to_string(), VarSort::Name, SourcePosition{ row : 1, column : 5, length : 0 } ),
+        ("a3".to_string(), VarSort::Name, SourcePosition{ row : 1, column : 8, length : 0 } ),
     ]);
     let level2 = level1.create(vec![
-        ("b1".to_string(), VarSort::Name, SourcePosition{ row : 2, column : 3 } ),
-        ("b2".to_string(), VarSort::Name, SourcePosition{ row : 2, column : 6 } ),
-        ("a3".to_string(), VarSort::Name, SourcePosition{ row : 2, column : 9 } ),
+        ("b1".to_string(), VarSort::Name, SourcePosition{ row : 2, column : 3, length : 0 } ),
+        ("b2".to_string(), VarSort::Name, SourcePosition{ row : 2, column : 6, length : 0 } ),
+        ("a3".to_string(), VarSort::Name, SourcePosition{ row : 2, column : 9, length : 0 } ),
     ]);
 
     match level1.get("a1") {
