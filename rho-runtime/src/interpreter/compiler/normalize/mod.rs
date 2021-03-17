@@ -7,13 +7,14 @@ use defer::defer;
 use crate::model::rho_types::*;
 use super::context::*;
 use super::bnfc;
+pub use super::CompliationError;
 
 mod rho_name;
 mod rho_new;
 mod rho_send;
 
 type RhoProc = bnfc::Proc_;
-
+type RhoName = bnfc::Name_;
 
 
 pub fn from_root(p : bnfc::Proc){
@@ -25,7 +26,7 @@ pub fn from_root(p : bnfc::Proc){
 // Input data to the normalizer
 struct ProcVisitInputs {
     pub par : Par,
-    pub env : IndexMapChain,
+    pub env : Rc<IndexMapChain>,
     pub known_free : Rc<DeBruijnLevelMap>,
 }
 
@@ -33,7 +34,7 @@ impl Default for ProcVisitInputs {
     fn default() -> Self { 
         ProcVisitInputs {
             par : Par::default(),
-            env : IndexMapChain::empty(),
+            env : Rc::new(IndexMapChain::empty()),
             known_free : Rc::new(DeBruijnLevelMap::empty()),
         }
     }
@@ -46,14 +47,14 @@ struct ProcVisitOutputs {
 
 
 struct NameVisitInputs {
-     pub env : IndexMapChain,
+    pub env : Rc<IndexMapChain>,
     pub known_free : Rc<DeBruijnLevelMap>,
 }
 
 impl Default for NameVisitInputs {
     fn default() -> Self { 
         NameVisitInputs {
-            env : IndexMapChain::empty(),
+            env : Rc::new(IndexMapChain::empty()),
             known_free : Rc::new(DeBruijnLevelMap::empty()),
         }
     }
@@ -69,29 +70,31 @@ struct NameVisitOutputs {
 
 struct Normalizer {
     // warning messages
-    pub warnings : Vec<(SourcePosition, String)>,
+    pub source_warnings : Vec<(SourcePosition, String)>,
 
     // error messages
-    pub errors : Vec<(SourcePosition, String)>,
+    pub source_errors : Vec<(SourcePosition, String)>,
+
+    pub faulty_errors : Vec<CompliationError>,
 }
 impl Default for Normalizer {
     fn default() -> Self { 
         Normalizer {
-            warnings : Vec::new(),
-            errors : Vec::new(),
+            source_warnings : Vec::new(),
+            source_errors : Vec::new(),
+            faulty_errors : Vec::new(),
         }
     }
 }
 
 impl Normalizer {
     // traverse abstract syntax tree
-    
     pub fn normalize(&mut self, p : bnfc::Proc, input: ProcVisitInputs) -> Option<ProcVisitOutputs> {
         if p == 0 as bnfc::Proc {
             return None; // NULL pointer
         }
 
-        // note that even if error occurs, still we need complete the traverse to free all node's memory
+        // note that even if error occurs, still we need complete traverse to free all node's memory
         defer( || unsafe { libc::free(p as *mut libc::c_void); } );
     
         let proc = unsafe { *p };

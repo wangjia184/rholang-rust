@@ -12,8 +12,8 @@ pub enum CompliationError {
     #[error("Unrecognized token `{0}`")]
     UnrecognizedToken(u32),
 
-    #[error("Unrecognized kind `{0}` in namedecl")]
-    UnrecognizedNameDeclKind(u32),
+    #[error("Unrecognized kind `{0}` in {1}")]
+    UnrecognizedKind(u32, String),
 
     #[error("Null pointer in {0}.")]
     NullPointer(String),

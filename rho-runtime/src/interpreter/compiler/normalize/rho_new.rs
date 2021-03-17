@@ -18,9 +18,14 @@ impl super::Normalizer {
         let listnamedecl_ = unsafe { proc.u.pnew_.listnamedecl_ };
         let proc_ = unsafe { proc.u.pnew_.proc_ };
 
+        if proc_ == 0 as bnfc::Proc {
+            self.faulty_errors.push(CompliationError::NullPointer("pnew_.proc_".to_string()));
+            return None;
+        }
+
         let mut list = match self.list_name_decl(listnamedecl_) {
             Err(e) => { 
-                error!("normalize_pnew failed. {}", e); 
+                self.faulty_errors.push(e);
                 return None;
             },
             Ok(l) => l,
@@ -51,7 +56,7 @@ impl super::Normalizer {
         let requires_deploy_id = uris.contains(constant::DEPLOY_ID_URI);
         let requires_deployer_id = uris.contains(constant::DEPLOYER_ID_URI);
     
-        /* TODO:
+        /* TODO: avoid hardcode
         def missingEnvElement(name: String, uri: String) =
             NormalizerError(s"`$uri` was used in rholang usage context where $name is not available.")
         if (requiresDeployId && env.get(deployIdUri).forall(_.singleDeployId().isEmpty))
@@ -62,7 +67,7 @@ impl super::Normalizer {
     
         self.normalize(proc_, ProcVisitInputs{
             par: rho_types::Par::default(),
-            env: new_env,
+            env: Rc::new(new_env),
             known_free : input.known_free.clone(),
         }).and_then( |body| {
             let mut type_new = rho_types::New::new();
@@ -136,11 +141,11 @@ impl super::Normalizer {
                     }
                 },
                 _ => {
-                    Err(CompliationError::UnrecognizedNameDeclKind(p.kind))
+                    Err(CompliationError::UnrecognizedKind(p.kind, "bnfc::NameDecl".to_string()))
                 }
             }
         }
-        Err(CompliationError::NullPointer("extract_name_decl".to_string()))
+        Err(CompliationError::NullPointer("bnfc::NameDecl".to_string()))
     }
 
     fn get_string(&mut self, raw_str : bnfc::String) -> Result<String, std::str::Utf8Error> {
