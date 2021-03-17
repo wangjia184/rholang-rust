@@ -19,5 +19,7 @@ pub struct ProcVisitInputs {
 }
 
 pub fn test() {
-    builder::build_ast("new deployerId(`rho:rchain:deployerId`), \n a2, stdout(`rho:io:stdout`), \n a3, a1, rl(`rho:registry:lookup`)  in {}");
+    builder::build_ast("new a1, a2, a3 in {
+        a1!(Nil)
+    }");
 }

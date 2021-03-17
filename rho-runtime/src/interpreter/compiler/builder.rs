@@ -5,7 +5,7 @@ use libc;
 
 use super::errors::*;
 use super::bnfc;
-use super::normalize::*;
+use super::normalize;
 
 
 
@@ -33,7 +33,7 @@ pub fn build_ast(source: &str) -> std::result::Result<(), CompliationError> {
 
    
 
-    normalize(proc);
+    normalize::from_root(proc);
 
     unsafe {
         libc::fclose(mem_file);
@@ -49,11 +49,4 @@ pub fn build_ast(source: &str) -> std::result::Result<(), CompliationError> {
 
 }
 
-
-
-// traverse abstract syntax tree
-// note that even if error occurs, still we need complete the traverse to free all node's memory
-fn normalize(p : bnfc::Proc) {
-    proc::normalize_match(p, ProcVisitInputs::default());
-}
 
