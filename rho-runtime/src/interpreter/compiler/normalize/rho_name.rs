@@ -13,7 +13,7 @@ impl super::Normalizer {
 
         match n.kind {
             bnfc::Name__is_NameWildcard => {
-                let wildcard_bind_request = (*input.known_free).clone().add_wildcard(source_position);
+                let wildcard_bind_request = input.known_free.add_wildcard(source_position);
                 let mut var = Var::new();
                 var.set_wildcard(Var_WildcardMsg::default());
                 return Some(NameVisitOutputs {

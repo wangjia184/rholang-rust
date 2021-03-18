@@ -21,7 +21,7 @@ pub struct DeBruijnLevelMap {
     level_bindings : HashMap<RcString, Rc<LevelContext>>, 
 
     // A list of the positions of _ patterns.
-    wildcards : Rc<RefCell<Vec<SourcePosition>>>,
+    wildcards : Rc<Vec<SourcePosition>>,
 
     // A list of the positions of logical connectives.
     connectives : Rc<Vec<(Connective, SourcePosition)>>
@@ -33,7 +33,7 @@ impl DeBruijnLevelMap {
         DeBruijnLevelMap {
             next_level : 0,
             level_bindings : HashMap::new(),
-            wildcards : Rc::new(RefCell::new(Vec::new())),
+            wildcards : Rc::new(Vec::new()),
             connectives : Rc::new(Vec::new()),
         }
     }
@@ -59,9 +59,15 @@ impl DeBruijnLevelMap {
         }
     }
 
-
-    pub fn add_wildcard(self, source_position : SourcePosition) -> DeBruijnLevelMap{
-        self.wildcards.borrow_mut().push(source_position);
-        self
+    // create a new DeBruijnLevelMap and add a new wildcard binding
+    pub fn add_wildcard(&self, source_position : SourcePosition) -> DeBruijnLevelMap{
+        let mut wildcards : Vec<SourcePosition> = (*self.wildcards).clone();
+        wildcards.push(source_position);
+        DeBruijnLevelMap {
+            next_level : self.next_level,
+            level_bindings : self.level_bindings.clone(),
+            wildcards : Rc::new(wildcards),
+            connectives : self.connectives.clone(),
+        }
     }
 }

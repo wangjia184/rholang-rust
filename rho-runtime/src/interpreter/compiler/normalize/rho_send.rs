@@ -9,6 +9,7 @@ use super::*;
 impl super::Normalizer {
 
     pub fn normalize_send(&mut self, proc : &RhoProc,  input: &ProcVisitInputs) -> Option<ProcVisitOutputs> {
+        // normalize the name
         let name_ = unsafe { proc.u.psend_.name_ };
         let send_ = unsafe { proc.u.psend_.send_ };
         let listproc_ = unsafe { proc.u.psend_.listproc_ };
@@ -27,6 +28,9 @@ impl super::Normalizer {
         }
         let n = unsafe { *name_ };
         self.normalize_name(&n, &NameVisitInputs { env : input.env.clone(), known_free : input.known_free.clone() });
+
+
+
 
         None
     }
