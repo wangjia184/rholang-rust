@@ -10,9 +10,9 @@ pub enum VarSort {
 // bound variable information
 #[derive(Debug)]
 pub struct IndexContext {
-    index : u32,
-    var_sort : VarSort,
-    source_position : SourcePosition,
+    pub index : i32,
+    pub var_sort : VarSort,
+    pub source_position : SourcePosition,
 }
 
 pub type BoundVariable = (String, VarSort, SourcePosition);
@@ -25,7 +25,7 @@ pub type BoundVariable = (String, VarSort, SourcePosition);
 #[derive(Debug, Clone)]
 pub struct DeBruijnIndexMap {
     // The DeBruijn index assigned to the next variable added to the map.
-    next_index : u32,
+    next_index : i32,
 
     // A map of names to DeBruijn indices.
     index_bindings : HashMap<RcString, Rc<IndexContext>>, 
@@ -43,7 +43,7 @@ impl DeBruijnIndexMap {
         }
     }
 
-    pub fn count(&self) -> u32 { self.next_index }
+    pub fn count(&self) -> i32 { self.next_index }
 
     pub fn get(&self, name : &str) -> Option<IndexContext> {
         self.index_bindings.get(name).map( |v| IndexContext{
@@ -56,14 +56,14 @@ impl DeBruijnIndexMap {
     // create a new DeBruijnIndexMap basing on current level
     pub fn create(&mut self, bindings : Vec<BoundVariable>) -> DeBruijnIndexMap {
         let mut index_map = self.index_bindings.clone(); // clone 
-        let next_index = self.next_index + bindings.len() as u32;
+        let next_index = self.next_index + bindings.len() as i32;
 
         let _overlapped_vars : Vec<_> = bindings
             .into_iter()
             .enumerate()
             .filter_map( |(idx, b)| {
                 let ctx = Rc::new(IndexContext{
-                    index : self.next_index + idx as u32,
+                    index : self.next_index + idx as i32,
                     var_sort : b.1,
                     source_position : b.2
                 });

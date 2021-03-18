@@ -1,6 +1,5 @@
 
-use std::ffi::{ CStr }; 
-use std::os::raw::c_char;
+
 use std::cmp::Ordering;
 use std::collections::hash_set::HashSet;
 
@@ -51,7 +50,7 @@ impl super::Normalizer {
             .map(|tuple| (tuple.1, VarSort::Name, tuple.2))
             .collect();
     
-        let new_env = input.env.clone_with_new_head(new_bindings);
+        let new_env = (*input.env).clone().add_bindings_to_head(new_bindings);
         let bind_count = new_env.count() - input.env.count();
         let requires_deploy_id = uris.contains(constant::DEPLOY_ID_URI);
         let requires_deployer_id = uris.contains(constant::DEPLOYER_ID_URI);
@@ -148,14 +147,7 @@ impl super::Normalizer {
         Err(CompliationError::NullPointer("bnfc::NameDecl".to_string()))
     }
 
-    fn get_string(&mut self, raw_str : bnfc::String) -> Result<String, std::str::Utf8Error> {
-        unsafe {
-            let raw_pointer = raw_str as *const _ as *const c_char;
-            CStr::from_ptr(raw_pointer).to_str().and_then( |s| {
-                Ok(s.to_owned())
-            })
-        }
-    }
+    
 }
 
 

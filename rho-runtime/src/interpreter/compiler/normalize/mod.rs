@@ -1,5 +1,6 @@
 
-
+use std::ffi::{ CStr }; 
+use std::os::raw::c_char;
 use std::rc::Rc;
 use defer::defer;
 
@@ -7,6 +8,7 @@ use defer::defer;
 use crate::model::rho_types::*;
 use super::context::*;
 use super::bnfc;
+use super::errors::*;
 pub use super::CompliationError;
 
 mod rho_name;
@@ -63,7 +65,7 @@ impl Default for NameVisitInputs {
 
 struct NameVisitOutputs {
     pub par : Par,
-    pub known_free : DeBruijnLevelMap,
+    pub known_free : Rc<DeBruijnLevelMap>,
 }
 
 
@@ -73,7 +75,7 @@ struct Normalizer {
     pub source_warnings : Vec<(SourcePosition, String)>,
 
     // error messages
-    pub source_errors : Vec<(SourcePosition, String)>,
+    pub syntax_errors : Vec<(SyntaxError, Option<SourcePosition>, Option<SourcePosition>)>,
 
     pub faulty_errors : Vec<CompliationError>,
 }
@@ -81,7 +83,7 @@ impl Default for Normalizer {
     fn default() -> Self { 
         Normalizer {
             source_warnings : Vec::new(),
-            source_errors : Vec::new(),
+            syntax_errors : Vec::new(),
             faulty_errors : Vec::new(),
         }
     }
@@ -91,7 +93,8 @@ impl Normalizer {
     // traverse abstract syntax tree
     pub fn normalize(&mut self, p : bnfc::Proc, input: ProcVisitInputs) -> Option<ProcVisitOutputs> {
         if p == 0 as bnfc::Proc {
-            return None; // NULL pointer
+            self.faulty_errors.push(CompliationError::NullPointer("proc_".to_string()));
+            return None;
         }
 
         // note that even if error occurs, still we need complete traverse to free all node's memory
@@ -112,5 +115,15 @@ impl Normalizer {
         };
         
         None
+    }
+
+
+    fn get_string(&mut self, raw_str : bnfc::String) -> Result<String, std::str::Utf8Error> {
+        unsafe {
+            let raw_pointer = raw_str as *const _ as *const c_char;
+            CStr::from_ptr(raw_pointer).to_str().and_then( |s| {
+                Ok(s.to_owned())
+            })
+        }
     }
 }

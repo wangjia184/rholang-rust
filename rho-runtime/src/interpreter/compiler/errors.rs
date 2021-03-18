@@ -21,12 +21,17 @@ pub enum CompliationError {
     #[error("`fmemopen()` failed")]
     FileMemOpenFailed,
 
-    #[error("invalid header (expected {expected:?}, found {found:?})")]
-    InvalidHeader {
-        expected: String,
-        found: String,
-    },
-    
-    #[error("unknown error")]
-    Unknown,
+
+}
+
+
+#[derive(Error, Debug)]
+pub enum SyntaxError {
+    #[error("Process variable `{0}` is used as a name variable")]
+    UnexpectedNameContext(String),
+
+
+    #[error("Free variable `{0}` is used twice as a binder in name context")]
+    UnexpectedReuseOfNameContextFree(String),
+
 }
