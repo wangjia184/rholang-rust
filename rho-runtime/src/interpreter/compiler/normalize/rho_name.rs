@@ -1,5 +1,3 @@
-use protobuf::RepeatedField;
-
 
 
 use super::super::bnfc;
@@ -8,16 +6,15 @@ use super::*;
 
 impl super::Normalizer {
 
-    pub fn normalize_name(&mut self, n : &RhoName,  input: &NameVisitInputs) -> Option<NameVisitOutputs> {
+    pub fn normalize_name(&mut self, n : &RawName,  input: &NameVisitInputs) -> Option<NameVisitOutputs> {
         let source_position = SourcePosition::new(n.line_number, n.char_number, 1);
 
         match n.kind {
             bnfc::Name__is_NameWildcard => {
                 let wildcard_bind_request = input.known_free.add_wildcard(source_position);
-                let mut var = Var::new();
-                var.set_wildcard(Var_WildcardMsg::default());
+                
                 return Some(NameVisitOutputs {
-                    par : self.create_par_with_var(var),
+                    par : RhoPar::new_wildcard_var(),
                     known_free : Rc::new(wildcard_bind_request),
                 })
             },
@@ -43,10 +40,8 @@ impl super::Normalizer {
                                 );
                             },
                             VarSort::Name => {
-                                let mut var = Var::new();
-                                var.set_bound_var(idx_ctx.index);
                                 return Some(NameVisitOutputs {
-                                    par : self.create_par_with_var(var),
+                                    par : RhoPar::new_bound_var(idx_ctx.index),
                                     known_free : input.known_free.clone(),
                                 })
                             }
@@ -58,10 +53,8 @@ impl super::Normalizer {
                             None => {
                                 let source_position = SourcePosition::new(n.line_number, n.char_number, var_name.len());
                                 let new_binding_pair = input.known_free.put((var_name, VarSort::Name, source_position));
-                                let mut var = Var::new();
-                                var.set_free_var(input.known_free.next_level);
                                 return Some(NameVisitOutputs {
-                                    par : self.create_par_with_var(var),
+                                    par : RhoPar::new_free_var(input.known_free.next_level),
                                     known_free : Rc::new(new_binding_pair),
                                 })
                             },
@@ -81,7 +74,7 @@ impl super::Normalizer {
             bnfc::Name__is_NameQuote => {
                 let proc_ = unsafe { n.u.namequote_.proc_ };
                 return self.normalize(proc_, ProcVisitInputs{
-                            par: Par::default(),
+                            par: RhoPar::default(),
                             env: input.env.clone(),
                             known_free : input.known_free.clone(),
                         })
@@ -101,14 +94,6 @@ impl super::Normalizer {
         None
     }
 
-    fn create_par_with_var(&self, var : Var) -> Par {
-        let mut evar = EVar::new();
-        evar.set_v(var);
-        let mut expr = Expr::new();
-        expr.set_e_var_body(evar);
-        let mut par = Par::new();
-        par.set_exprs(RepeatedField::from(vec![expr]));
-        par
-    }
+    
     
 }

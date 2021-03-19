@@ -4,8 +4,6 @@ use std::cmp::Ordering;
 use std::collections::hash_set::HashSet;
 
 use super::*;
-use crate::model::constant;
-use crate::model::rho_types;
 use super::super::bnfc;
 
 use super::super::errors::*;
@@ -13,7 +11,7 @@ use super::{ ProcVisitInputs, ProcVisitOutputs};
 
 
 impl super::Normalizer {
-    pub fn normalize_new(&mut self, proc : &RhoProc, input: &ProcVisitInputs) -> Option<ProcVisitOutputs> {
+    pub fn normalize_new(&mut self, proc : &RawProc, input: &ProcVisitInputs) -> Option<ProcVisitOutputs> {
         let listnamedecl_ = unsafe { proc.u.pnew_.listnamedecl_ };
         let proc_ = unsafe { proc.u.pnew_.proc_ };
 
@@ -65,15 +63,28 @@ impl super::Normalizer {
         */
     
         self.normalize(proc_, ProcVisitInputs{
-            par: rho_types::Par::default(),
+            par: RhoPar::default(),
             env: Rc::new(new_env),
             known_free : input.known_free.clone(),
         }).and_then( |body| {
-            let mut type_new = rho_types::New::new();
-            type_new.set_bindCount(bind_count as i32);
-            type_new.set_p(body.par);
-            type_new.set_uri(protobuf::RepeatedField::from_vec(uris.into_iter().collect()));
-            // TODO: type_new.set_injections(env);
+            // val resultNew = New(
+            //     bindCount = newCount,
+            //     p = bodyResult.par,
+            //     uri = uris,
+            //     injections = env,
+            //     locallyFree = bodyResult.par.locallyFree.from(newCount).map(x => x - newCount)
+            //   )
+            
+            // Given this bitset [0 1 4 5 6 9]
+            // after running : bodyResult.par.locallyFree.from(4).map(x => x - 4)
+            // It changes to [0 1 2 5]
+            // The idea is to re-index of next level's variables 
+
+
+            let mut rho_new = body.par.into_new(); // create a New containing { par: bodyResult.par },
+            rho_new.set_bindCount(bind_count as i32);
+            rho_new.set_uri(protobuf::RepeatedField::from_vec(uris.into_iter().collect()));
+            rho_new.set_injections(self.environment.clone());
     
             // bodyResult.par.locallyFree.from(newCount).map(x => x - newCount)
             // TODO: type_new.set_locallyFree(v: ::bytes::Bytes);
@@ -86,7 +97,7 @@ impl super::Normalizer {
             //   connectiveUsed = p.connectiveUsed || n.connectiveUsed
             // )
             Some(ProcVisitOutputs{ 
-                par : rho_types::Par::default(), // TODO : input.par.prepend(type_new),
+                par : RhoPar::default(), // TODO : input.par.prepend(type_new),
                 known_free : body.known_free 
             })
         })

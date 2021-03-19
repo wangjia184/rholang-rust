@@ -2,10 +2,11 @@
 use std::ffi::{ CStr }; 
 use std::os::raw::c_char;
 use std::rc::Rc;
+use std::collections::HashMap;
 use defer::defer;
 
 
-use crate::model::rho_types::*;
+use crate::model::*;
 use super::context::*;
 use super::bnfc;
 use super::errors::*;
@@ -15,8 +16,8 @@ mod rho_name;
 mod rho_new;
 mod rho_send;
 
-type RhoProc = bnfc::Proc_;
-type RhoName = bnfc::Name_;
+type RawProc = bnfc::Proc_;
+type RawName = bnfc::Name_;
 
 
 pub fn from_root(p : bnfc::Proc){
@@ -27,7 +28,7 @@ pub fn from_root(p : bnfc::Proc){
 
 // Input data to the normalizer
 struct ProcVisitInputs {
-    pub par : Par,
+    pub par : RhoPar,
     pub env : Rc<IndexMapChain>,
     pub known_free : Rc<DeBruijnLevelMap>,
 }
@@ -35,7 +36,7 @@ struct ProcVisitInputs {
 impl Default for ProcVisitInputs {
     fn default() -> Self { 
         ProcVisitInputs {
-            par : Par::default(),
+            par : RhoPar::default(),
             env : Rc::new(IndexMapChain::empty()),
             known_free : Rc::new(DeBruijnLevelMap::empty()),
         }
@@ -43,7 +44,7 @@ impl Default for ProcVisitInputs {
 }
 
 struct ProcVisitOutputs {
-    pub par : Par,
+    pub par : RhoPar,
     pub known_free : DeBruijnLevelMap,
 }
 
@@ -64,8 +65,9 @@ impl Default for NameVisitInputs {
 
 
 struct NameVisitOutputs {
-    pub par : Par,
+    pub par : RhoPar,
     pub known_free : Rc<DeBruijnLevelMap>,
+    
 }
 
 
@@ -78,6 +80,8 @@ struct Normalizer {
     pub syntax_errors : Vec<(SyntaxError, Option<SourcePosition>, Option<SourcePosition>)>,
 
     pub faulty_errors : Vec<CompliationError>,
+
+    pub environment : HashMap<String, Par>,
 }
 impl Default for Normalizer {
     fn default() -> Self { 
@@ -85,6 +89,7 @@ impl Default for Normalizer {
             source_warnings : Vec::new(),
             syntax_errors : Vec::new(),
             faulty_errors : Vec::new(),
+            environment : HashMap::new(),
         }
     }
 }
