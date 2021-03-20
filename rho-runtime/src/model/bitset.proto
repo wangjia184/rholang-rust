@@ -1,0 +1,7 @@
+// bitset.proto
+
+syntax = "proto3";
+package bitset;
+
+message BitSet {
+}

@@ -2,10 +2,12 @@
 use std::ffi::{ CStr }; 
 use std::os::raw::c_char;
 use std::rc::Rc;
-use defer::defer;
+use std::mem;
+use std::collections::{ HashSet, HashMap };
 
 
-use crate::model::rho_types::*;
+
+use crate::model::*;
 use super::context::*;
 use super::bnfc;
 use super::errors::*;
@@ -15,13 +17,14 @@ mod rho_name;
 mod rho_new;
 mod rho_send;
 
-type RhoProc = bnfc::Proc_;
-type RhoName = bnfc::Name_;
+type RawProc = bnfc::Proc_;
+type RawName = bnfc::Name_;
 
 
-pub fn from_root(p : bnfc::Proc){
+pub fn from_root(p : bnfc::Proc) -> Result<(), CompliationError>{
     let mut normalizer = Normalizer::default();
-    normalizer.normalize(p, ProcVisitInputs::default());
+    normalizer.normalize(p)?;
+    Ok(())
 }
 
 
@@ -66,55 +69,85 @@ impl Default for NameVisitInputs {
 struct NameVisitOutputs {
     pub par : Par,
     pub known_free : Rc<DeBruijnLevelMap>,
+    
+}
+impl Default for NameVisitOutputs {
+    fn default() -> Self { 
+        NameVisitOutputs {
+            par : Par::default(),
+            known_free : Rc::new(DeBruijnLevelMap::empty()),
+        }
+    }
 }
 
 
 
 struct Normalizer {
+    pub environment : HashMap<String, Par>,
+
     // warning messages
     pub source_warnings : Vec<(SourcePosition, String)>,
 
     // error messages
-    pub syntax_errors : Vec<(SyntaxError, Option<SourcePosition>, Option<SourcePosition>)>,
+    pub syntax_errors : Vec<(SyntaxError, Option<SourcePosition>, Option<SourcePosition>)>,   
 
-    pub faulty_errors : Vec<CompliationError>,
+    traverse_completed : bool,
+    proc_set : HashSet<bnfc::Proc>,
 }
 impl Default for Normalizer {
     fn default() -> Self { 
         Normalizer {
             source_warnings : Vec::new(),
             syntax_errors : Vec::new(),
-            faulty_errors : Vec::new(),
+            environment : HashMap::new(),
+            proc_set : HashSet::new(),
+            traverse_completed : false,
+        }
+    }
+}
+
+impl Drop for Normalizer {
+    fn drop(&mut self) {
+        if self.traverse_completed {
+            let set = mem::replace(&mut self.proc_set, HashSet::new());
+            for p in set {
+                unsafe { libc::free(p as *mut libc::c_void); }
+            }
+        } else {
+            unimplemented!("call C function to traverse again to free");
         }
     }
 }
 
 impl Normalizer {
-    // traverse abstract syntax tree
-    pub fn normalize(&mut self, p : bnfc::Proc, input: ProcVisitInputs) -> Option<ProcVisitOutputs> {
-        if p == 0 as bnfc::Proc {
-            self.faulty_errors.push(CompliationError::NullPointer("proc_".to_string()));
-            return None;
-        }
 
-        // note that even if error occurs, still we need complete traverse to free all node's memory
-        defer( || unsafe { libc::free(p as *mut libc::c_void); } );
+    fn normalize(&mut self, p : bnfc::Proc) -> Result<ProcVisitOutputs, CompliationError> {
+        let outputs = self.normalize_proc(p, ProcVisitInputs::default())?;
+        self.traverse_completed = true;
+        Ok(outputs)
+    }
+
+    // traverse abstract syntax tree
+    fn normalize_proc(&mut self, p : bnfc::Proc, input: ProcVisitInputs) -> Result<ProcVisitOutputs, CompliationError> {
+        if p == 0 as bnfc::Proc {
+            return Err(CompliationError::NullPointer("proc_".to_string()));
+        }
+        
+        self.proc_set.insert(p); // collect pointers to be freed 
     
         let proc = unsafe { *p };
     
         match proc.kind {
             bnfc::Proc__is_PNew => {
-                return self.normalize_new(&proc, &input);
+                self.normalize_new(&proc, &input)
             },
             bnfc::Proc__is_PSend => {
-                return self.normalize_send(&proc, &input);
+                self.normalize_send(&proc, &input)
             },
     
             
-            _ => { warn!("Unknown token {:?}", &proc.kind); }
-        };
-        
-        None
+            _ => Err(CompliationError::UnrecognizedToken(proc.kind))
+        }        
     }
 
 

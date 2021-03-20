@@ -13,7 +13,6 @@ The following command line tools required:
 
 * `/dependencies/` External dependencies
   * `bnfc/` BNFC generates lex and gramma parser
-  * `protobuf/` Protobuf generator
 * `/include` C header files
 * `/lib` Static libraries
 * `/src` Rust source code

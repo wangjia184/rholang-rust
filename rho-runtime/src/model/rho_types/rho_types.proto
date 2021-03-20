@@ -5,28 +5,8 @@
  */
 syntax = "proto3";
 
-// https://github.com/stepancheg/rust-protobuf/blob/master/proto/rustproto.proto
-import "rustproto.proto";
-
-option (rustproto.carllerche_bytes_for_bytes_all) = true;
-//option (rustproto.generate_accessors_all) = false;
-
-// If you are building for other languages "scalapb.proto"
-// can be manually obtained here:
-// https://raw.githubusercontent.com/scalapb/ScalaPB/master/protobuf/scalapb/scalapb.proto
-// make a scalapb directory in this file's location and place it inside
-/*
-import "scalapb/scalapb.proto";
-
-option (scalapb.options) = {
-  package_name: "coop.rchain.models"
-  import: "coop.rchain.models.BitSetBytesMapper.bitSetBytesMapper"
-  import: "coop.rchain.models.ParSetTypeMapper.parSetESetTypeMapper"
-  import: "coop.rchain.models.ParMapTypeMapper.parMapEMapTypeMapper"
-  preserve_unknown_fields: false
-};
-*/
-
+package rho_types;
+import "bitset.proto";
 /**
  * Rholang process
  *
@@ -44,7 +24,7 @@ message Par {
     repeated GUnforgeable unforgeables = 7;  // unforgeable names
     repeated Bundle bundles = 11;
     repeated Connective connectives = 8;
-    bytes locallyFree = 9 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
+    bitset.BitSet locallyFree = 9 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
     bool connective_used = 10;
 }
 
@@ -113,7 +93,7 @@ message Send {
     Par chan = 1 ;
     repeated Par data = 2;
     bool persistent = 3;
-    bytes locallyFree = 5 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
+    bitset.BitSet locallyFree = 5 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
     bool connective_used = 6;
 }
 
@@ -147,7 +127,7 @@ message Receive {
     bool persistent = 3;
     bool peek = 4;
     int32 bindCount = 5;
-    bytes locallyFree = 6 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
+    bitset.BitSet locallyFree = 6 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
     bool connective_used = 7;
 }
 
@@ -162,7 +142,7 @@ message New {
     // For normalization, uri-referenced variables come at the end, and in lexicographical order.
     repeated string uri = 3;
     map<string, Par> injections = 4;
-    bytes locallyFree = 5 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
+    bitset.BitSet locallyFree = 5 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
 }
 
 message MatchCase {
@@ -174,7 +154,7 @@ message MatchCase {
 message Match {
     Par target = 1 ;
     repeated MatchCase cases = 2;
-    bytes locallyFree = 4 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
+    bitset.BitSet locallyFree = 4 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
     bool connective_used = 5;
 }
 
@@ -221,27 +201,27 @@ message Expr {
 
 message EList {
     repeated Par ps = 1;
-    bytes locallyFree = 3 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
+    bitset.BitSet locallyFree = 3 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
     bool connective_used = 4;
     Var remainder = 5;
 }
 
 message ETuple {
     repeated Par ps = 1;
-    bytes locallyFree = 3 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
+    bitset.BitSet locallyFree = 3 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
     bool connective_used = 4;
 }
 
 message ESet {
     repeated Par ps = 1;
-    bytes locallyFree = 3 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
+    bitset.BitSet locallyFree = 3 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
     bool connective_used = 4;
     Var remainder = 5;
 }
 
 message EMap {
     repeated KeyValuePair kvs = 1;
-    bytes locallyFree = 3 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
+    bitset.BitSet locallyFree = 3 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
     bool connective_used = 4;
     Var remainder = 5;
 }
@@ -253,7 +233,7 @@ message EMethod {
     string methodName = 1;
     Par target = 2 ;
     repeated Par arguments = 3;
-    bytes locallyFree = 5 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
+    bitset.BitSet locallyFree = 5 ;//[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
     bool connective_used = 6;
 }
 
