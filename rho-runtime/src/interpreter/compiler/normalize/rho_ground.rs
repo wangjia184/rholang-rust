@@ -1,9 +1,9 @@
 
 
-use super::super::bnfc::*;
+use super::super::bnfc;
 use super::super::errors::*;
 use super::*;
-use crate::model::*;
+
 
 impl super::Normalizer {
 
@@ -16,7 +16,7 @@ impl super::Normalizer {
 
         let ground = unsafe { *ground_ };
         let expression = match ground.kind {
-            Ground__is_GroundInt => self.normalize_ground_int(&ground),
+            bnfc::Ground__is_GroundInt => self.normalize_ground_int(&ground),
             _ => {
                 Err(CompliationError::UnrecognizedKind(ground.kind, "ground_.kind".to_string()))
             }
