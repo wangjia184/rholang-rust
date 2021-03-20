@@ -60,7 +60,7 @@ impl super::Normalizer {
             env: Rc::new(new_env),
             known_free : input.known_free.clone(),
         };
-        self.normalize_proc(proc_, proc_visit_inputs).and_then( |body| {
+        self.normalize_proc(proc_, &proc_visit_inputs).and_then( |body| {
             // val resultNew = New(
             //     bindCount = newCount,
             //     p = bodyResult.par,

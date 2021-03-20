@@ -50,7 +50,7 @@ impl super::Normalizer {
 
         let (data, proc_visit_inputs, mut locally_free, mut connective_used) = list.into_iter().fold( init_acc, | option, proc_| {
             option.and_then( | (mut list, proc_visit_inputs, mut locally_free, connective_used) | {
-                self.normalize_proc(proc_, proc_visit_inputs).map( |result| {
+                self.normalize_proc(proc_, &proc_visit_inputs).map( |result| {
                     let connective_used = connective_used || result.par.connective_used;
                     // the nested
                     locally_free.union_with_option(result.par.locally_free.as_ref()); 

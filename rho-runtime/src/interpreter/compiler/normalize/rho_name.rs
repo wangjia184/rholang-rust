@@ -79,7 +79,7 @@ impl super::Normalizer {
             },
             bnfc::Name__is_NameQuote => {
                 let proc_ = unsafe { n.u.namequote_.proc_ };
-                self.normalize_proc(proc_, ProcVisitInputs{
+                self.normalize_proc(proc_, &ProcVisitInputs{
                     par: Par::default(),
                     env: input.env.clone(),
                     known_free : input.known_free.clone(),

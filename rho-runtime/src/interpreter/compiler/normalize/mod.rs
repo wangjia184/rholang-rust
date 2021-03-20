@@ -17,10 +17,17 @@ mod rho_name;
 mod rho_new;
 mod rho_send;
 mod rho_ground;
+mod rho_par;
+
+#[cfg(test)]
+mod tests {
+    include!("rho_new_test.rs");
+}
 
 type RawProc = bnfc::Proc_;
 type RawName = bnfc::Name_;
 type RawGround = bnfc::Ground_;
+
 
 pub fn from_root(p : bnfc::Proc) -> Result<(), CompliationError>{
     let mut normalizer = Normalizer::default();
@@ -123,7 +130,7 @@ impl Drop for Normalizer {
 impl Normalizer {
 
     fn normalize(&mut self, p : bnfc::Proc) -> Result<ProcVisitOutputs, CompliationError> {
-        let outputs = match self.normalize_proc(p, ProcVisitInputs::default()) {
+        let outputs = match self.normalize_proc(p, &ProcVisitInputs::default()) {
             Err(e) => unimplemented!("{:?} : {}", e, e),
             Ok(o) => o,
         };
@@ -133,7 +140,7 @@ impl Normalizer {
     }
 
     // traverse abstract syntax tree
-    fn normalize_proc(&mut self, p : bnfc::Proc, input: ProcVisitInputs) -> Result<ProcVisitOutputs, CompliationError> {
+    fn normalize_proc(&mut self, p : bnfc::Proc, input: &ProcVisitInputs) -> Result<ProcVisitOutputs, CompliationError> {
         if p == 0 as bnfc::Proc {
             return Err(CompliationError::NullPointer("proc_".to_string()));
         }
@@ -144,13 +151,16 @@ impl Normalizer {
     
         match proc.kind {
             bnfc::Proc__is_PGround => {
-                self.normalize_ground(&proc, &input)
+                self.normalize_ground(&proc, input)
+            },
+            bnfc::Proc__is_PPar => {
+                self.normalize_par(&proc, input)
             },
             bnfc::Proc__is_PNew => {
-                self.normalize_new(&proc, &input)
+                self.normalize_new(&proc, input)
             },
             bnfc::Proc__is_PSend => {
-                self.normalize_send(&proc, &input)
+                self.normalize_send(&proc, input)
             },
     
             
