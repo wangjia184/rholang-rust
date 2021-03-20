@@ -1,4 +1,4 @@
-
+use super::*;
 
 include!("rho_types.rs");
 
@@ -47,7 +47,7 @@ impl Par {
     }
 
 
-    pub fn clone_then_prepend(&self, n : New) -> Self {
+    pub fn clone_then_prepend_new(&self, n : New) -> Self {
         let mut cloned = self.clone();
 
         if let Some(new_bitset) = n.locally_free.as_ref() {
@@ -67,6 +67,29 @@ impl Par {
             }
         }
         cloned.news.insert(0, n);
+        
+        cloned
+    }
+
+
+    pub fn clone_then_prepend_send(&self, s : RhoSend) -> Self {
+        let mut cloned = self.clone();
+
+        if let Some(new_bitset) = s.locally_free.as_ref() {
+            cloned.locally_free = match cloned.locally_free {
+                Some(mut bitset) => {
+                    bitset.union_with(new_bitset);
+                    Some(bitset)
+                },
+                None => {
+                    Some(new_bitset.clone())
+                }
+            };
+        }
+        if s.connective_used {
+            cloned.connective_used = true;
+        }
+        cloned.sends.insert(0, s);
         
         cloned
     }

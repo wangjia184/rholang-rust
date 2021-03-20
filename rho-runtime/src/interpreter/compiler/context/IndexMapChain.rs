@@ -24,4 +24,6 @@ impl IndexMapChain {
     }
 
     pub fn count(&self) -> i32 { self.chain[0].count() }
+
+    pub fn depth(&self) -> i32 { self.chain.len() as i32 - 1 }
 }

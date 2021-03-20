@@ -67,14 +67,14 @@ impl Default for NameVisitInputs {
 
 
 struct NameVisitOutputs {
-    pub par : Par,
+    pub chan : Par,
     pub known_free : Rc<DeBruijnLevelMap>,
     
 }
 impl Default for NameVisitOutputs {
     fn default() -> Self { 
         NameVisitOutputs {
-            par : Par::default(),
+            chan : Par::default(),
             known_free : Rc::new(DeBruijnLevelMap::empty()),
         }
     }

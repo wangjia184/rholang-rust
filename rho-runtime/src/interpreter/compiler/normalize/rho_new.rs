@@ -98,7 +98,7 @@ impl super::Normalizer {
             //   connectiveUsed = p.connectiveUsed || n.connectiveUsed
             // )
             Ok(ProcVisitOutputs{ 
-                par : input.par.clone_then_prepend(rho_new), // input.par.prepend(type_new),
+                par : input.par.clone_then_prepend_new(rho_new), // input.par.prepend(type_new),
                 known_free : body.known_free 
             })
         })

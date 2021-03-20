@@ -14,7 +14,7 @@ impl super::Normalizer {
                 let wildcard_bind_request = input.known_free.clone_then_add_wildcard(source_position);
                 
                 Ok(NameVisitOutputs {
-                    par : Par::new_wildcard_var(),
+                    chan : Par::new_wildcard_var(),
                     known_free : Rc::new(wildcard_bind_request),
                 })
             },
@@ -43,7 +43,7 @@ impl super::Normalizer {
                             },
                             VarSort::Name => {
                                 Ok(NameVisitOutputs {
-                                    par : Par::new_bound_var(idx_ctx.index),
+                                    chan : Par::new_bound_var(idx_ctx.index),
                                     known_free : input.known_free.clone(),
                                 })
                             },
@@ -59,7 +59,7 @@ impl super::Normalizer {
                             None => {
                                 let new_binding_pair = input.known_free.clone_then_put((var_name, VarSort::Name, source_position));
                                 Ok(NameVisitOutputs {
-                                    par : Par::new_free_var(input.known_free.next_level),
+                                    chan : Par::new_free_var(input.known_free.next_level),
                                     known_free : Rc::new(new_binding_pair),
                                 })
                             },
@@ -86,7 +86,7 @@ impl super::Normalizer {
                 })
                 .and_then( |body| 
                     Ok(NameVisitOutputs{
-                        par : body.par,
+                        chan : body.par,
                         known_free : Rc::new(body.known_free),
                     })
                 )

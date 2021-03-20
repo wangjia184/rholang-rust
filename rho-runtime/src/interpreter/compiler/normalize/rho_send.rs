@@ -4,6 +4,7 @@
 use super::super::bnfc;
 use super::super::errors::*;
 use super::*;
+use crate::model::*;
 
 
 impl super::Normalizer {
@@ -41,17 +42,18 @@ impl super::Normalizer {
         list.reverse();
 
         let init_acc : Result<_, CompliationError> = Ok((
-            Vec::<Par>::new(),
+            prost::alloc::vec::Vec::<Par>::new(),
             ProcVisitInputs { par : Par::default(), env : input.env.clone(), known_free : input.known_free.clone() },
             BitSet::default(), // locally_free
             false // is_connective_used
         ));
 
-        list.into_iter().fold( init_acc, | option, proc_| {
+        let (data, proc_visit_inputs, mut locally_free, mut connective_used) = list.into_iter().fold( init_acc, | option, proc_| {
             option.and_then( | (mut list, proc_visit_inputs, mut locally_free, connective_used) | {
                 self.normalize_proc(proc_, proc_visit_inputs).map( |result| {
                     let connective_used = connective_used || result.par.connective_used;
-                    locally_free.union_with_option(result.par.locally_free.as_ref()); // | procMatchResult.par.locallyFree,
+                    // the nested
+                    locally_free.union_with_option(result.par.locally_free.as_ref()); 
                     list.insert( 0, result.par);
                     (
                         list,
@@ -61,10 +63,24 @@ impl super::Normalizer {
                     )
                 })
             })
-            
         })?;
 
-        Err(CompliationError::NotImplemented)
+        locally_free.union_with_option(ParLocallyFree::locally_free( &name_visit_outputs.chan, input.env.depth()));
+        if ParLocallyFree::connective_used(&name_visit_outputs.chan) {
+            connective_used = true;
+        }
+
+        let rho_send = RhoSend {
+            chan : Some(name_visit_outputs.chan),
+            data : data,
+            persistent : persistent_send,
+            locally_free : Some(locally_free),
+            connective_used : connective_used,
+        };
+        
+
+        let par = input.par.clone_then_prepend_send(rho_send);
+        Ok( ProcVisitOutputs { par : par, known_free : (*proc_visit_inputs.known_free).clone() } )
     }
 
 
