@@ -7,12 +7,12 @@ fn test_index_map() {
     //         Nil
     //     }
     // }
-    let mut level1 = DeBruijnIndexMap::empty().create(vec![
+    let mut level1 = DeBruijnIndexMap::empty().clone_then_put(vec![
         ("a1".to_string(), VarSort::Name, SourcePosition{ row : 1, column : 2, length : 0 } ),
         ("a2".to_string(), VarSort::Name, SourcePosition{ row : 1, column : 5, length : 0 } ),
         ("a3".to_string(), VarSort::Name, SourcePosition{ row : 1, column : 8, length : 0 } ),
     ]);
-    let level2 = level1.create(vec![
+    let level2 = level1.clone_then_put(vec![
         ("b1".to_string(), VarSort::Name, SourcePosition{ row : 2, column : 3, length : 0 } ),
         ("b2".to_string(), VarSort::Name, SourcePosition{ row : 2, column : 6, length : 0 } ),
         ("a3".to_string(), VarSort::Name, SourcePosition{ row : 2, column : 9, length : 0 } ),

@@ -13,12 +13,11 @@ bytes = "1.0"
 protobuf = { version = "2.22", features = ["with-bytes"] }
 thiserror = "1.0"
 libc = "0.2"
-defer = "0.1"
-bit-set = "0.5.2"
+bit-vec = "0.6"
+prost = "0.7"
 
 [build-dependencies]
 bindgen = "0.57"
 libc = "0.2"
-
-# The generated model/rho_types.rs must match this version
-protobuf = { version = "2.22", features = ["with-bytes"] }
+prost-build = { version = "0.7" }
+prost-types = "0.7" # Only necessary if using Protobuf well-known types

@@ -1,9 +1,4 @@
-// It is either a `name` or a `process`
-#[derive(Debug, Copy, Clone)]
-pub enum VarSort {
-    Process,
-    Name,
-}
+
 
 
 
@@ -54,7 +49,7 @@ impl DeBruijnIndexMap {
     }
 
     // create a new DeBruijnIndexMap basing on current level
-    pub fn create(&mut self, bindings : Vec<BoundVariable>) -> DeBruijnIndexMap {
+    pub fn clone_then_put(&mut self, bindings : Vec<BoundVariable>) -> DeBruijnIndexMap {
         let mut index_map = self.index_bindings.clone(); // clone 
         let next_index = self.next_index + bindings.len() as i32;
 

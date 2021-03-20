@@ -43,7 +43,7 @@ impl DeBruijnLevelMap {
     }
 
     // create a new DeBruijnLevelMap to store the binding
-    pub fn put(&self, binding : BoundVariable) -> DeBruijnLevelMap {
+    pub fn clone_then_put(&self, binding : BoundVariable) -> DeBruijnLevelMap {
         let mut new_bindings = self.level_bindings.clone();
         let ctx = Rc::new(LevelContext {
             level : self.next_level,
@@ -60,7 +60,7 @@ impl DeBruijnLevelMap {
     }
 
     // create a new DeBruijnLevelMap and add a new wildcard binding
-    pub fn add_wildcard(&self, source_position : SourcePosition) -> DeBruijnLevelMap{
+    pub fn clone_then_add_wildcard(&self, source_position : SourcePosition) -> DeBruijnLevelMap{
         let mut wildcards : Vec<SourcePosition> = (*self.wildcards).clone();
         wildcards.push(source_position);
         DeBruijnLevelMap {
