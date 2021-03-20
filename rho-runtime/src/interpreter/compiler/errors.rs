@@ -26,6 +26,8 @@ pub enum CompliationError {
     #[error("`fmemopen()` failed")]
     FileMemOpenFailed,
 
+    
+
     #[error("Not implemented yet!")]
     NotImplemented,
 }
@@ -35,7 +37,8 @@ pub enum CompliationError {
 pub enum SyntaxError {
     
 
-    
+    #[error("Invalid integer number `{0}`")]
+    IntegerNumberError(String),
 
 
     #[error("Process variable `{0}` is used as a name variable")]

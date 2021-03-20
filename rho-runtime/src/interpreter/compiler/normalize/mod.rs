@@ -16,10 +16,11 @@ pub use super::CompliationError;
 mod rho_name;
 mod rho_new;
 mod rho_send;
+mod rho_ground;
 
 type RawProc = bnfc::Proc_;
 type RawName = bnfc::Name_;
-
+type RawGround = bnfc::Ground_;
 
 pub fn from_root(p : bnfc::Proc) -> Result<(), CompliationError>{
     let mut normalizer = Normalizer::default();
@@ -114,7 +115,7 @@ impl Drop for Normalizer {
                 unsafe { libc::free(p as *mut libc::c_void); }
             }
         } else {
-            unimplemented!("call C function to traverse again to free");
+            //unimplemented!("call C function to traverse again to free");
         }
     }
 }
@@ -122,7 +123,11 @@ impl Drop for Normalizer {
 impl Normalizer {
 
     fn normalize(&mut self, p : bnfc::Proc) -> Result<ProcVisitOutputs, CompliationError> {
-        let outputs = self.normalize_proc(p, ProcVisitInputs::default())?;
+        let outputs = match self.normalize_proc(p, ProcVisitInputs::default()) {
+            Err(e) => unimplemented!("{:?} : {}", e, e),
+            Ok(o) => o,
+        };
+        //let outputs = self.normalize_proc(p, ProcVisitInputs::default())?;
         self.traverse_completed = true;
         Ok(outputs)
     }
@@ -138,6 +143,9 @@ impl Normalizer {
         let proc = unsafe { *p };
     
         match proc.kind {
+            bnfc::Proc__is_PGround => {
+                self.normalize_ground(&proc, &input)
+            },
             bnfc::Proc__is_PNew => {
                 self.normalize_new(&proc, &input)
             },

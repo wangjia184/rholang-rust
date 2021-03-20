@@ -93,4 +93,42 @@ impl Par {
         
         cloned
     }
+
+    pub fn clone_then_prepend_expr(&self, e : Expr, depth : i32) -> Self {
+        let mut cloned = self.clone();
+
+        if let Some((locally_free, connective_used)) = e.expr_instance.as_ref().and_then(|instance| 
+        {
+            Some( 
+                (
+                    ExprInstanceLocallyFree::locally_free(instance, depth),
+                    ExprInstanceLocallyFree::connective_used(instance),
+                )
+            )
+        }) 
+        {
+            if let Some(new_bitset) = locally_free.as_ref() {
+                cloned.locally_free = match cloned.locally_free {
+                    Some(mut bitset) => {
+                        bitset.union_with(new_bitset);
+                        Some(bitset)
+                    },
+                    None => {
+                        Some((*new_bitset).clone())
+                    }
+                };
+            }
+            if connective_used {
+                cloned.connective_used = true;
+            }
+            
+        } else {
+            warn!("Expr.ExprInstance is None in clone_then_prepend_expr()");
+        }
+        
+        cloned.exprs.insert(0, e);
+        
+        
+        cloned
+    }
 }

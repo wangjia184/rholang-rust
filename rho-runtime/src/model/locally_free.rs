@@ -1,6 +1,7 @@
 
 use super::BitSet;
 use super::*;
+use super::rho_types::expr::ExprInstance;
 
     /** Return true if a connective (including free variables and wildcards) is
     *  used anywhere in {@code source}.
@@ -38,5 +39,33 @@ impl HasLocallyFree<Par> for ParLocallyFree {
 
     fn locally_free(p : &Par, _depth : i32) -> Option<&BitSet> {
         p.locally_free.as_ref()
+    }
+}
+
+
+pub struct ExprInstanceLocallyFree {}
+
+
+impl HasLocallyFree<ExprInstance> for ExprInstanceLocallyFree {
+    fn connective_used(e : &ExprInstance) -> bool {
+        match e {
+            ExprInstance::GBool(_) => false,
+            ExprInstance::GInt(_) => false,
+            ExprInstance::GString(_) => false,
+            ExprInstance::GUri(_) => false,
+            ExprInstance::GByteArray(_) => false,
+            _ => unimplemented!("unsupported ExprInstance {:?} in ExprInstanceLocallyFree::connective_used", e),
+        }
+    }
+
+    fn locally_free(e : &ExprInstance, _depth : i32) -> Option<&BitSet> {
+        match e {
+            ExprInstance::GBool(_) => None,
+            ExprInstance::GInt(_) => None,
+            ExprInstance::GString(_) => None,
+            ExprInstance::GUri(_) => None,
+            ExprInstance::GByteArray(_) => None,
+            _ => unimplemented!("unsupported ExprInstance {:?} in ExprInstanceLocallyFree::locally_free", e),
+        }
     }
 }
