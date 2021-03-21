@@ -32,10 +32,10 @@ type RawGround = bnfc::Ground_;
 pub fn from_root(p : bnfc::Proc) -> Result<Par, CompliationError>{
     let mut normalizer = Normalizer::default();
 
-    // unsafe{
-    //     let s = CString::from_raw(bnfc::showProc(p));
-    //     println!("{:?}", &s);
-    // }
+    unsafe{
+        let s = CString::from_raw(bnfc::showProc(p));
+        println!("{:?}", &s);
+    }
     
 
     let proc_visit_outputs = normalizer.normalize(p)?;

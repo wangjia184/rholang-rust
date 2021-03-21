@@ -16,7 +16,7 @@ use normalize::*;
 
 
 pub fn test() {
-    builder::build_ast("new a1, a2, a3 in {
+    builder::build_ast("new a1(dd), a2, a3 in {
         a1!(1)
     }");
 }

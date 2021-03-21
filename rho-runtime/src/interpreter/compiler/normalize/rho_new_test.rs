@@ -11,26 +11,28 @@ fn pnew_should_bind_new_variables() {
     }
     ";
 
-    let par = match builder::build_ast(rholang_code) {
+    let root_par = match builder::build_ast(rholang_code) {
         Err(e) => panic!(e),
         Ok(p) => p,
     };
 
-    assert_eq!( par.news.len(), 1);
-    let rho_new = &par.news[0];
+    assert_eq!( root_par.news.len(), 1);
+    let rho_new = &root_par.news[0];
 
     let sub_par = match rho_new {
         RhoNew {
             bind_count : 3,
             p : Some(ref p),
             uri,
-            injections : _,
-            locally_free
-        } => {
-            assert_eq!( uri.len(), 0);
-            assert!( locally_free.is_none() || locally_free.as_ref().unwrap().is_empty());
-            p
-        },
+            locally_free,
+            ..
+        } 
+        if uri.len() == 0 &&
+            ( 
+                locally_free.is_none() ||
+                locally_free.as_ref().unwrap().is_empty()
+            )
+        => p,
         _ => {
             panic!("{:?}", rho_new);
         }
@@ -91,4 +93,42 @@ fn pnew_should_bind_new_variables() {
     validate_send(&sub_par.sends[0], 9, 0, 0);
     validate_send(&sub_par.sends[1], 8, 1, 1);
     validate_send(&sub_par.sends[2], 7, 2, 2);
+}
+
+
+#[test]
+fn pnew_should_sort_uri_and_place_them_at_the_end() {
+    let rholang_code = "
+    new x, y, r(`rho:registry`), our(`rho:stdout`), z in {
+        x!(7) | 
+        y!(8) | 
+        r!(9) |
+        out!(10) |
+        z!(11)
+    }
+    ";
+    let root_par = match builder::build_ast(rholang_code) {
+        Err(e) => panic!("{}", e),
+        Ok(p) => p,
+    };
+
+    assert_eq!( root_par.news.len(), 1);
+    let rho_new = &root_par.news[0];
+
+    let sub_par = match rho_new {
+        RhoNew {
+            bind_count : 5,
+            p : Some(ref p),
+            uri : uris,
+            locally_free,
+            ..
+        }  if locally_free.is_none() || locally_free.as_ref().unwrap().is_empty()
+        => {
+            println!("{:?}", uris);
+            p
+        },
+        _ => {
+            panic!("{:?}", rho_new);
+        }
+    };
 }
