@@ -4,7 +4,7 @@
 use super::super::bnfc;
 use super::super::errors::*;
 use super::*;
-use crate::model::*;
+
 
 
 impl super::Normalizer {
@@ -65,7 +65,7 @@ impl super::Normalizer {
             })
         })?;
 
-        locally_free.union_with_option(ParLocallyFree::locally_free( &name_visit_outputs.chan, input.env.depth()));
+        locally_free.union_with_option(ParLocallyFree::locally_free( &name_visit_outputs.chan, input.env.depth()).as_ref());
         if ParLocallyFree::connective_used(&name_visit_outputs.chan) {
             connective_used = true;
         }

@@ -7,7 +7,7 @@ mod bitset;
 mod locally_free;
 
 pub use bitset::BitSet;
-pub use rho_types::{ Connective, Par, Expr, expr };
+pub use rho_types::*;
 pub use locally_free::*;
 
 pub type RhoNew = rho_types::New;

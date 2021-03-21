@@ -1,5 +1,5 @@
 
-use std::ffi::{ CStr }; 
+use std::ffi::{ CStr, CString }; 
 use std::os::raw::c_char;
 use std::rc::Rc;
 use std::mem;
@@ -29,10 +29,17 @@ type RawName = bnfc::Name_;
 type RawGround = bnfc::Ground_;
 
 
-pub fn from_root(p : bnfc::Proc) -> Result<(), CompliationError>{
+pub fn from_root(p : bnfc::Proc) -> Result<Par, CompliationError>{
     let mut normalizer = Normalizer::default();
-    normalizer.normalize(p)?;
-    Ok(())
+
+    // unsafe{
+    //     let s = CString::from_raw(bnfc::showProc(p));
+    //     println!("{:?}", &s);
+    // }
+    
+
+    let proc_visit_outputs = normalizer.normalize(p)?;
+    Ok(proc_visit_outputs.par)
 }
 
 
@@ -130,11 +137,7 @@ impl Drop for Normalizer {
 impl Normalizer {
 
     fn normalize(&mut self, p : bnfc::Proc) -> Result<ProcVisitOutputs, CompliationError> {
-        let outputs = match self.normalize_proc(p, &ProcVisitInputs::default()) {
-            Err(e) => unimplemented!("{:?} : {}", e, e),
-            Ok(o) => o,
-        };
-        //let outputs = self.normalize_proc(p, ProcVisitInputs::default())?;
+        let outputs = self.normalize_proc(p, &ProcVisitInputs::default())?;
         self.traverse_completed = true;
         Ok(outputs)
     }

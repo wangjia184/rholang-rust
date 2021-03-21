@@ -14,9 +14,6 @@ pub use context::*;
 use normalize::*;
 
 
-pub struct ProcVisitInputs {
-
-}
 
 pub fn test() {
     builder::build_ast("new a1, a2, a3 in {

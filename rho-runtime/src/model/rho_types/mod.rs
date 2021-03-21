@@ -1,30 +1,41 @@
 use super::*;
 
+
 include!("rho_types.rs");
 
 use var::*;
 
+impl From<Expr> for Par {
+    fn from(e: Expr) -> Self {
+        let mut par = Par::default();
+        if let Some(ref instance) = e.expr_instance {
+            par.locally_free = ExprInstanceLocallyFree::locally_free(instance, 0);
+            par.connective_used = ExprInstanceLocallyFree::connective_used(instance);
+        }
+        par.exprs.push(e);
+        par
+    }
+}
+
+
 impl Par {
     // create a par holding a variable
     fn new_with_var(var_instance : VarInstance) -> Self {
-        let evar = Expr {
-            expr_instance: Some(
-                expr::ExprInstance::EVarBody(
-                    EVar {
-                        v : Some(
-                            Var {
-                                var_instance : Some(var_instance)
-                            }
-                        )
-                    }
-                )  
-            )
-        };
-        
-        let mut par = Par::default();
-        par.exprs.push(evar);
-        
-        par
+        Par::from(
+            Expr {
+                expr_instance: Some(
+                    expr::ExprInstance::EVarBody(
+                        EVar {
+                            v : Some(
+                                Var {
+                                    var_instance : Some(var_instance)
+                                }
+                            )
+                        }
+                    )  
+                )
+            }
+        )
     }
 
 

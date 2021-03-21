@@ -506,6 +506,20 @@ impl<B: BitBlock> BitSet<B> {
         }   
     }
 
+    pub fn union_both(option1: Option<&Self>, option2: Option<&Self> )-> Option<Self> {
+        match (option1, option2) {
+            (Some(ref bitset1), Some(ref bitset2)) => {
+                let mut bitset = Self::default();
+                bitset.union_with(bitset1);
+                bitset.union_with(bitset2);
+                Some(bitset)
+            },
+            (Some(ref bitset1), None) => Some((*bitset1).clone()),
+            (None, Some(ref bitset2)) => Some((*bitset2).clone()),
+            (None, None) => None,
+        }
+    }
+
     /// Intersects in-place with the specified other bit vector.
     ///
     /// # Examples
