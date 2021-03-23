@@ -27,6 +27,15 @@ impl SyntaxError {
             contra_position : Some(contra_source_position),
         }
     }
+
+    pub fn new_empty_uri(source_position : SourcePosition) -> Self {
+        SyntaxError {
+            kind : SyntaxErrorKind::EmptyUri as i32,
+            message : format!("Empty uri"),
+            position : Some(source_position),
+            contra_position : None,
+        }
+    }
 }
 
 impl fmt::Display for SyntaxError {

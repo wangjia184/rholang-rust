@@ -666,6 +666,7 @@ pub enum SyntaxErrorKind {
     IntegerNumberError = 0,
     UnexpectedNameContext = 1,
     UnexpectedReuseOfNameContextFree = 2,
+    EmptyUri = 3,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]

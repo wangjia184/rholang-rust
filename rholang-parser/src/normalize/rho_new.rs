@@ -138,8 +138,13 @@ impl super::Normalizer {
                     let uriliteral = unsafe { p.u.namedeclurn_.uriliteral_ };
                     match (self.get_string(var), self.get_string(uriliteral)) {
                         (Ok(name), Ok(uri)) => {
+                            let u = self.strip_uri(uri);
                             let source_position = SourcePosition::new(p.line_number, p.char_number, name.len());
-                            Ok((Some(uri), name, source_position))
+                            if u.is_none() {
+                                // even if syntax error occurs, we still return a normal value so tranverse can continue
+                                self.syntax_errors.push(SyntaxError::new_empty_uri(source_position.clone()));
+                            }
+                            Ok((u, name, source_position))
                         },
                         (Err(e), _) => {
                             Err( CompiliationError::new_utf8_error(&e, p.line_number, p.char_number) )

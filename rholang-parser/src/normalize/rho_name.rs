@@ -47,7 +47,6 @@ impl super::Normalizer {
                         }
                     },
                     None => {
-                        warn!("This branch in normalize_name() requires test!");
                         let source_position = SourcePosition::new(n.line_number, n.char_number, var_name.len());
                         match input.known_free.get(&var_name) {
                             None => {

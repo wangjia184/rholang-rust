@@ -1,42 +1,13 @@
 
-use model::*;
-use super::super::builder;
 
-#[test]
-fn pnew_should_bind_new_variables() {
-    let rholang_code = "
-    new x, y, z in {
-        x!(7) | y!(8) | z!(9)
-    }
-    ";
+#[cfg(test)]
+mod tests {
+    use model::*;
+    use super::super::super::builder;
 
-    let mut normalizer = builder::build_ast_from_string(rholang_code);
-    let root_par = normalizer.par.take().unwrap();
 
-    assert_eq!( root_par.news.len(), 1);
-    let rho_new = &root_par.news[0];
-
-    let sub_par = match rho_new {
-        RhoNew {
-            bind_count : 3,
-            p : Some(ref p),
-            uri,
-            locally_free,
-            ..
-        } 
-        if uri.len() == 0 &&
-            ( 
-                locally_free.is_none() ||
-                locally_free.as_ref().unwrap().is_empty()
-            )
-        => p,
-        _ => {
-            panic!("{:?}", rho_new);
-        }
-    };
-    
-    let validate_send = | my_send : &RhoSend, ground_int : i64, bound_var_idx : i32, bitset_index : usize | {
-            
+    fn validate_send( my_send : &RhoSend, ground_int : i64, bound_var_idx : i32, bitset_index : usize ) {
+                
         let (chan_expr_inst, data_expr_inst) = match my_send {
             RhoSend {
                 data : ref list,
@@ -84,46 +55,102 @@ fn pnew_should_bind_new_variables() {
             },
             _ => panic!("{:?}", chan_expr_inst),
         };
-    };
-
-    assert_eq!(sub_par.sends.len(), 3);
-    validate_send(&sub_par.sends[0], 9, 0, 0);
-    validate_send(&sub_par.sends[1], 8, 1, 1);
-    validate_send(&sub_par.sends[2], 7, 2, 2);
-}
-
-
-#[test]
-fn pnew_should_sort_uri_and_place_them_at_the_end() {
-    let rholang_code = "
-    new x, y, r(`rho:registry`), our(`rho:stdout`), z in {
-        x!(7) | 
-        y!(8) | 
-        r!(9) |
-        out!(10) |
-        z!(11)
     }
-    ";
-    let mut normalizer = builder::build_ast_from_string(rholang_code);
-    let root_par = normalizer.par.take().unwrap();
 
-    assert_eq!( root_par.news.len(), 1);
-    let rho_new = &root_par.news[0];
-
-    let sub_par = match rho_new {
-        RhoNew {
-            bind_count : 5,
-            p : Some(ref p),
-            uri : uris,
-            locally_free,
-            ..
-        }  if locally_free.is_none() || locally_free.as_ref().unwrap().is_empty()
-        => {
-            println!("{:?}", uris);
-            p
-        },
-        _ => {
-            panic!("{:?}", rho_new);
+    #[test]
+    fn pnew_should_bind_new_variables() {
+        let rholang_code = "
+        new x, y, z in {
+            x!(7) | y!(8) | z!(9)
         }
-    };
+        ";
+
+        let mut normalizer = builder::build_ast_from_string(rholang_code);
+        let root_par = normalizer.par.take().unwrap();
+
+        assert_eq!( root_par.news.len(), 1);
+        let rho_new = &root_par.news[0];
+
+        let sub_par = match rho_new {
+            RhoNew {
+                bind_count : 3,
+                p : Some(ref p),
+                uri,
+                locally_free,
+                ..
+            } 
+            if uri.len() == 0 &&
+                ( 
+                    locally_free.is_none() ||
+                    locally_free.as_ref().unwrap().is_empty()
+                )
+            => p,
+            _ => {
+                panic!("{:?}", rho_new);
+            }
+        };
+        
+        
+
+        assert_eq!(sub_par.sends.len(), 3);
+        validate_send(&sub_par.sends[0], 9, 0, 0);
+        validate_send(&sub_par.sends[1], 8, 1, 1);
+        validate_send(&sub_par.sends[2], 7, 2, 2);
+    }
+
+
+    #[test]
+    fn pnew_should_sort_uri_and_place_them_at_the_end() {
+        let rholang_code = "
+        new x, y, r(`rho:registry`), our(`rho:stdout`), z in {
+            x!(7) | 
+            y!(8) | 
+            r!(9) |
+            our!(10) |
+            z!(11)
+        }
+        ";
+        let mut normalizer = builder::build_ast_from_string(rholang_code);
+        let root_par = normalizer.par.take().unwrap();
+
+        assert_eq!( root_par.news.len(), 1);
+        let rho_new = &root_par.news[0];
+
+        let sub_par = match rho_new {
+            RhoNew {
+                bind_count : 5,
+                p : Some(ref p),
+                uri : uris,
+                locally_free,
+                ..
+            }  if locally_free.is_none() || locally_free.as_ref().unwrap().is_empty()
+            => {
+                assert_eq!( uris.len(), 2);
+                assert!( uris.contains(&"rho:registry".to_string()) );
+                assert!( uris.contains(&"rho:stdout".to_string()) );
+                p
+            },
+            _ => {
+                panic!("{:?}", rho_new);
+            }
+        };
+
+        assert_eq!(sub_par.sends.len(), 5);
+        validate_send(&sub_par.sends[0], 11, 2, 2);
+        validate_send(&sub_par.sends[1], 10, 0, 0);
+        validate_send(&sub_par.sends[2], 9, 1, 1);
+        validate_send(&sub_par.sends[3], 8, 3, 3);
+        validate_send(&sub_par.sends[4], 7, 4, 4);
+
+        let mut bitset = BitSet::new();
+        bitset.insert(0);
+        bitset.insert(1);
+        bitset.insert(2);
+        bitset.insert(3);
+        bitset.insert(4);
+        bitset.symmetric_difference_with(sub_par.locally_free.as_ref().unwrap());
+        assert!( bitset.is_empty() );
+
+    }
+
 }

@@ -56,4 +56,13 @@ impl super::Normalizer {
             }
         )
     }
+
+    // strip uri, uri must be surrounded in format `xxx`
+    pub fn strip_uri(&self, uri : String) -> Option<String> {
+        if uri.len() <= 2 {
+            None
+        } else {
+            Some(uri[1..uri.len() - 1].to_owned())
+        }
+    }
 }
