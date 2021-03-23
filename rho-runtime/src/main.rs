@@ -3,7 +3,6 @@ extern crate pretty_env_logger;
 
 
 mod interpreter;
-mod model;
 
 
 
@@ -11,7 +10,7 @@ fn main() {
 
     pretty_env_logger::init();
 
-    interpreter::compiler::test();
+    //interpreter::compiler::test();
     
  
 }

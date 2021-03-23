@@ -1,0 +1,8 @@
+
+[workspace]
+members = [
+    "model",
+    "rholang-parser",
+    "rho-runtime",
+]
+default-members=["rholang-parser"]
