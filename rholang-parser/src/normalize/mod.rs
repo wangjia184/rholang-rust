@@ -22,6 +22,7 @@ mod rho_par;
 #[cfg(test)]
 mod tests {
     include!("rho_new_test.rs");
+    include!("rho_par_test.rs");
 }
 
 type RawProc = bnfc::Proc_;

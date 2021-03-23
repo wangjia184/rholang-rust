@@ -1,7 +1,7 @@
 
 
 #[cfg(test)]
-mod tests {
+mod pnew_tests {
     use model::*;
     use super::super::super::builder;
 
