@@ -21,8 +21,10 @@ message SourcePosition {
 enum SyntaxErrorKind {
     IntegerNumberError = 0;
     UnexpectedNameContext = 1;
-    UnexpectedReuseOfNameContextFree = 2;
-    EmptyUri = 3;
+    UnexpectedProcessContext = 2;
+    UnexpectedReuseOfNameContextFree = 3;
+    UnexpectedReuseOfProcessContextFree = 4;
+    EmptyUri = 5;
 }
 
 // syntax error in source code

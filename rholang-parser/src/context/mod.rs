@@ -7,6 +7,8 @@ use model::*;
 
 include!("./RcString.rs");
 include!("./VarSort.rs");
+include!("./IndexContext.rs");
+include!("./LevelContext.rs");
 include!("./DeBruijnIndexMap.rs");
 include!("./DeBruijnLevelMap.rs");
 include!("./IndexMapChain.rs");

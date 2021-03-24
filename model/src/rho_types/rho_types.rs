@@ -665,8 +665,10 @@ pub struct GSysAuthToken {
 pub enum SyntaxErrorKind {
     IntegerNumberError = 0,
     UnexpectedNameContext = 1,
-    UnexpectedReuseOfNameContextFree = 2,
-    EmptyUri = 3,
+    UnexpectedProcessContext = 2,
+    UnexpectedReuseOfNameContextFree = 3,
+    UnexpectedReuseOfProcessContextFree = 4,
+    EmptyUri = 5,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]

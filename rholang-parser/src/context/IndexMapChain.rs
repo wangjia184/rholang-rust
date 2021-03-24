@@ -17,6 +17,9 @@ impl IndexMapChain {
         self.chain[0].get(name)
     }
 
+    pub fn put_head(&mut self, binding : BoundVariable) {
+        self.chain[0] = self.chain[0].clone_then_put(vec![binding]);
+    }
 
     pub fn add_bindings_to_head(mut self, bindings : Vec<BoundVariable>) -> IndexMapChain {
         self.chain[0] = self.chain[0].clone_then_put(bindings);

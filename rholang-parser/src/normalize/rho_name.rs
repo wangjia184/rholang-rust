@@ -9,7 +9,7 @@ impl super::Normalizer {
     pub fn normalize_name(&mut self, n : &RawName,  input: &NameVisitInputs) -> Result<NameVisitOutputs, CompiliationError> {
         
         match n.kind {
-            bnfc::Name__is_NameWildcard => {
+            bnfc::ProcVar__is_ProcVarWildcard => {
                 let source_position = SourcePosition::new(n.line_number, n.char_number, 1);
                 let wildcard_bind_request = input.known_free.clone_then_add_wildcard(source_position);
                 

@@ -18,6 +18,7 @@ mod rho_new;
 mod rho_send;
 mod rho_ground;
 mod rho_par;
+mod rho_pvar;
 
 #[cfg(test)]
 mod tests {
@@ -33,12 +34,12 @@ type RawGround = bnfc::Ground_;
 pub fn from_root(p : bnfc::Proc) -> NormalizeResult {
     let mut normalizer = Normalizer::default();
 
-    // unsafe{
-    //     if p != 0 as bnfc::Proc {
-    //         let s = CString::from_raw(bnfc::showProc(p));
-    //         println!("{:?}", &s);
-    //     }
-    // }
+    unsafe{
+        if p != 0 as bnfc::Proc {
+            let s = CString::from_raw(bnfc::showProc(p));
+            println!("{:?}", &s);
+        }
+    }
 
     let mut result = NormalizeResult::default();
     match normalizer.normalize(p) {
@@ -180,6 +181,9 @@ impl Normalizer {
             bnfc::Proc__is_PSend => {
                 self.normalize_send(&proc, input)
             },
+            bnfc::Proc__is_PVar => {
+                self.normalize_pvar(&proc, input)
+            }
     
             
             _ => Err(CompiliationError::new_unrecognized_token(proc.kind, proc.line_number, proc.char_number))

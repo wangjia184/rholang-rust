@@ -80,3 +80,25 @@ fn build_ast(file_handle : *mut libc::FILE) -> NormalizeResult {
 }
 
 
+
+
+pub fn parse(source : &str) -> Result<bnfc::Proc, std::ffi::NulError> {
+    let raw_source = CString::new(source)?.into_raw();
+    let raw_mode = CString::new("r")?.into_raw();
+    let file_handle : *mut libc::FILE;
+    let proc : bnfc::Proc;
+    unsafe {
+        let buf_ptr: *mut libc::c_void = raw_source as *mut libc::c_void;
+        file_handle = libc::fmemopen( buf_ptr, source.len(), raw_mode);
+
+        let io_file: *mut bnfc::FILE = file_handle as *mut _ as *mut bnfc::FILE;
+        proc = bnfc::pProc(io_file);
+        if file_handle != 0 as *mut libc::FILE {
+            libc::fclose(file_handle);
+        }
+        // retake ownership to avoid memory leak
+        CString::from_raw(raw_source);
+        CString::from_raw(raw_mode);
+    }
+    Ok(proc)
+}

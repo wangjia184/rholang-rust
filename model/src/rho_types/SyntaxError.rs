@@ -10,6 +10,15 @@ impl SyntaxError {
         }
     }
 
+    pub fn new_unexpected_process_context(var_name : &str, source_position : SourcePosition, contra_source_position : SourcePosition) -> Self {
+        SyntaxError {
+            kind : SyntaxErrorKind::UnexpectedProcessContext as i32,
+            message : format!("Name variable `{}` is used while a process is expected", var_name),
+            position : Some(source_position),
+            contra_position : Some(contra_source_position),
+        }
+    }
+
     pub fn new_integer_number_error(value : &str, source_position : SourcePosition) -> Self {
         SyntaxError {
             kind : SyntaxErrorKind::IntegerNumberError as i32,
@@ -23,6 +32,15 @@ impl SyntaxError {
         SyntaxError {
             kind : SyntaxErrorKind::UnexpectedReuseOfNameContextFree as i32,
             message : format!("Free variable `{}` is used twice as a binder in name context", value),
+            position : Some(source_position),
+            contra_position : Some(contra_source_position),
+        }
+    }
+
+    pub fn new_unexpected_reuse_of_process_context_free(value : &str, source_position : SourcePosition, contra_source_position : SourcePosition) -> Self {
+        SyntaxError {
+            kind : SyntaxErrorKind::UnexpectedReuseOfProcessContextFree as i32,
+            message : format!("Free variable `{}` is used twice as a binder in process context", value),
             position : Some(source_position),
             contra_position : Some(contra_source_position),
         }
