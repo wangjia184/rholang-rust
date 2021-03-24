@@ -2,7 +2,7 @@
 
 
 // It is either a `name` or a `process`
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq)]
 pub enum VarSort {
     Process,
     Name,

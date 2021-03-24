@@ -100,5 +100,11 @@ pub fn parse(source : &str) -> Result<bnfc::Proc, std::ffi::NulError> {
         CString::from_raw(raw_source);
         CString::from_raw(raw_mode);
     }
+    unsafe{
+        if proc != 0 as bnfc::Proc {
+            let s = CString::from_raw(bnfc::showProc(proc));
+            println!("{:?}", &s);
+        }
+    }
     Ok(proc)
 }
