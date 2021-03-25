@@ -1,0 +1,4 @@
+cargo:rustc-env=PROTOC=/Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-build-0.7.0/third-party/protobuf/protoc-osx-x86_64
+cargo:rustc-env=PROTOC_INCLUDE=/Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-build-0.7.0/third-party/protobuf/include
+cargo:rerun-if-env-changed=PROTOC
+cargo:rerun-if-env-changed=PROTOC_INCLUDE

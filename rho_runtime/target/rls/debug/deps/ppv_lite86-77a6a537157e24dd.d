@@ -1,0 +1,10 @@
+/Users/jerry/projects/rholang-rust/rho-runtime/target/rls/debug/deps/ppv_lite86-77a6a537157e24dd.rmeta: /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/ppv-lite86-0.2.10/src/lib.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/ppv-lite86-0.2.10/src/soft.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/ppv-lite86-0.2.10/src/types.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/ppv-lite86-0.2.10/src/generic.rs
+
+/Users/jerry/projects/rholang-rust/rho-runtime/target/rls/debug/deps/libppv_lite86-77a6a537157e24dd.rlib: /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/ppv-lite86-0.2.10/src/lib.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/ppv-lite86-0.2.10/src/soft.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/ppv-lite86-0.2.10/src/types.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/ppv-lite86-0.2.10/src/generic.rs
+
+/Users/jerry/projects/rholang-rust/rho-runtime/target/rls/debug/deps/ppv_lite86-77a6a537157e24dd.d: /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/ppv-lite86-0.2.10/src/lib.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/ppv-lite86-0.2.10/src/soft.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/ppv-lite86-0.2.10/src/types.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/ppv-lite86-0.2.10/src/generic.rs
+
+/Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/ppv-lite86-0.2.10/src/lib.rs:
+/Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/ppv-lite86-0.2.10/src/soft.rs:
+/Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/ppv-lite86-0.2.10/src/types.rs:
+/Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/ppv-lite86-0.2.10/src/generic.rs:

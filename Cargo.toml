@@ -2,7 +2,8 @@
 [workspace]
 members = [
     "model",
-    "rholang-parser",
-    "rho-runtime",
+    "rholang_parser",
+    "rho_runtime",
+    "rholang_parser_test",
 ]
-default-members=["rholang-parser"]
+default-members=["rholang_parser_test"]

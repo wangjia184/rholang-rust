@@ -1,0 +1,18 @@
+[package]
+name = "rholang_parser_test"
+version = "0.1.0"
+authors = ["jerry <vcer@qq.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+rholang_parser = { path = "../rholang_parser" }
+model = { path = "../model" }
+tempfile = "3.2"
+prost = "0.7"
+bytes = "1.0"
+
+
+[dev-dependencies]
+rholang_parser = { path = "../rholang_parser" }

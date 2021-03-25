@@ -1,0 +1,11 @@
+/Users/jerry/projects/rholang-rust/rho-runtime/target/rls/debug/deps/prost-93c4202a147151dd.rmeta: /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/lib.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/error.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/message.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/types.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/encoding.rs
+
+/Users/jerry/projects/rholang-rust/rho-runtime/target/rls/debug/deps/libprost-93c4202a147151dd.rlib: /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/lib.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/error.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/message.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/types.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/encoding.rs
+
+/Users/jerry/projects/rholang-rust/rho-runtime/target/rls/debug/deps/prost-93c4202a147151dd.d: /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/lib.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/error.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/message.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/types.rs /Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/encoding.rs
+
+/Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/lib.rs:
+/Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/error.rs:
+/Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/message.rs:
+/Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/types.rs:
+/Users/jerry/.cargo/registry/src/mirrors.sjtug.sjtu.edu.cn-7a04d2510079875b/prost-0.7.0/src/encoding.rs:
