@@ -1,6 +1,7 @@
 /target/
-/rho-runtime/target/
-/rholang-parser/target/
+/rho_runtime/target/
+/rholang_parser/target/
+/rholang_parser_test/target/
 /dependencies/bnfc/src/
 /dependencies/bnfc/libbnfc.a
 .vscode
