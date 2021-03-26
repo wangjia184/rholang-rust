@@ -7,3 +7,5 @@ rm -rf ./src
 # generate C source files
 bnfc -m --c --line-numbers ./rholang_mercury.cf -o ./src
 
+# copy header files
+cp -rf ./src/*.h ../../include/bnfc/

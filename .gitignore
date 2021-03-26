@@ -9,3 +9,4 @@
 .vscode
 .cargo
 Cargo.lock
+/dependencies/bnfc/src/Testrholang_mercury
