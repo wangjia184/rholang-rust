@@ -7,28 +7,21 @@ use std::io::Cursor;
 use prost::Message;
 use tempfile::tempdir;
 
-
 use model::*;
 
-mod tests;
 
-fn main() {
-    
-    run_normalizer("new x in { x!(1) }");
-}
-
-
-
-fn run_normalizer(source : &str) -> NormalizeResult {
+pub fn run_normalizer(source : &str) -> NormalizeResult {
     let exe = env::current_exe().unwrap();
     let dir = exe.parent().expect("Executable must be in some directory");
 
     let filepath;
     if cfg!(target_os = "windows") {
-        filepath = dir.join("rholang_parser.exe");
+        filepath = dir.join(format!("{}.exe", env::var("CARGO_PKG_NAME").unwrap()));
     } else {
-        filepath = dir.join("rholang_parser");
+        filepath = dir.join(env::var("CARGO_PKG_NAME").unwrap());
     }
+
+    
 
     let dir = tempdir().unwrap();
     let input_path = dir.path().join("input.rho");
