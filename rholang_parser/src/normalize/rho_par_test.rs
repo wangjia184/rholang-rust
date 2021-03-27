@@ -1,6 +1,6 @@
 
 
-#[cfg(test)]
+
 mod ppar_tests {
     use model::*;
     use super::*;

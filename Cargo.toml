@@ -3,7 +3,6 @@
 members = [
     "model",
     "rholang_parser",
-    "rho_runtime",
-    "rholang_parser_test",
+    "rho_runtime"
 ]
-default-members=["rholang_parser_test"]
+default-members=["rholang_parser"]

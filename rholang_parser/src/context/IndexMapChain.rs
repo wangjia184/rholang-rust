@@ -26,6 +26,12 @@ impl IndexMapChain {
         self
     }
 
+    pub fn clone_then_push(&self) -> IndexMapChain {
+        let mut chain = self.chain.clone();
+        chain.insert( 0, DeBruijnIndexMap::empty() );
+        IndexMapChain { chain: chain }
+    }
+
     pub fn count(&self) -> i32 { self.chain[0].count() }
 
     pub fn depth(&self) -> i32 { self.chain.len() as i32 - 1 }

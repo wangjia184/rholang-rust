@@ -16,5 +16,9 @@ prost = "0.7"
 clap = "2.33"
 bytes = "1.0"
 
+
 [build-dependencies]
 bindgen = "0.57"
+
+[dev-dependencies]
+tempfile = "3.2"

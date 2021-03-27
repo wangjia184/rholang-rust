@@ -1,9 +1,9 @@
 
-use std::ffi::{ CStr, CString }; 
+use std::ffi::{ CStr }; 
 use std::os::raw::c_char;
 use std::rc::Rc;
 use std::mem;
-use std::collections::{ HashSet, HashMap };
+use std::collections::{ HashMap };
 
 
 
@@ -19,16 +19,20 @@ mod rho_send;
 mod rho_ground;
 mod rho_par;
 mod rho_pvar;
+mod rho_input;
+mod rho_reminder;
 
 
 
-include!("rho_par_test.rs");
-include!("rho_send_test.rs");
+//include!("rho_par_test.rs");
+//include!("rho_send_test.rs");
 
 type RawProc = bnfc::Proc_;
 type RawName = bnfc::Name_;
 type RawGround = bnfc::Ground_;
-
+type RawReceipt = bnfc::Receipt_;
+type RawNameRemainder = bnfc::NameRemainder_;
+type RawProcVar = bnfc::ProcVar_;
 
 pub fn from_root(p : bnfc::Proc) -> NormalizeResult {
     let mut normalizer = Normalizer::default();
@@ -162,7 +166,12 @@ impl Normalizer {
             },
             bnfc::Proc__is_PVar => {
                 self.normalize_pvar(&proc, input)
-            }
+            },
+            bnfc::Proc__is_PInput => {
+                self.normalize_input(&proc, input)
+            },
+
+            
     
             
             _ => Err(CompiliationError::new_unrecognized_token(proc.kind, proc.line_number, proc.char_number))
