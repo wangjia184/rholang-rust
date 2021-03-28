@@ -16,11 +16,11 @@ Two kinds of naming convertions applied in this project.
 * Filename using *snake_case* (e.g. `common.rs` / `rho_par.rs`) means it is an individual module, which is the default approach in Rust's module system.
 * Filename using *PascalCase* (e.g. `Sortable.rs` / `DeBruijnIndexMap.rs`) means it is a part of its directory module.
 
-The pascal cases style is used to keep the code structure similar as Scala edition without big single file or a lot of re-exports.
+The *PascalCase* style is used to keep the code structure similar as Scala edition without big single file or a lot of re-exports.
 
 ```
 src/
-├─ rho_types/
+├─ context/
 │  ├─ mod.rs
 │  ├─ DeBruijnLevelMap.rs
 │  ├─ DeBruijnIndexMap.rs
