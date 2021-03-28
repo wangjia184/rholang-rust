@@ -1,4 +1,5 @@
 use std::cmp::{ PartialOrd, Ord, Ordering };
+use std::any::Any;
 /**
   * Sorts the insides of the Par and ESet/EMap of the rholangADT
   *
@@ -45,7 +46,6 @@ impl Ord for ScoreAtom {
             (ScoreAtom::StringAtom(_), _) => Ordering::Less,
             (_, ScoreAtom::StringAtom(_)) => Ordering::Greater,
             (ScoreAtom::BytesAtom(_), ScoreAtom::BytesAtom(_)) => unimplemented!("To be implemented"),
-            _ => Ordering::Equal,
         }
     }
 }
@@ -66,20 +66,13 @@ impl From<String> for ScoreAtom {
 
 pub enum Tree {
     Leaf(ScoreAtom),
-    Node(Vec<ScoreAtom>),
-}
-impl From<i64> for Tree {
-    fn from(num: i64) -> Self {
-        Tree::Leaf(ScoreAtom::IntAtom(num))
-    }
-}
-impl From<String> for Tree {
-    fn from(s: String) -> Self {
-        Tree::Leaf(ScoreAtom::StringAtom(s))
-    }
+    Node(Vec<Tree>),
 }
 
-pub struct ScoredTerm { 
+
+
+pub struct ScoredTerm {
+    term : Box<dyn Any>, 
     score : Tree
 }
 
@@ -102,7 +95,7 @@ impl ScoredTerm {
                         (None, Some(_)) => return Ordering::Less,
                         (Some(_), None) => return Ordering::Greater,
                         (Some(ref a), Some(ref b)) => {
-                            let order = a.cmp(b);
+                            let order = ScoredTerm::compare_tree(a, b);
                             if order != Ordering::Equal {
                                 return order;
                             }

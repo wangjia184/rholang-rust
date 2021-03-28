@@ -12,12 +12,12 @@ fn main() {
 
     let out_path = PathBuf::from(out_dir);
     let mut config = prost_build::Config::new();
-    config.extern_path(".plugin", "::model");
+    //config.extern_path(".plugin", "::model");
     match config.compile_protos(&["src/rho_types/rho_types.proto"], &["src/"]) {
         Err(e) =>  { panic!("Failed to generate from rho_types.proto {}", e); },
         Ok(_) => {
-            fs::copy( out_path.join("rho_types.rs"), "src/rho_types/rho_types.rs")
-                .expect("Failed to copy generated file to src/rho_types/rho_types.rs");
+            fs::copy( out_path.join("rho_types.rs"), "src/rho_types/RhoTypes.rs")
+                .expect("Failed to copy generated file to src/rho_types/RhoTypes.rs");
         }
     }
 

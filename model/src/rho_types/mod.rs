@@ -4,7 +4,7 @@ use std::error::Error;
 use super::*;
 
 
-include!("rho_types.rs");
+include!("RhoTypes.rs");
 include!("SyntaxError.rs");
 include!("SourcePosition.rs");
 include!("CompiliationError.rs");
