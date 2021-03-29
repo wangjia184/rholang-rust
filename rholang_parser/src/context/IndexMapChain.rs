@@ -26,6 +26,15 @@ impl IndexMapChain {
         self
     }
 
+
+    pub fn clone_then_absorb_free(&self, level_map : &DeBruijnLevelMap) -> Self {
+        let mut chain = self.chain.clone();
+        chain[0].absorb_free(level_map);
+        IndexMapChain {
+            chain : chain
+        }
+    }
+
     pub fn clone_then_push(&self) -> IndexMapChain {
         let mut chain = self.chain.clone();
         chain.insert( 0, DeBruijnIndexMap::empty() );

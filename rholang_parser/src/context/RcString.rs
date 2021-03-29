@@ -1,4 +1,5 @@
 
+use std::ops::Deref;
 
 // RcString is a wrapper of Rc<String>
 // to reuse same String across levels of DeBruijnIndexMap
@@ -17,3 +18,10 @@ impl std::borrow::Borrow<str> for RcString {
     }
 }
 
+impl Deref for RcString {
+    type Target = String;
+
+    fn deref(&self) -> &String {
+        &self.0
+    }
+}

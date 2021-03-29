@@ -13,7 +13,7 @@ struct RecvRawBinding {
 struct Receipt {
     raw_bindings : Vec<RecvRawBinding>,
     persistent : bool,
-    peak : bool,
+    peek : bool,
 }
 
 impl super::Normalizer {
@@ -30,23 +30,69 @@ impl super::Normalizer {
             return Err(CompiliationError::new_null_pointer("pinput_.proc_"));
         }
 
-        match self.extract_receipt(unsafe { &*receipt_ })? {
-            Receipt { raw_bindings, persistent, peak } => {
-                let (mut vector, known_free, locally_free, connective_used) = self.process_source(raw_bindings, input)?;
-
-                let processed_bindings = self.process_bindings(vector, input)?;
-                let bindings_free = processed_bindings.iter().fold( BitSet::new(), |mut bitset, binding| {
-                    bitset.union_with(&binding.4); 
-                    bitset 
-                });
-            }
-        };
-
         // To handle the most common case where we can sort the binds because
         // they're from different sources, Each channel's list of patterns starts its free variables at 0.
         // We check for overlap at the end after sorting. We could check before, but it'd be an extra step.
 
         // We split this into parts. First we process all the sources, then we process all the bindings.
+        
+        match self.extract_receipt(unsafe { &*receipt_ })? {
+            Receipt { raw_bindings, persistent, peek } => {
+                let (vector, this_level_free, mut source_locally_free, source_connective_used) = self.process_source(raw_bindings, input)?;
+
+                let processed_bindings = self.process_bindings(vector, input)?;
+                // processed_bindings is type of  Vec<( ReceiveBind, Rc<DeBruijnLevelMap>, BitSet )>
+
+                let bindings_free = processed_bindings.iter().fold( BitSet::new(), |mut bitset, (_,_, bs) | {
+                    bitset.union_with(&bs); 
+                    bitset 
+                });
+
+                
+                // TODO : sort it
+
+                // TODO: check if receive contains the same source channel
+
+                let merged_free = processed_bindings.iter().fold( DeBruijnLevelMap::empty(), |mut level_map, ( _, sub_level_map, _ ) | {
+                    let pairs = level_map.merge(&sub_level_map);
+                    for (var_name, source_position, contra_position) in pairs {
+                        self.syntax_errors.push(SyntaxError::new_unexpected_reuse_of_name_context_free( &var_name, source_position, contra_position));
+                    }
+                    level_map
+                } );
+                
+                // the body part
+                let bind_count = merged_free.count_no_wildcards();
+                
+                let updated_env = input.env.clone_then_absorb_free(&merged_free);
+                let proc_visit_inputs = ProcVisitInputs {
+                    par : Par::default(),
+                    env : Rc::new(updated_env),
+                    known_free : this_level_free,
+                };
+                let proc_visit_outputs = self.normalize_proc( proc_, &proc_visit_inputs)?;
+                let binds = processed_bindings.into_iter().map( | (receive_bind, _, _) | receive_bind).collect();
+                let connective_used = source_connective_used || proc_visit_outputs.par.connective_used;
+
+                source_locally_free.union_with(&bindings_free);
+                source_locally_free.union_with_option(proc_visit_outputs.par.locally_free.as_ref());
+
+                let receive = Receive {
+                    binds : binds,
+                    body : Some(proc_visit_outputs.par),
+                    persistent : persistent,
+                    peek : peek,
+                    bind_count : bind_count,
+                    locally_free : Some(source_locally_free),
+                    connective_used : connective_used,
+                };
+                ProcVisitOutputs {
+                    par : input.par.clone_then_prepend_receive(receive),
+                    known_free : proc_visit_outputs.known_free,
+                }
+            }
+        };
+
         
         
 
@@ -95,13 +141,12 @@ impl super::Normalizer {
     }
 
     fn process_bindings(&mut self, bindings : Vec<(Vec<RawName>, Par, RawNameRemainder)>, input: &ProcVisitInputs) 
-        -> Result<Vec<(
-            Vec<Par>,
-            Par,
-            Option<Var>,
-            Rc<DeBruijnLevelMap>,
-            BitSet,
-        )>, CompiliationError> 
+        -> Result<
+            Vec<(
+                ReceiveBind,
+                Rc<DeBruijnLevelMap>,
+                BitSet,
+            )>, CompiliationError> 
     {
         let mut list = vec![];
         for (names, par, remainder) in bindings {
@@ -133,7 +178,13 @@ impl super::Normalizer {
             })?;
             patterns.reverse();
             self.normalize_name_reminder( &remainder, known_free).map( |(var_option, kf)| {
-                list.push( (patterns, par, var_option, kf, locally_free) )
+                let rev_bind = ReceiveBind{
+                    patterns : patterns,
+                    source : Some(par),
+                    remainder : var_option,
+                    free_count : kf.count_no_wildcards()
+                };
+                list.push( (rev_bind, kf, locally_free) )
             })?;
         }
 
@@ -161,7 +212,7 @@ impl super::Normalizer {
                         Ok(Receipt {
                             raw_bindings : raw_bindings,
                             persistent : false,
-                            peak : false,
+                            peek : false,
                         })
                     },
                     _ => {
@@ -189,7 +240,7 @@ impl super::Normalizer {
                         Ok(Receipt {
                             raw_bindings : raw_bindings,
                             persistent : true,
-                            peak : false,
+                            peek : false,
                         })
                     },
                     _ => {
@@ -216,7 +267,7 @@ impl super::Normalizer {
                         Ok(Receipt {
                             raw_bindings : raw_bindings,
                             persistent : false,
-                            peak : true,
+                            peek : true,
                         })
                     },
                     _ => {

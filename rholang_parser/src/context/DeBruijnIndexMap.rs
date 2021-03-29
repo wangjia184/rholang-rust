@@ -70,6 +70,19 @@ impl DeBruijnIndexMap {
         }
     }
 
+    // // Takes a level map because we use that to track the free Variables.
+    pub fn absorb_free(&mut self, level_map : &DeBruijnLevelMap) {
+        for (name, ctx) in &level_map.level_bindings {
+            self.index_bindings.insert( name.clone(), Rc::new(IndexContext {
+                index : ctx.level + self.next_index,
+                var_sort : ctx.var_sort,
+                source_position : (*(*ctx).source_position).clone(),
+            }));
+        }
+
+        self.next_index = self.next_index + level_map.next_level;
+    }
+
 }
 
 

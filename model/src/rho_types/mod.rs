@@ -63,6 +63,27 @@ impl Par {
         Par::new_with_var(var)
     }
 
+    pub fn clone_then_prepend_receive(&self, r : Receive) -> Self {
+        let mut cloned = self.clone();
+
+        if let Some(new_bitset) = r.locally_free.as_ref() {
+            cloned.locally_free = match cloned.locally_free {
+                Some(mut bitset) => {
+                    bitset.union_with(new_bitset);
+                    Some(bitset)
+                },
+                None => {
+                    Some(new_bitset.clone())
+                }
+            };
+        }
+        if r.connective_used {
+            cloned.connective_used = true;
+        }
+        cloned.receives.insert(0, r);
+        
+        cloned
+    }
 
     pub fn clone_then_prepend_new(&self, n : New) -> Self {
         let mut cloned = self.clone();
