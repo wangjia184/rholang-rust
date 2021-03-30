@@ -3,6 +3,7 @@ use model::*;
 
 use super::*;
 
+#[derive(Debug)]
 struct RecvRawBinding {
     names : Vec<RawName>,
     name : RawName,

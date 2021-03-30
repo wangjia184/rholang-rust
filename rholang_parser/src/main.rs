@@ -23,7 +23,10 @@ pub static VERSION: &str = "0.1.0";
 
 
 fn main() {
-
+    // let rholang_code = "for ( x, y <- @1 ) { x!(*y) }";
+    // let result = builder::build_ast_from_string(rholang_code);
+    // println!("{:?}", result);
+    // return;
     let args: Vec<String> = std::env::args().collect();
     println!("{}", args.join(" "));
 

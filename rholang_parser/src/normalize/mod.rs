@@ -138,6 +138,13 @@ impl Drop for Normalizer {
 impl Normalizer {
 
     fn normalize(&mut self, p : bnfc::Proc) -> Result<ProcVisitOutputs, CompiliationError> {
+        unsafe{
+            if p != 0 as bnfc::Proc {
+                let s = std::ffi::CString::from_raw(bnfc::showProc(p));
+                println!("normalize : {:?}", &s);
+            }
+        }
+
         let outputs = self.normalize_proc(p, &ProcVisitInputs::default())?;
         Ok(outputs)
     }

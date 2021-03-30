@@ -8,4 +8,4 @@ rm -rf ./src
 bnfc -m --c --line-numbers ./rholang_mercury.cf -o ./src
 
 # copy header files
-cp -rf ./src/*.h ../../include/bnfc/
+cp -rf ./src/*.h ../../rholang_parser/include/bnfc/
