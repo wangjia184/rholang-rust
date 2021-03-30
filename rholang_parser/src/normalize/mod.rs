@@ -180,6 +180,12 @@ impl Normalizer {
             bnfc::Proc__is_PEval => {
                 self.normalize_eval(&proc, input)
             },
+            bnfc::Proc__is_PNil => {
+                Ok(ProcVisitOutputs {
+                    par : input.par.clone(),
+                    known_free : (*input.known_free).clone(),
+                })
+            },
 
             
     

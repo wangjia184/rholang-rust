@@ -56,7 +56,7 @@ pub fn run_normalizer(source : &str) -> NormalizeResult {
     let result : NormalizeResult;
     {
         let mut file = match File::open(&output_path) {
-            Err(e) => panic!("Failed to open file at {}. {:?} {}", output_path.to_str().unwrap(), e, e),
+            Err(e) => panic!("Failed to open file at {}. {:#?} {}", output_path.to_str().unwrap(), e, e),
             Ok(f) => f,
         };
         let mut buffer = Vec::new();

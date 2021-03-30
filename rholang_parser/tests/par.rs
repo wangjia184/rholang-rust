@@ -16,7 +16,7 @@ fn ppar_should_compile_both_branches_into_a_par_object() {
             expr_instance : Some(expr::ExprInstance::GInt(8))
         } => {
         },
-        _ => panic!("{:?}", root_par.exprs[0]),
+        _ => panic!("{:#?}", root_par.exprs[0]),
     };
     
     match &root_par.exprs[1] {
@@ -24,7 +24,7 @@ fn ppar_should_compile_both_branches_into_a_par_object() {
             expr_instance : Some(expr::ExprInstance::GInt(7))
         } => {
         },
-        _ => panic!("{:?}", root_par.exprs[0]),
+        _ => panic!("{:#?}", root_par.exprs[0]),
     };
 }
 
@@ -41,7 +41,7 @@ fn ppar_should_not_compile_if_both_branches_use_same_free_variable() {
         SyntaxError { kind, .. } => {
             assert_eq!( *kind, SyntaxErrorKind::UnexpectedReuseOfProcessContextFree as i32);
             },
-        //_ => panic!("{:?}", &result),
+        //_ => panic!("{:#?}", &result),
     }
 }
 

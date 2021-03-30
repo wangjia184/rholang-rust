@@ -169,7 +169,7 @@ impl super::Normalizer {
                     .map( |name_visit_outputs| {
                         locally_free.union_with_option(ParLocallyFree::locally_free(&name_visit_outputs.chan, input.env.depth() + 1).as_ref()); 
                         vector.insert( 0, name_visit_outputs.chan);
-                        (vector, known_free, locally_free)
+                        (vector, name_visit_outputs.known_free, locally_free)
                     })
                 })
             })?;

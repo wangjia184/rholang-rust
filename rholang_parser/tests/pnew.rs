@@ -24,14 +24,14 @@ fn validate_send( my_send : &RhoSend, ground_int : i64, bound_var_idx : i32, bit
             assert_eq!(p.exprs.len(), 1);
             (p.exprs[0].expr_instance.as_ref(), data_par.exprs[0].expr_instance.as_ref())
         },
-        _ => panic!("{:?}", my_send),
+        _ => panic!("{:#?}", my_send),
     };
 
     match data_expr_inst {
         Some( expr::ExprInstance::GInt(g) ) => {
             assert_eq!(ground_int, *g);
         },
-        _ => panic!("{:?}", data_expr_inst),
+        _ => panic!("{:#?}", data_expr_inst),
     };
     
     match chan_expr_inst {
@@ -50,7 +50,7 @@ fn validate_send( my_send : &RhoSend, ground_int : i64, bound_var_idx : i32, bit
         ) => {
             assert_eq!(*i, bound_var_idx);
         },
-        _ => panic!("{:?}", chan_expr_inst),
+        _ => panic!("{:#?}", chan_expr_inst),
     };
 }
 
@@ -83,7 +83,7 @@ fn pnew_should_bind_new_variables() {
             )
         => p,
         _ => {
-            panic!("{:?}", rho_new);
+            panic!("{:#?}", rho_new);
         }
     };
     
@@ -128,7 +128,7 @@ fn pnew_should_sort_uri_and_place_them_at_the_end() {
             p
         },
         _ => {
-            panic!("{:?}", rho_new);
+            panic!("{:#?}", rho_new);
         }
     };
 
