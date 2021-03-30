@@ -3,7 +3,7 @@ use model::*;
 
 use super::*;
 
-#[derive(Debug)]
+
 struct RecvRawBinding {
     names : Vec<RawName>,
     name : RawName,
@@ -39,11 +39,12 @@ impl super::Normalizer {
         
         match self.extract_receipt(unsafe { &*receipt_ })? {
             Receipt { raw_bindings, persistent, peek } => {
+                
                 let (vector, this_level_free, mut source_locally_free, source_connective_used) = self.process_source(raw_bindings, input)?;
-
+                
                 let processed_bindings = self.process_bindings(vector, input)?;
                 // processed_bindings is type of  Vec<( ReceiveBind, Rc<DeBruijnLevelMap>, BitSet )>
-
+                
                 let bindings_free = processed_bindings.iter().fold( BitSet::new(), |mut bitset, (_,_, bs) | {
                     bitset.union_with(&bs); 
                     bitset 
@@ -61,7 +62,7 @@ impl super::Normalizer {
                     }
                     level_map
                 } );
-                
+
                 // the body part
                 let bind_count = merged_free.count_no_wildcards();
                 
@@ -87,22 +88,17 @@ impl super::Normalizer {
                     locally_free : Some(source_locally_free),
                     connective_used : connective_used,
                 };
-                ProcVisitOutputs {
-                    par : input.par.clone_then_prepend_receive(receive),
-                    known_free : proc_visit_outputs.known_free,
-                }
+               
+                Ok( 
+                    ProcVisitOutputs {
+                        par : input.par.clone_then_prepend_receive(receive),
+                        known_free : proc_visit_outputs.known_free,
+                    } 
+                )
             }
-        };
+        }
 
-        
-        
 
-        let outputs = ProcVisitOutputs {
-            par : Par::default(),
-            known_free : DeBruijnLevelMap::empty(),
-        };
-
-        Ok(outputs)
     }
 
 
