@@ -21,7 +21,7 @@ mod rho_par;
 mod rho_pvar;
 mod rho_input;
 mod rho_reminder;
-
+mod rho_eval;
 
 
 //include!("rho_par_test.rs");
@@ -169,6 +169,9 @@ impl Normalizer {
             },
             bnfc::Proc__is_PInput => {
                 self.normalize_input(&proc, input)
+            },
+            bnfc::Proc__is_PEval => {
+                self.normalize_eval(&proc, input)
             },
 
             

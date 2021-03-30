@@ -23,6 +23,7 @@ pub static VERSION: &str = "0.1.0";
 
 
 fn main() {
+
     let args: Vec<String> = std::env::args().collect();
     println!("{}", args.join(" "));
 
@@ -52,7 +53,7 @@ fn main() {
             .takes_value(true))
         .get_matches();
     
-    let process_id : u32 = matches.value_of("pid").unwrap_or("0").parse().expect("`pid` parameter is invalid");
+    let _process_id : u32 = matches.value_of("pid").unwrap_or("0").parse().expect("`pid` parameter is invalid");
     let input_file = matches.value_of("input_file").unwrap();
     let output_file = matches.value_of("output_file").unwrap_or("");
 

@@ -42,8 +42,8 @@ pub fn run_normalizer(source : &str) -> NormalizeResult {
         .output()
         .expect(&format!("failed to execute process : {}", &filepath.to_str().unwrap()));
 
-    println!("{}", &input_path.to_str().unwrap());
-    println!("{}", &output_path.to_str().unwrap());
+    //println!("{}", &input_path.to_str().unwrap());
+    //println!("{}", &output_path.to_str().unwrap());
 
     //println!("status: {}", output.status);
 

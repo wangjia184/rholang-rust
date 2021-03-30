@@ -25,6 +25,28 @@ impl From<Expr> for Par {
 
 
 impl Par {
+
+    pub fn append(&mut self, other : &Par) {
+        self.sends.extend(other.sends.iter().cloned());
+        self.receives.extend(other.receives.iter().cloned());
+        self.news.extend(other.news.iter().cloned());
+        self.exprs.extend(other.exprs.iter().cloned());
+        self.matches.extend(other.matches.iter().cloned());
+        self.unforgeables.extend(other.unforgeables.iter().cloned());
+        self.bundles.extend(other.bundles.iter().cloned());
+        self.connectives.extend(other.connectives.iter().cloned());
+
+        if other.locally_free.is_some() {
+            if let Some(ref mut locally_free) = self.locally_free {
+                locally_free.union_with_option(other.locally_free.as_ref());
+            } else {
+                self.locally_free = other.locally_free.clone();
+            }
+        }
+        
+        self.connective_used |= other.connective_used;
+    }
+
     // create a par holding a variable
     fn new_with_var(var_instance : VarInstance) -> Self {
         Par::from(
