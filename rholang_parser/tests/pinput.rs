@@ -359,3 +359,17 @@ fn pinput_should_handle_a_more_complicated_receive() {
         }
     }
 }
+
+
+#[test]
+fn pinput_should_fail_if_free_variable_is_used_in_2_different_receives() {
+    let rholang_code = "for ( x1, @y1 <- @Nil ; x2, @y1 <- @1) { Nil }";
+
+    let result = common::run_normalizer(rholang_code);
+    if !result.syntax_errors.iter().any( |ref err| {
+        return err.kind == SyntaxErrorKind::UnexpectedReuseOfNameContextFree as i32;
+    }) {
+        panic!("{:#?}", &result);
+    }
+    
+}
