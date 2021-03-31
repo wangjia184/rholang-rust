@@ -76,8 +76,19 @@ impl super::Normalizer {
                 let binds = processed_bindings.into_iter().map( | (receive_bind, _, _) | receive_bind).collect();
                 let connective_used = source_connective_used || proc_visit_outputs.par.connective_used;
 
+                // (sourcesLocallyFree | bindingsFree | (bodyResult.par.locallyFree) .from(bindCount).map(x => x - bindCount))
                 source_locally_free.union_with(&bindings_free);
                 source_locally_free.union_with_option(proc_visit_outputs.par.locally_free.as_ref());
+                // Given this bitset [0 1 4 5 6 9]
+                // suppose bind_count is 4
+                // Create another bitset with [0 1 2 5]
+                let locally_free : BitSet = source_locally_free.iter().filter_map(|b| {
+                    if b >= bind_count as usize {
+                        Some(b - bind_count as usize)
+                    } else {
+                        None
+                    }
+                }).collect();
 
                 let receive = Receive {
                     binds : binds,
@@ -85,7 +96,7 @@ impl super::Normalizer {
                     persistent : persistent,
                     peek : peek,
                     bind_count : bind_count,
-                    locally_free : Some(source_locally_free),
+                    locally_free : Some(locally_free),
                     connective_used : connective_used,
                 };
                
