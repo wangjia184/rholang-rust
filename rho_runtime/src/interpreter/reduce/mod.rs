@@ -28,15 +28,19 @@ impl DebruijnInterpreter {
 
         let evaluators : Vec<ThreadSafeEvaluator>;
         evaluators = par.sends.into_iter().map( |s| s.into() )
-            .chain( par.receives.into_iter().map( |s| s.into() ) )
+            .chain( par.receives.into_iter().map( |r| r.into() ) )
             .collect();
 
 
+        let mut handles = Vec::new();
+
         for (_idx, evaluator) in evaluators.into_iter().enumerate() {
             let cloned_self = self.clone();
-            task::spawn( async move {
-                evaluator.evaluate(cloned_self).await;
-            } );
+            handles.push(
+                task::spawn( async move {
+                    evaluator.evaluate(cloned_self).await;
+                })
+            );
         }
 
     }
