@@ -7,6 +7,7 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+model = { path = "../model" }
 rholang_parser = { path = "../rholang_parser" }
 log = "0.4"
 pretty_env_logger = "0.4"
@@ -16,6 +17,8 @@ thiserror = "1.0"
 libc = "0.2"
 bit-vec = "0.6"
 prost = "0.7"
+tokio = {version = "1.4", features = ["full"] }
+async-trait = "0.1"
 
 [build-dependencies]
 bindgen = "0.57"
