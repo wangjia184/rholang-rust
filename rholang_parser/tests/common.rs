@@ -11,16 +11,27 @@ use model::*;
 
 
 pub fn run_normalizer(source : &str) -> NormalizeResult {
-    let exe = env::current_exe().unwrap();
-    let dir = exe.parent().expect("Executable must be in some directory");
 
-    let filepath;
-    if cfg!(target_os = "windows") {
-        filepath = dir.join(format!("{}.exe", env::var("CARGO_PKG_NAME").unwrap()));
+    let filename = if cfg!(target_os = "windows") {
+        format!("{}.exe", env::var("CARGO_PKG_NAME").unwrap())
     } else {
-        filepath = dir.join(env::var("CARGO_PKG_NAME").unwrap());
-    }
+        env::var("CARGO_PKG_NAME").unwrap()
+    };
 
+    let mut dir = env::current_exe().unwrap();
+    let mut filepath = dir.join(&filename);
+    loop {
+        if let Some(parent_dir) = dir.parent() {
+            dir = parent_dir.to_path_buf();
+            filepath = dir.join(&filename);
+
+            if filepath.exists() {
+                break;
+            }
+        } else {
+            panic!("Cannot find the file {}", filename);
+        }
+    }
     
 
     let dir = tempdir().unwrap();
@@ -42,13 +53,6 @@ pub fn run_normalizer(source : &str) -> NormalizeResult {
         .output()
         .expect(&format!("failed to execute process : {}", &filepath.to_str().unwrap()));
 
-    //println!("{}", &input_path.to_str().unwrap());
-    //println!("{}", &output_path.to_str().unwrap());
-
-    //println!("status: {}", output.status);
-
-    //let stdout = String::from_utf8(output.stdout).unwrap();
-    //println!("{}", stdout);
     
     let stderr = String::from_utf8(output.stderr).unwrap();
     println!("{}", stderr);
