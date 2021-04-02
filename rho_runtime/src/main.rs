@@ -6,7 +6,7 @@ use tokio::runtime;
 mod interpreter;
 
 
-// https://blog.logrocket.com/a-practical-guide-to-async-in-rust/
+
 fn main() {
 
     pretty_env_logger::init();
@@ -20,6 +20,4 @@ fn main() {
 
 async fn run() {
     interpreter::test_reduce().await;
-    // block to test
-    std::thread::sleep(std::time::Duration::from_secs(9999));
 }

@@ -8,6 +8,7 @@ include!("RhoTypes.rs");
 include!("SyntaxError.rs");
 include!("SourcePosition.rs");
 include!("CompiliationError.rs");
+include!("ExecutionError.rs");
 
 use var::*;
 

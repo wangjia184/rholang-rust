@@ -1,5 +1,5 @@
 
-// Extends the generated SyntaxError struct
+// Extends the generated CompiliationError struct
 impl CompiliationError {
     pub fn new_null_pointer(pointer_name : &str) -> Self {
         CompiliationError {

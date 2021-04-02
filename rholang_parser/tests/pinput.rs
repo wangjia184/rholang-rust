@@ -373,3 +373,4 @@ fn pinput_should_fail_if_free_variable_is_used_in_2_different_receives() {
     }
     
 }
+

@@ -19,6 +19,7 @@ bit-vec = "0.6"
 prost = "0.7"
 tokio = {version = "1.4", features = ["full"] }
 async-trait = "0.1"
+crossbeam = "0.8"
 
 [build-dependencies]
 bindgen = "0.57"

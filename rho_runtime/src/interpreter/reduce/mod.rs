@@ -8,13 +8,14 @@ use model::*;
 
 mod send;
 mod receive;
+mod expression;
 
 #[async_trait]
-trait Evaluator {
+trait AsyncEvaluator {
     async fn evaluate(&self, reducer : Arc<DebruijnInterpreter>);
 }
 
-type ThreadSafeEvaluator = Box<dyn Evaluator + std::marker::Send + std::marker::Sync>;
+type ThreadSafeEvaluator = Box<dyn AsyncEvaluator + std::marker::Send + std::marker::Sync>;
 
 
 pub struct DebruijnInterpreter {
@@ -41,6 +42,10 @@ impl DebruijnInterpreter {
                     evaluator.evaluate(cloned_self).await;
                 })
             );
+        }
+
+        for handle in handles {
+            handle.await.expect("Panic in Evaluator");
         }
 
     }

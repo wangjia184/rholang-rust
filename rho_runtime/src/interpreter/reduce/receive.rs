@@ -22,7 +22,7 @@ impl From<Receive> for ThreadSafeEvaluator {
 }
 
 #[async_trait]
-impl Evaluator for ReceiveEvaluator {
+impl AsyncEvaluator for ReceiveEvaluator {
     async fn evaluate(&self, _reducer : Arc<DebruijnInterpreter>) {
  
     }

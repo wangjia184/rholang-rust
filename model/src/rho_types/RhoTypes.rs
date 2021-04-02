@@ -55,6 +55,15 @@ pub struct NormalizeResult {
     #[prost(message, optional, tag="4")]
     pub par: ::core::option::Option<Par>,
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ExecutionError {
+    /// error type
+    #[prost(enumeration="ExecutionErrorKind", tag="1")]
+    pub kind: i32,
+    /// error message
+    #[prost(string, tag="2")]
+    pub message: ::prost::alloc::string::String,
+}
 ///*
 /// Rholang process
 ///
@@ -681,4 +690,9 @@ pub enum CompiliationErrorKind {
     UnsupportedVarSort = 5,
     InvalidFileHandle = 6,
     NotImplemented = 7,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ExecutionErrorKind {
+    InvalidExpression = 0,
 }

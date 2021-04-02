@@ -81,6 +81,20 @@ message NormalizeResult {
 }
 
 
+enum ExecutionErrorKind {
+    InvalidExpression = 0;
+}
+
+message ExecutionError {
+    // error type
+    ExecutionErrorKind kind = 1;
+
+    // error message
+    string message = 2;
+}
+
+
+
 /**
  * Rholang process
  *
