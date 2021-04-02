@@ -82,7 +82,8 @@ message NormalizeResult {
 
 
 enum ExecutionErrorKind {
-    InvalidExpression = 0;
+    Aborted = 0;  // aborted because an error is detected
+    InvalidExpression = 1;
 }
 
 message ExecutionError {

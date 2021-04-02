@@ -694,5 +694,7 @@ pub enum CompiliationErrorKind {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum ExecutionErrorKind {
-    InvalidExpression = 0,
+    /// aborted because an error is detected
+    Aborted = 0,
+    InvalidExpression = 1,
 }

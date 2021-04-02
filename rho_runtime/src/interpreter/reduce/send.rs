@@ -37,8 +37,12 @@ impl AsyncEvaluator for SendEvaluator {
     * @param env An execution context
     *
     */
-    async fn evaluate(&self, _reducer : Arc<DebruijnInterpreter>) {
+    async fn evaluate(&self, reducer : Arc<DebruijnInterpreter>) {
  
+        if reducer.is_aborted() {
+            return; // abort the execution since error occured
+        }
+
         println!("{:#?}", &self.send);
     }
 }

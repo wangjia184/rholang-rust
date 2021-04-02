@@ -38,6 +38,6 @@ pub async fn test_reduce() {
         connective_used : false,
     });
 
-    let reducer = Arc::new(reduce::DebruijnInterpreter{ });
+    let reducer = Arc::new(reduce::DebruijnInterpreter::default());
     reducer.evaluate(par).await;
 }
