@@ -5,6 +5,8 @@ use async_trait::async_trait;
 use super::*;
 use model::expr::ExprInstance;
 
+mod plus;
+
 struct ExprEvaluator {
     pub exp : Expr,
 }
@@ -84,6 +86,37 @@ impl DebruijnInterpreter {
     pub fn evaluate_expression_to_expression(&self, exp : Expr) -> Result<Expr, ExecutionError> {
         self.raise_error_if_aborted()?;
 
-        Ok(exp)
+        match exp.expr_instance {
+
+            Some(ExprInstance::EPlusBody(EPlus{ p1 : Some(p1), p2 : Some(p2) })) => {
+                self.evaluate_plus(p1, p2)
+            },
+            Some(ExprInstance::EPlusBody(EPlus{ p1 : None, .. })) => {
+                Err(self.add_error(ExecutionErrorKind::InvalidExpression, "EPlus::p1 is None"))
+            },
+            Some(ExprInstance::EPlusBody(EPlus{ p2 : None, .. })) => {
+                Err(self.add_error(ExecutionErrorKind::InvalidExpression, "EPlus::p2 is None"))
+            },
+
+            
+            None => {
+                Err(self.add_error(ExecutionErrorKind::InvalidExpression, "Expr::expr_instance is None"))
+            },
+            _ => {
+                panic!("evaluate_expression_to_expression() : {:?}", &exp.expr_instance)
+            }
+        }
+    }
+
+
+    pub fn evaluate_single_expression(&self, mut par : Par) -> Result<Expr, ExecutionError> {
+        if !par.sends.is_empty() || !par.receives.is_empty() || !par.news.is_empty() || 
+           !par.matches.is_empty() || !par.unforgeables.is_empty() || !par.bundles.is_empty() {
+            return Err(self.add_error(ExecutionErrorKind::InvalidExpression, "Parallel or non expression found where expression expected."));
+        }
+        if par.exprs.len() != 1 {
+            return Err(self.add_error(ExecutionErrorKind::InvalidExpression, "Single expression is expected."));
+        }
+        self.evaluate_expression_to_expression(par.exprs.remove(0))
     }
 }
