@@ -5,4 +5,4 @@ members = [
     "rholang_parser",
     "rho_runtime"
 ]
-default-members=["rholang_parser"]
+default-members=["rho_runtime"]
