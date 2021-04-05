@@ -115,7 +115,7 @@ impl BitSet<u32> {
     /// # Examples
     ///
     /// ```
-    /// use bit_set::BitSet;
+    /// use model::BitSet;
     ///
     /// let mut s = BitSet::new();
     /// ```
@@ -130,7 +130,7 @@ impl BitSet<u32> {
     /// # Examples
     ///
     /// ```
-    /// use bit_set::BitSet;
+    /// use model::BitSet;
     ///
     /// let mut s = BitSet::with_capacity(100);
     /// assert!(s.capacity() >= 100);
@@ -147,11 +147,10 @@ impl BitSet<u32> {
     ///
     /// ```
     /// extern crate bit_vec;
-    /// extern crate bit_set;
     ///
     /// fn main() {
     ///     use bit_vec::BitVec;
-    ///     use bit_set::BitSet;
+    ///     use model::BitSet;
     ///
     ///     let bv = BitVec::from_bytes(&[0b01100000]);
     ///     let s = BitSet::from_bit_vec(bv);
@@ -182,7 +181,7 @@ impl<B: BitBlock> BitSet<B> {
     /// # Examples
     ///
     /// ```
-    /// use bit_set::BitSet;
+    /// use model::BitSet;
     ///
     /// let mut s = BitSet::with_capacity(100);
     /// assert!(s.capacity() >= 100);
@@ -202,7 +201,7 @@ impl<B: BitBlock> BitSet<B> {
     /// # Examples
     ///
     /// ```
-    /// use bit_set::BitSet;
+    /// use model::BitSet;
     ///
     /// let mut s = BitSet::new();
     /// s.reserve_len(10);
@@ -227,7 +226,7 @@ impl<B: BitBlock> BitSet<B> {
     /// # Examples
     ///
     /// ```
-    /// use bit_set::BitSet;
+    /// use model::BitSet;
     ///
     /// let mut s = BitSet::new();
     /// s.reserve_len_exact(10);
@@ -245,7 +244,7 @@ impl<B: BitBlock> BitSet<B> {
     /// # Examples
     ///
     /// ```
-    /// use bit_set::BitSet;
+    /// use model::BitSet;
     ///
     /// let mut s = BitSet::new();
     /// s.insert(0);
@@ -265,7 +264,7 @@ impl<B: BitBlock> BitSet<B> {
     /// # Examples
     ///
     /// ```
-    /// use bit_set::BitSet;
+    /// use model::BitSet;
     ///
     /// let mut s = BitSet::new();
     /// s.insert(0);
@@ -313,7 +312,7 @@ impl<B: BitBlock> BitSet<B> {
     /// # Examples
     ///
     /// ```
-    /// use bit_set::BitSet;
+    /// use model::BitSet;
     ///
     /// let mut s = BitSet::new();
     /// s.insert(32183231);
@@ -346,7 +345,7 @@ impl<B: BitBlock> BitSet<B> {
     /// # Examples
     ///
     /// ```
-    /// use bit_set::BitSet;
+    /// use model::BitSet;
     ///
     /// let s = BitSet::from_bytes(&[0b01001010]);
     ///
@@ -366,7 +365,7 @@ impl<B: BitBlock> BitSet<B> {
     /// # Examples
     ///
     /// ```
-    /// use bit_set::BitSet;
+    /// use model::BitSet;
     ///
     /// let a = BitSet::from_bytes(&[0b01101000]);
     /// let b = BitSet::from_bytes(&[0b10100000]);
@@ -393,7 +392,7 @@ impl<B: BitBlock> BitSet<B> {
     /// # Examples
     ///
     /// ```
-    /// use bit_set::BitSet;
+    /// use model::BitSet;
     ///
     /// let a = BitSet::from_bytes(&[0b01101000]);
     /// let b = BitSet::from_bytes(&[0b10100000]);
@@ -421,7 +420,7 @@ impl<B: BitBlock> BitSet<B> {
     /// # Examples
     ///
     /// ```
-    /// use bit_set::BitSet;
+    /// use model::BitSet;
     ///
     /// let a = BitSet::from_bytes(&[0b01101000]);
     /// let b = BitSet::from_bytes(&[0b10100000]);
@@ -456,7 +455,7 @@ impl<B: BitBlock> BitSet<B> {
     /// # Examples
     ///
     /// ```
-    /// use bit_set::BitSet;
+    /// use model::BitSet;
     ///
     /// let a = BitSet::from_bytes(&[0b01101000]);
     /// let b = BitSet::from_bytes(&[0b10100000]);
@@ -482,7 +481,7 @@ impl<B: BitBlock> BitSet<B> {
     /// # Examples
     ///
     /// ```
-    /// use bit_set::BitSet;
+    /// use model::BitSet;
     ///
     /// let a   = 0b01101000;
     /// let b   = 0b10100000;
@@ -525,7 +524,7 @@ impl<B: BitBlock> BitSet<B> {
     /// # Examples
     ///
     /// ```
-    /// use bit_set::BitSet;
+    /// use model::BitSet;
     ///
     /// let a   = 0b01101000;
     /// let b   = 0b10100000;
@@ -549,7 +548,7 @@ impl<B: BitBlock> BitSet<B> {
     /// # Examples
     ///
     /// ```
-    /// use bit_set::BitSet;
+    /// use model::BitSet;
     ///
     /// let a   = 0b01101000;
     /// let b   = 0b10100000;
@@ -581,7 +580,7 @@ impl<B: BitBlock> BitSet<B> {
     /// # Examples
     ///
     /// ```
-    /// use bit_set::BitSet;
+    /// use model::BitSet;
     ///
     /// let a   = 0b01101000;
     /// let b   = 0b10100000;
@@ -605,7 +604,7 @@ impl<B: BitBlock> BitSet<B> {
     /// # Examples
     ///
     /// ```
-    /// use bit_set::BitSet;
+    /// use model::BitSet;
     ///
     /// let mut a = BitSet::new();
     /// a.insert(2);
@@ -632,7 +631,7 @@ impl<B: BitBlock> BitSet<B> {
     /// # Examples
     ///
     /// ```
-    /// use bit_set::BitSet;
+    /// use model::BitSet;
     ///
     /// let mut a = BitSet::new();
     /// a.insert(2);

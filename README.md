@@ -30,3 +30,10 @@ src/
 ```
 In the above example, `DeBruijnLevelMap.rs` and `DeBruijnIndexMap.rs` are included by `/src/context/mod.rd` as part of `context` module; 
 While `rho_par.rs` defines `normalize::rho_par` module.
+
+
+## Test Case
+
+```
+cargo test --all
+```
