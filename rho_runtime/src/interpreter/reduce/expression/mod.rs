@@ -6,6 +6,8 @@ use super::*;
 use model::expr::ExprInstance;
 
 mod plus;
+#[cfg(test)]
+mod plus_test;
 
 struct ExprEvaluator {
     pub exp : Expr,
@@ -35,7 +37,7 @@ impl AsyncEvaluator for ExprEvaluator {
 
 impl DebruijnInterpreter {
 
-    pub fn evaluate_expressions(&self, mut par : Par) -> Result<Par, ExecutionError> {
+    pub fn evaluate_expression(&self, mut par : Par) -> Result<Par, ExecutionError> {
         let expressions = mem::replace( &mut par.exprs, Vec::new());
         let mut evaluated_exprs = vec![];
         for e in expressions.into_iter() {
@@ -78,7 +80,11 @@ impl DebruijnInterpreter {
                 return Err(self.add_error(ExecutionErrorKind::InvalidExpression, "Expr::expr_instance is None"));
             },
             _ => {
-                unimplemented!("Some(expr::ExprInstance::EVarBody(EVar))");
+                self.evaluate_expression_to_expression(exp).and_then( |e| {
+                    let mut par = Par::default();
+                    par.exprs.push(e);
+                    Ok(par)
+                })
             }
         }
     }
@@ -87,7 +93,11 @@ impl DebruijnInterpreter {
         self.raise_error_if_aborted()?;
 
         match exp.expr_instance {
-
+            Some(ExprInstance::GBool(_)) => Ok(exp),
+            Some(ExprInstance::GInt(_)) => Ok(exp),
+            Some(ExprInstance::GString(_)) => Ok(exp),
+            Some(ExprInstance::GUri(_)) => Ok(exp),
+            Some(ExprInstance::GByteArray(_)) => Ok(exp),
             Some(ExprInstance::EPlusBody(EPlus{ p1 : Some(p1), p2 : Some(p2) })) => {
                 self.evaluate_plus(p1, p2)
             },
