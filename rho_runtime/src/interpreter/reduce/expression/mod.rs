@@ -49,8 +49,12 @@ impl DebruijnInterpreter {
         // substitution, it will resolve in that case. AlwaysEqual makes sure
         // that this isn't an issue in the rest of cases.
         // evaledExprs.foldLeft(par.copy(exprs = Vector()))(_ ++ _)
-        evaluated_exprs.into_iter().fold(Ok(par), |result, e| {
-            Ok(result?)
+        evaluated_exprs.into_iter().fold(Ok(par), |result, mut exp| {
+            result.and_then( |mut acc| {
+                exp.append(&mut acc);
+                Ok(exp)
+            })
+            
         })
     }
 
