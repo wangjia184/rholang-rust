@@ -24,18 +24,18 @@ fn expression_should_handle_simple_addition() {
     });
 
     let reducer = Arc::new(DebruijnInterpreter::default());
-    let result = reducer.evaluate_expression(par).unwrap();
+    let par = reducer.evaluate_expression(par).unwrap();
 
-    assert_eq!( result.exprs.len(), 1 );
+    assert_eq!( par.exprs.len(), 1 );
 
-    match &result.exprs[0] {
+    match &par.exprs[0] {
         Expr {
             expr_instance : Some(ExprInstance::GInt(num))
         } => {
             assert_eq!( *num, 15);
         },
         _ => {
-            panic!("{:#?}", &result.exprs[0]);
+            panic!("{:#?}", &par.exprs[0]);
         }
     }
 
@@ -64,18 +64,18 @@ fn expression_should_handle_long_addition() {
     });
 
     let reducer = Arc::new(DebruijnInterpreter::default());
-    let result = reducer.evaluate_expression(par).unwrap();
+    let par = reducer.evaluate_expression(par).unwrap();
 
-    assert_eq!( result.exprs.len(), 1 );
+    assert_eq!( par.exprs.len(), 1 );
 
-    match &result.exprs[0] {
+    match &par.exprs[0] {
         Expr {
             expr_instance : Some(ExprInstance::GInt(num))
         } => {
             assert_eq!( *num, 2 * i32::MAX as i64);
         },
         _ => {
-            panic!("{:#?}", &result.exprs[0]);
+            panic!("{:#?}", &par.exprs[0]);
         }
     }
 }
@@ -83,7 +83,7 @@ fn expression_should_handle_long_addition() {
 
 
 #[test]
-fn expression_should_overflow_in_addition() {
+fn expression_should_not_overflow_in_addition() {
     let mut p1 = Par::default();
     p1.exprs.push(Expr {
         expr_instance : Some( ExprInstance::GInt(i64::MAX))
@@ -103,15 +103,18 @@ fn expression_should_overflow_in_addition() {
     });
 
     let reducer = Arc::new(DebruijnInterpreter::default());
-    let result = reducer.evaluate_expression(par);
+    let par = reducer.evaluate_expression(par).unwrap();
 
-    match &result {
-        Err(ExecutionError {
-            kind,
-            ..
-        }) => {
-            assert_eq!( *kind, ExecutionErrorKind::ArithmeticOverflow as i32);
+    assert_eq!( par.exprs.len(), 1 );
+
+    match &par.exprs[0] {
+        Expr {
+            expr_instance : Some(ExprInstance::GInt(num))
+        } => {
+            assert_eq!( *num, -2);
         },
-        _ => { panic!("{:#?}", &result) }
+        _ => {
+            panic!("{:#?}", &par.exprs[0]);
+        }
     }
 }

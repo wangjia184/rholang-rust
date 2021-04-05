@@ -8,15 +8,10 @@ impl DebruijnInterpreter {
         match (v1.expr_instance, v2.expr_instance) {
             (Some(ExprInstance::GInt(left)), Some(ExprInstance::GInt(right))) => {
                 // charge[M](SUM_COST)
-                let (sum, overflowed) = left.overflowing_add(right);
-                if !overflowed {
-                    Ok(Expr {
-                        expr_instance : Some(ExprInstance::GInt(sum))
-                    })
-                } else {
-                    Err(self.add_error(ExecutionErrorKind::ArithmeticOverflow, "Arithmetic overflow"))
-                }
-                
+                let (sum, _) = left.overflowing_add(right);
+                Ok(Expr {
+                    expr_instance : Some(ExprInstance::GInt(sum))
+                })
             },
             // case (lhs: ESetBody, rhs) =>
             //     for {
