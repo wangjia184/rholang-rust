@@ -79,3 +79,39 @@ fn expression_should_handle_long_addition() {
         }
     }
 }
+
+
+
+#[test]
+fn expression_should_overflow_in_addition() {
+    let mut p1 = Par::default();
+    p1.exprs.push(Expr {
+        expr_instance : Some( ExprInstance::GInt(i64::MAX))
+    });
+
+    let mut p2 = Par::default();
+    p2.exprs.push(Expr {
+        expr_instance : Some( ExprInstance::GInt(i64::MAX))
+    });
+
+    let mut par = Par::default();
+    par.exprs.push(Expr {
+        expr_instance : Some( ExprInstance::EPlusBody(EPlus {
+            p1 : Some(p1),
+            p2 : Some(p2),
+        }))
+    });
+
+    let reducer = Arc::new(DebruijnInterpreter::default());
+    let result = reducer.evaluate_expression(par);
+
+    match &result {
+        Err(ExecutionError {
+            kind,
+            ..
+        }) => {
+            assert_eq!( *kind, ExecutionErrorKind::ArithmeticOverflow as i32);
+        },
+        _ => { panic!("{:#?}", &result) }
+    }
+}

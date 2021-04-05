@@ -697,4 +697,5 @@ pub enum ExecutionErrorKind {
     /// aborted because an error is detected
     Aborted = 0,
     InvalidExpression = 1,
+    ArithmeticOverflow = 2,
 }

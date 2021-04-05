@@ -84,6 +84,7 @@ message NormalizeResult {
 enum ExecutionErrorKind {
     Aborted = 0;  // aborted because an error is detected
     InvalidExpression = 1;
+    ArithmeticOverflow = 2;
 }
 
 message ExecutionError {
