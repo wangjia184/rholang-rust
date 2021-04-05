@@ -48,6 +48,27 @@ impl Par {
         self.connective_used |= other.connective_used;
     }
 
+    pub fn append_mut(&mut self, other : &mut Par) {
+        self.sends.append(&mut other.sends);
+        self.receives.append(&mut other.receives);
+        self.news.append(&mut other.news);
+        self.exprs.append(&mut other.exprs);
+        self.matches.append(&mut other.matches);
+        self.unforgeables.append(&mut other.unforgeables);
+        self.bundles.append(&mut other.bundles);
+        self.connectives.append(&mut other.connectives);
+
+        if other.locally_free.is_some() {
+            if let Some(ref mut locally_free) = self.locally_free {
+                locally_free.union_with_option(other.locally_free.as_ref());
+            } else {
+                self.locally_free = other.locally_free.clone();
+            }
+        }
+        
+        self.connective_used |= other.connective_used;
+    }
+
     // create a par holding a variable
     fn new_with_var(var_instance : VarInstance) -> Self {
         Par::from(

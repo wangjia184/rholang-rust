@@ -51,7 +51,7 @@ impl DebruijnInterpreter {
         // evaledExprs.foldLeft(par.copy(exprs = Vector()))(_ ++ _)
         evaluated_exprs.into_iter().fold(Ok(par), |result, mut exp| {
             result.and_then( |mut acc| {
-                exp.append(&mut acc);
+                exp.append_mut(&mut acc);
                 Ok(exp)
             })
             
