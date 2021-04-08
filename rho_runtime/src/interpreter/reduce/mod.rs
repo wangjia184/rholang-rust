@@ -8,6 +8,7 @@ use tokio::task;
 
 use model::*;
 
+mod substitute;
 mod send;
 mod receive;
 mod expression;
@@ -26,6 +27,9 @@ pub struct DebruijnInterpreter {
     errors : SegQueue<ExecutionError>,
 }
 
+pub struct Env {
+    
+}
 
 impl DebruijnInterpreter {
 
