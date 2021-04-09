@@ -13,6 +13,7 @@ impl Substitute for Par {
 
 impl DebruijnInterpreter {
     fn substitute_expressions(&self, mut vector : Vec<Expr>, depth : i32, env : &Env) -> Result<Par, ExecutionError> {
+        // TODO: avoid extra allocation by replacing fold()
         vector.reverse();
         vector.into_iter().fold( Ok(Par::default()), |result, expression| {
             result.and_then( |par| {
