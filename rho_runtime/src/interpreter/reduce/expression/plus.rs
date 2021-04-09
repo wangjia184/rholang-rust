@@ -13,19 +13,32 @@ impl DebruijnInterpreter {
                     expr_instance : Some(ExprInstance::GInt(sum))
                 })
             },
-            // case (lhs: ESetBody, rhs) =>
-            //     for {
-            //     _         <- charge[M](OP_CALL_COST)
-            //     resultPar <- add(lhs, List[Par](rhs))
-            //     resultExp <- evalSingleExpr(resultPar)
-            //     } yield resultExp
-            // case (_: GInt, other) =>
-            //     OperatorExpectedError("+", "Int", other.typ).raiseError[M, Expr]
-            // case (other, _) => OperatorNotDefined("+", other.typ).raiseError[M, Expr]
+            (Some(ExprInstance::GInt(_)), Some(right)) => {
+                let msg = format!("Unexpected operand {} for `+` operator", print_type_of(&right));
+                Err(self.add_error(ExecutionErrorKind::UnexpectedOperand, &msg))
+            },
+            (Some(ExprInstance::ESetBody(left)), Some(right)) => {
+                // case (lhs: ESetBody, rhs) =>
+                //     for {
+                //     _         <- charge[M](OP_CALL_COST)
+                //     resultPar <- add(lhs, List[Par](rhs))
+                //     resultExp <- evalSingleExpr(resultPar)
+                //     } yield resultExp
+                unimplemented!("(Some(ExprInstance::ESetBody(left)), Some(right))")
+            },
+            (Some(left), _) => {
+                let msg = format!("Undefined operator on {}", print_type_of(&left));
+                Err(self.add_error(ExecutionErrorKind::UndefinedOperator, &msg))
+            },
             _ => {
-                unimplemented!("match (v1.expr_instance, v2.expr_instance)")
+                Err(self.add_error(ExecutionErrorKind::InvalidExpression, "Invalid expression for `+` operator"))
             }
         }
     }
 
+}
+
+
+fn print_type_of<T>(_: &T) -> String {
+    format!("{}", std::any::type_name::<T>())
 }

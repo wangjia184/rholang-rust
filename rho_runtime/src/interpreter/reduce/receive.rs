@@ -23,7 +23,7 @@ impl From<Receive> for ThreadSafeEvaluator {
 
 #[async_trait]
 impl AsyncEvaluator for ReceiveEvaluator {
-    async fn evaluate(&self, reducer : Arc<DebruijnInterpreter>) {
+    async fn evaluate(&mut self, reducer : Arc<DebruijnInterpreter>) {
         if reducer.is_aborted() {
             return; // abort the execution since error occured
         }

@@ -37,11 +37,20 @@ impl AsyncEvaluator for SendEvaluator {
     * @param env An execution context
     *
     */
-    async fn evaluate(&self, reducer : Arc<DebruijnInterpreter>) {
+    async fn evaluate(&mut self, reducer : Arc<DebruijnInterpreter>) {
  
         if reducer.is_aborted() {
             return; // abort the execution since error occured
         }
+
+        if self.send.chan.is_none() {
+            &reducer.add_error(ExecutionErrorKind::InvalidSend, "Send::chan is None");
+            return;
+        }
+
+        // charge[M](SEND_EVAL_COST)
+        let chan = self.send.chan.take().unwrap();
+        let evaluated_chan = &reducer.evaluate_expression(chan);
 
         println!("{:#?}", &self.send);
     }

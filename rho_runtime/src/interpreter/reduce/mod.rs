@@ -15,7 +15,7 @@ mod expression;
 
 #[async_trait]
 trait AsyncEvaluator {
-    async fn evaluate(&self, reducer : Arc<DebruijnInterpreter>);
+    async fn evaluate(&mut self, reducer : Arc<DebruijnInterpreter>);
 }
 
 type ThreadSafeEvaluator = Box<dyn AsyncEvaluator + std::marker::Send + std::marker::Sync>;
@@ -71,7 +71,7 @@ impl DebruijnInterpreter {
 
         let mut handles = Vec::new();
 
-        for (_idx, evaluator) in evaluators.into_iter().enumerate() {
+        for (_idx, mut evaluator) in evaluators.into_iter().enumerate() {
             let cloned_self = self.clone();
             handles.push(
                 task::spawn( async move {

@@ -85,6 +85,9 @@ enum ExecutionErrorKind {
     Aborted = 0;  // aborted because an error is detected
     InvalidExpression = 1;
     ArithmeticOverflow = 2;
+    UnexpectedOperand = 3;
+    UndefinedOperator = 4;
+    InvalidSend = 5;
 }
 
 message ExecutionError {

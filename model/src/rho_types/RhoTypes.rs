@@ -698,4 +698,7 @@ pub enum ExecutionErrorKind {
     Aborted = 0,
     InvalidExpression = 1,
     ArithmeticOverflow = 2,
+    UnexpectedOperand = 3,
+    UndefinedOperator = 4,
+    InvalidSend = 5,
 }

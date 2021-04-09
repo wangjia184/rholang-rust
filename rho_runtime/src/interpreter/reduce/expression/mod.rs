@@ -27,7 +27,7 @@ impl From<Expr> for ThreadSafeEvaluator {
 
 #[async_trait]
 impl AsyncEvaluator for ExprEvaluator {
-    async fn evaluate(&self, _reducer : Arc<DebruijnInterpreter>) {
+    async fn evaluate(&mut self, _reducer : Arc<DebruijnInterpreter>) {
  
         
         
