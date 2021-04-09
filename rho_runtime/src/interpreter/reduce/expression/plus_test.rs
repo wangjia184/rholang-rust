@@ -24,7 +24,7 @@ fn expression_should_handle_simple_addition() {
     });
 
     let reducer = Arc::new(DebruijnInterpreter::default());
-    let par = reducer.evaluate_expression(par).unwrap();
+    let par = reducer.evaluate_expressions_in_par(par).unwrap();
 
     assert_eq!( par.exprs.len(), 1 );
 
@@ -64,7 +64,7 @@ fn expression_should_handle_long_addition() {
     });
 
     let reducer = Arc::new(DebruijnInterpreter::default());
-    let par = reducer.evaluate_expression(par).unwrap();
+    let par = reducer.evaluate_expressions_in_par(par).unwrap();
 
     assert_eq!( par.exprs.len(), 1 );
 
@@ -103,7 +103,7 @@ fn expression_should_not_overflow_in_addition() {
     });
 
     let reducer = Arc::new(DebruijnInterpreter::default());
-    let par = reducer.evaluate_expression(par).unwrap();
+    let par = reducer.evaluate_expressions_in_par(par).unwrap();
 
     assert_eq!( par.exprs.len(), 1 );
 

@@ -50,7 +50,7 @@ impl AsyncEvaluator for SendEvaluator {
 
         // charge[M](SEND_EVAL_COST)
         let chan = self.send.chan.take().unwrap();
-        let evaluated_chan = &reducer.evaluate_expression(chan);
+        let evaluated_chan = &reducer.evaluate_expressions_in_par(chan);
 
         println!("{:#?}", &self.send);
     }

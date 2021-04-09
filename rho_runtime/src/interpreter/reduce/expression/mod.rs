@@ -37,7 +37,7 @@ impl AsyncEvaluator for ExprEvaluator {
 
 impl DebruijnInterpreter {
 
-    pub fn evaluate_expression(&self, mut par : Par) -> Result<Par, ExecutionError> {
+    pub fn evaluate_expressions_in_par(&self, mut par : Par) -> Result<Par, ExecutionError> {
         let expressions = mem::replace( &mut par.exprs, Vec::new());
         let mut evaluated_exprs = vec![];
         for e in expressions.into_iter() {
@@ -58,7 +58,7 @@ impl DebruijnInterpreter {
         })
     }
 
-    pub fn evaluate_expression_to_par(&self, exp : Expr) -> Result<Par, ExecutionError> {
+    fn evaluate_expression_to_par(&self, exp : Expr) -> Result<Par, ExecutionError> {
         self.raise_error_if_aborted()?;
 
         match &exp.expr_instance {
@@ -67,7 +67,9 @@ impl DebruijnInterpreter {
                 unimplemented!("Some(expr::ExprInstance::EVarBody(EVar))");
             },
             Some(ExprInstance::EVarBody(EVar{ v : None })) => {
-                return Err(self.add_error(ExecutionErrorKind::InvalidExpression, "Expr::expr_instance::EVarBody::Var is None"));
+                return Err(ExecutionError::new(ExecutionErrorKind::InvalidExpression,
+                     "Expr::expr_instance::EVarBody::Var is None")
+                );
             },
             Some(ExprInstance::EMethodBody(EMethod {
                 method_name,
@@ -78,10 +80,14 @@ impl DebruijnInterpreter {
                 unimplemented!("Some(ExprInstance::EMethodBody(EMethod))");
             },
             Some(ExprInstance::EMethodBody(EMethod { target : None, ..})) => {
-                return Err(self.add_error(ExecutionErrorKind::InvalidExpression, "Expr::expr_instance::EMethodBody::EMethod::target is None"));
+                return Err(ExecutionError::new(ExecutionErrorKind::InvalidExpression, 
+                    "Expr::expr_instance::EMethodBody::EMethod::target is None")
+                );
             },
             None => {
-                return Err(self.add_error(ExecutionErrorKind::InvalidExpression, "Expr::expr_instance is None"));
+                return Err(ExecutionError::new(ExecutionErrorKind::InvalidExpression, 
+                    "Expr::expr_instance is None")
+                );
             },
             _ => {
                 self.evaluate_expression_to_expression(exp).and_then( |e| {
@@ -93,7 +99,7 @@ impl DebruijnInterpreter {
         }
     }
 
-    pub fn evaluate_expression_to_expression(&self, exp : Expr) -> Result<Expr, ExecutionError> {
+    fn evaluate_expression_to_expression(&self, exp : Expr) -> Result<Expr, ExecutionError> {
         self.raise_error_if_aborted()?;
 
         match exp.expr_instance {
@@ -106,15 +112,21 @@ impl DebruijnInterpreter {
                 self.evaluate_plus(p1, p2)
             },
             Some(ExprInstance::EPlusBody(EPlus{ p1 : None, .. })) => {
-                Err(self.add_error(ExecutionErrorKind::InvalidExpression, "EPlus::p1 is None"))
+                Err(ExecutionError::new( ExecutionErrorKind::InvalidExpression,
+                    "EPlus::p1 is None")
+                )
             },
             Some(ExprInstance::EPlusBody(EPlus{ p2 : None, .. })) => {
-                Err(self.add_error(ExecutionErrorKind::InvalidExpression, "EPlus::p2 is None"))
+                Err(ExecutionError::new( ExecutionErrorKind::InvalidExpression,
+                    "EPlus::p2 is None")
+                )
             },
 
             
             None => {
-                Err(self.add_error(ExecutionErrorKind::InvalidExpression, "Expr::expr_instance is None"))
+                Err(ExecutionError::new(ExecutionErrorKind::InvalidExpression,
+                    "Expr::expr_instance is None")
+                )
             },
             _ => {
                 panic!("evaluate_expression_to_expression() : {:?}", &exp.expr_instance)
@@ -122,15 +134,20 @@ impl DebruijnInterpreter {
         }
     }
 
-
-    pub fn evaluate_single_expression(&self, mut par : Par) -> Result<Expr, ExecutionError> {
+    fn evaluate_single_expression(&self, mut par : Par) -> Result<Expr, ExecutionError> {
         if !par.sends.is_empty() || !par.receives.is_empty() || !par.news.is_empty() || 
            !par.matches.is_empty() || !par.unforgeables.is_empty() || !par.bundles.is_empty() {
-            return Err(self.add_error(ExecutionErrorKind::InvalidExpression, "Parallel or non expression found where expression expected."));
+            return Err(ExecutionError::new( ExecutionErrorKind::InvalidExpression,
+                "Parallel or non expression found where expression expected.")
+            );
         }
         if par.exprs.len() != 1 {
-            return Err(self.add_error(ExecutionErrorKind::InvalidExpression, "Single expression is expected."));
+            return Err(ExecutionError::new( ExecutionErrorKind::InvalidExpression,
+                "Single expression is expected.")
+            );
         }
         self.evaluate_expression_to_expression(par.exprs.remove(0))
     }
+
 }
+

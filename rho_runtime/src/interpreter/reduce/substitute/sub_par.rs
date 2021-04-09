@@ -11,30 +11,29 @@ impl Substitute for Par {
     
 }
 
-impl DebruijnInterpreter {
-    fn substitute_expressions(&self, mut vector : Vec<Expr>, depth : i32, env : &Env) -> Result<Par, ExecutionError> {
-        // TODO: avoid extra allocation by replacing fold()
-        vector.reverse();
-        vector.into_iter().fold( Ok(Par::default()), |result, expression| {
-            result.and_then( |par| {
-                match expression.expr_instance {
-                    Some(ExprInstance::EVarBody(EVar{ v : Some(var) })) => {
-                        unimplemented!("Some(ExprInstance::EVarBody(EVar))");
-                    },
-                    Some(ExprInstance::EVarBody(EVar{ v : None})) => {
-                        Err(self.add_error(ExecutionErrorKind::InvalidExpression, "Expr::expr_instance::EVarBody::Var is None"))
-                    },
-                    None => {
-                        Err(self.add_error(ExecutionErrorKind::InvalidExpression, "Expr::expr_instance is None"))
-                    }
-                    _ => {
-                        unimplemented!("_");
-                    }
+fn substitute_expressions(mut vector : Vec<Expr>, depth : i32, env : &Env) -> Result<Par, ExecutionError> {
+    // TODO: avoid extra allocation by replacing fold()
+    vector.reverse();
+    vector.into_iter().fold( Ok(Par::default()), |result, expression| {
+        result.and_then( |par| {
+            match expression.expr_instance {
+                Some(ExprInstance::EVarBody(EVar{ v : Some(var) })) => {
+                    unimplemented!("Some(ExprInstance::EVarBody(EVar))");
+                },
+                Some(ExprInstance::EVarBody(EVar{ v : None})) => {
+                    Err(ExecutionError::new(ExecutionErrorKind::InvalidExpression,
+                        "Expr::expr_instance::EVarBody::Var is None")
+                    )
+                },
+                None => {
+                    Err(ExecutionError::new(ExecutionErrorKind::InvalidExpression,
+                        "Expr::expr_instance is None")
+                    )
                 }
-            })
+                _ => {
+                    unimplemented!("_");
+                }
+            }
         })
-    }
+    })
 }
-
-
-

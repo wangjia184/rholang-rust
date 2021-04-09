@@ -15,7 +15,7 @@ impl DebruijnInterpreter {
             },
             (Some(ExprInstance::GInt(_)), Some(right)) => {
                 let msg = format!("Unexpected operand {} for `+` operator", print_type_of(&right));
-                Err(self.add_error(ExecutionErrorKind::UnexpectedOperand, &msg))
+                Err(ExecutionError::new(ExecutionErrorKind::UnexpectedOperand, &msg))
             },
             (Some(ExprInstance::ESetBody(left)), Some(right)) => {
                 // case (lhs: ESetBody, rhs) =>
@@ -28,10 +28,10 @@ impl DebruijnInterpreter {
             },
             (Some(left), _) => {
                 let msg = format!("Undefined operator on {}", print_type_of(&left));
-                Err(self.add_error(ExecutionErrorKind::UndefinedOperator, &msg))
+                Err(ExecutionError::new(ExecutionErrorKind::UndefinedOperator, &msg))
             },
             _ => {
-                Err(self.add_error(ExecutionErrorKind::InvalidExpression, "Invalid expression for `+` operator"))
+                Err(ExecutionError::new(ExecutionErrorKind::InvalidExpression, "Invalid expression for `+` operator"))
             }
         }
     }
