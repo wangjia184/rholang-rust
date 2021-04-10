@@ -181,7 +181,7 @@ fn dispatch<F>(expression : &mut Expr,  func : F) -> Result<(), ExecutionError>
         },
 
         _ => {
-            warn!("Uncaptrued expression in substitue. {:#?}", &expression.expr_instance);
+            warn!("Uncaptrued expression in substitue. Usually this is a bug! {:#?}", &expression.expr_instance);
         }
     }
     

@@ -12,6 +12,9 @@ mod substitute;
 mod send;
 mod receive;
 mod expression;
+mod environment;
+
+use environment::*;
 
 #[async_trait]
 trait AsyncEvaluator {
@@ -27,9 +30,6 @@ pub struct DebruijnInterpreter {
     errors : SegQueue<ExecutionError>,
 }
 
-pub struct Env {
-    
-}
 
 impl DebruijnInterpreter {
 
