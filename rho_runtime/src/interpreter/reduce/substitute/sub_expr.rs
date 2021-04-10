@@ -2,33 +2,23 @@ use super::*;
 
 impl Substitutable for Expr {
 
-    fn substitute(self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<Self, ExecutionError> {
+    fn substitute(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
         
-        let func1 = |par : Par| { par.substitute(reducer, depth, env) };
-
-        let func2 = | left : Par, right : Par | -> Result<(Par, Par), ExecutionError> {
-            Ok(( 
-                left.substitute(reducer, depth, env)?,
-                right.substitute(reducer, depth, env)?
-            ))
+        let func = |par : &mut Par| { 
+            par.substitute(reducer, depth, env)
         };
 
-        dispatch( self, func1, func2)
+        dispatch( self, func)
     }
 
 
-    fn substitute_no_sort(self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<Self, ExecutionError> {
+    fn substitute_no_sort(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
-        let func1 = |par : Par| { par.substitute_no_sort(reducer, depth, env) };
-
-        let func2 = | left : Par, right : Par | -> Result<(Par, Par), ExecutionError> {
-            Ok(( 
-                left.substitute_no_sort(reducer, depth, env)?,
-                right.substitute_no_sort(reducer, depth, env)?
-            ))
+        let func = |par : &mut Par| {
+            par.substitute_no_sort(reducer, depth, env)
         };
 
-        dispatch( self, func1, func2)
+        dispatch( self, func)
     }
     
 }
@@ -36,10 +26,9 @@ impl Substitutable for Expr {
 macro_rules! unary_expr{
     ($x:expr, $f:expr)=>{
         {
-            // let par = enot.p.take().unwrap();
-            // let par = func1(par)?;
-            // enot.p = Some(par);
-            $x.p = Some($f($x.p.take().unwrap())?);
+            if let Some(ref mut par) = $x.p {
+                $f(par)?;
+            }
         }
     }
 }
@@ -47,77 +36,82 @@ macro_rules! unary_expr{
 macro_rules! binary_expr{
     ($x:expr, $f:expr)=>{
         {
-            let (left, right) = $f( $x.p1.take().unwrap(), $x.p2.take().unwrap())?;
-            $x.p1 = Some(left);
-            $x.p2 = Some(right);
+            if let Some(ref mut par) = $x.p1 {
+                $f(par)?;
+            }
+            if let Some(ref mut par) = $x.p2 {
+                $f(par)?;
+            }
         }
     }
 }
 
-fn dispatch<F1, F2>(mut expression : Expr,  func1 : F1, func2 : F2 ) -> Result<Expr, ExecutionError> 
-        where F1 : Fn(Par) -> Result<Par, ExecutionError>,
-        F2 : Fn(Par, Par) -> Result<(Par, Par), ExecutionError>
+fn dispatch<F>(expression : &mut Expr,  func : F) -> Result<(), ExecutionError> 
+        where F : Fn(&mut Par) -> Result<(), ExecutionError>
 {
 
     match expression.expr_instance {
         Some(ExprInstance::ENotBody(ref mut instance)) if instance.p.is_some() => {
-            unary_expr!(instance, func1)
+            unary_expr!(instance, func)
         },
         Some(ExprInstance::ENegBody(ref mut instance)) if instance.p.is_some() => {
-            unary_expr!(instance, func1)
+            unary_expr!(instance, func)
         },
         Some(ExprInstance::EMultBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
-            binary_expr!(instance, func2)
+            binary_expr!(instance, func)
         },
         Some(ExprInstance::EDivBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
-            binary_expr!(instance, func2)
+            binary_expr!(instance, func)
         },
         Some(ExprInstance::EModBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
-            binary_expr!(instance, func2)
+            binary_expr!(instance, func)
         },
         Some(ExprInstance::EPercentPercentBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
-            binary_expr!(instance, func2)
+            binary_expr!(instance, func)
         },
         Some(ExprInstance::EPlusBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
-            binary_expr!(instance, func2)
+            binary_expr!(instance, func)
         },
         Some(ExprInstance::EMinusBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
-            binary_expr!(instance, func2)
+            binary_expr!(instance, func)
         },
         Some(ExprInstance::EPlusPlusBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
-            binary_expr!(instance, func2)
+            binary_expr!(instance, func)
         },
         Some(ExprInstance::EMinusMinusBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
-            binary_expr!(instance, func2)
+            binary_expr!(instance, func)
         },
         Some(ExprInstance::ELtBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
-            binary_expr!(instance, func2)
+            binary_expr!(instance, func)
         },
         Some(ExprInstance::ELteBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
-            binary_expr!(instance, func2)
+            binary_expr!(instance, func)
         },
         Some(ExprInstance::EGtBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
-            binary_expr!(instance, func2)
+            binary_expr!(instance, func)
         },
         Some(ExprInstance::EGteBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
-            binary_expr!(instance, func2)
+            binary_expr!(instance, func)
         },
         Some(ExprInstance::EEqBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
-            binary_expr!(instance, func2)
+            binary_expr!(instance, func)
         },
         Some(ExprInstance::ENeqBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
-            binary_expr!(instance, func2)
+            binary_expr!(instance, func)
         },
         Some(ExprInstance::EAndBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
-            binary_expr!(instance, func2)
+            binary_expr!(instance, func)
         },
         Some(ExprInstance::EOrBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
-            binary_expr!(instance, func2)
+            binary_expr!(instance, func)
         },
         Some(ExprInstance::EMatchesBody(ref mut ematches)) if ematches.target.is_some() && ematches.pattern.is_some() => {
-            let (left, right) = func2( ematches.target.take().unwrap(), ematches.pattern.take().unwrap())?;
-            ematches.target = Some(left);
-            ematches.pattern = Some(right);
+            if let Some(ref mut par) = ematches.target {
+                func(par)?;
+            }
+            if let Some(ref mut par) = ematches.pattern {
+                func(par)?;
+            }
         },
         Some(ExprInstance::EListBody(ref mut _elist)) => {
             // for {
@@ -191,5 +185,5 @@ fn dispatch<F1, F2>(mut expression : Expr,  func1 : F1, func2 : F2 ) -> Result<E
         }
     }
     
-    Ok(expression)
+    Ok(())
 }

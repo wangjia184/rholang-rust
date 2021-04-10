@@ -2,7 +2,7 @@ use super::*;
 
 impl Substitutable for New {
 
-    fn substitute(mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<Self, ExecutionError> {
+    fn substitute(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
        
         // substituteNoSort(term).flatMap(newSub => Sortable.sortMatch(newSub)).map(_.term)
         unimplemented!("New::substitute")
@@ -10,7 +10,7 @@ impl Substitutable for New {
     }
 
 
-    fn substitute_no_sort(mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<Self, ExecutionError> {
+    fn substitute_no_sort(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
 
         // substitutePar[M]

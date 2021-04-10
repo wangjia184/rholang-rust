@@ -11,11 +11,11 @@ pub mod sub_receive;
 pub mod sub_bundle;
 
 trait Substitutable {
-    fn substitute(self : Self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) 
-        -> Result<Self, ExecutionError> 
+    fn substitute(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) 
+        -> Result<(), ExecutionError> 
             where Self: std::marker::Sized;
-    fn substitute_no_sort(self : Self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) 
-        -> Result<Self, ExecutionError> 
+    fn substitute_no_sort(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) 
+        -> Result<(), ExecutionError> 
             where Self: std::marker::Sized;
 }
 

@@ -123,6 +123,7 @@ impl HasLocallyFree<ExprInstance> for ExprInstanceLocallyFree {
     }
 
     fn locally_free(e : &ExprInstance, depth : i32) -> Option<BitSet> {
+        // TODO : CoW to avoid clone
         match e {
             ExprInstance::GBool(_) => None,
             ExprInstance::GInt(_) => None,

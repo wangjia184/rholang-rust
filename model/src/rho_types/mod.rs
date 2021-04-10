@@ -176,6 +176,25 @@ impl Par {
         cloned
     }
 
+
+    pub fn append_expr(&mut self, e : Expr, depth : i32) {
+        
+        if let Some(ref instance) = e.expr_instance {
+            if let Some(ref bitset) = ExprInstanceLocallyFree::locally_free(instance, depth) {
+                if let Some(ref mut locally_free) = self.locally_free {
+                    locally_free.union_with(bitset);
+                }
+            }
+
+            if ExprInstanceLocallyFree::connective_used(instance) {
+                self.connective_used = true;
+            }
+        }
+
+        self.exprs.push(e);
+    }
+
+
     pub fn clone_then_prepend_expr(&self, e : Expr, depth : i32) -> Self {
         let mut cloned = self.clone();
 
