@@ -1,6 +1,6 @@
 use super::*;
 
-impl Substitute for Par {
+impl Substitutable for Par {
     fn substitute(self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<Self, ExecutionError> {
         Ok(self)
     }

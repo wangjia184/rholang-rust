@@ -701,4 +701,5 @@ pub enum ExecutionErrorKind {
     UnexpectedOperand = 3,
     UndefinedOperator = 4,
     InvalidSend = 5,
+    InvalidMatch = 6,
 }
