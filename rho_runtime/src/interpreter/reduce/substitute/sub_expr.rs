@@ -51,61 +51,61 @@ fn dispatch<F>(expression : &mut Expr,  func : F) -> Result<(), ExecutionError>
 {
 
     match expression.expr_instance {
-        Some(ExprInstance::ENotBody(ref mut instance)) if instance.p.is_some() => {
+        Some(ExprInstance::ENotBody(ref mut instance)) => {
             unary_expr!(instance, func)
         },
-        Some(ExprInstance::ENegBody(ref mut instance)) if instance.p.is_some() => {
+        Some(ExprInstance::ENegBody(ref mut instance)) => {
             unary_expr!(instance, func)
         },
-        Some(ExprInstance::EMultBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
+        Some(ExprInstance::EMultBody(ref mut instance)) => {
             binary_expr!(instance, func)
         },
-        Some(ExprInstance::EDivBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
+        Some(ExprInstance::EDivBody(ref mut instance)) => {
             binary_expr!(instance, func)
         },
-        Some(ExprInstance::EModBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
+        Some(ExprInstance::EModBody(ref mut instance)) => {
             binary_expr!(instance, func)
         },
-        Some(ExprInstance::EPercentPercentBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
+        Some(ExprInstance::EPercentPercentBody(ref mut instance)) => {
             binary_expr!(instance, func)
         },
-        Some(ExprInstance::EPlusBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
+        Some(ExprInstance::EPlusBody(ref mut instance)) => {
             binary_expr!(instance, func)
         },
-        Some(ExprInstance::EMinusBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
+        Some(ExprInstance::EMinusBody(ref mut instance)) => {
             binary_expr!(instance, func)
         },
-        Some(ExprInstance::EPlusPlusBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
+        Some(ExprInstance::EPlusPlusBody(ref mut instance)) => {
             binary_expr!(instance, func)
         },
-        Some(ExprInstance::EMinusMinusBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
+        Some(ExprInstance::EMinusMinusBody(ref mut instance)) => {
             binary_expr!(instance, func)
         },
-        Some(ExprInstance::ELtBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
+        Some(ExprInstance::ELtBody(ref mut instance)) => {
             binary_expr!(instance, func)
         },
-        Some(ExprInstance::ELteBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
+        Some(ExprInstance::ELteBody(ref mut instance)) => {
             binary_expr!(instance, func)
         },
-        Some(ExprInstance::EGtBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
+        Some(ExprInstance::EGtBody(ref mut instance)) => {
             binary_expr!(instance, func)
         },
-        Some(ExprInstance::EGteBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
+        Some(ExprInstance::EGteBody(ref mut instance)) => {
             binary_expr!(instance, func)
         },
-        Some(ExprInstance::EEqBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
+        Some(ExprInstance::EEqBody(ref mut instance)) => {
             binary_expr!(instance, func)
         },
-        Some(ExprInstance::ENeqBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
+        Some(ExprInstance::ENeqBody(ref mut instance)) => {
             binary_expr!(instance, func)
         },
-        Some(ExprInstance::EAndBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
+        Some(ExprInstance::EAndBody(ref mut instance)) => {
             binary_expr!(instance, func)
         },
-        Some(ExprInstance::EOrBody(ref mut instance)) if instance.p1.is_some() && instance.p2.is_some() => {
+        Some(ExprInstance::EOrBody(ref mut instance)) => {
             binary_expr!(instance, func)
         },
-        Some(ExprInstance::EMatchesBody(ref mut ematches)) if ematches.target.is_some() && ematches.pattern.is_some() => {
+        Some(ExprInstance::EMatchesBody(ref mut ematches)) => {
             if let Some(ref mut par) = ematches.target {
                 func(par)?;
             }
