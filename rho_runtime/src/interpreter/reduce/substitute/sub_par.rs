@@ -6,10 +6,6 @@ impl Substitutable for Par {
     }
     fn substitute_no_sort(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
-        let par_contains_expressions = substitute_expressions(&mut self.exprs, reducer, depth, env)?;
-        let par_contains_connectives = substitute_connectives(&mut self.connectives, reducer, depth, env)?;
-
-
         for s in &mut self.sends {
             s.substitute_no_sort(reducer, depth, env)?;
         }
@@ -25,22 +21,28 @@ impl Substitutable for Par {
         for m in &mut self.matches {
             m.substitute_no_sort(reducer, depth, env)?;
         }
- 
 
+        if let Some(ref mut bitset) = self.locally_free {
+            bitset.truncate(env.shift); // term.locallyFree.until(env.shift)  need test
+        }
+ 
+        substitute_connectives(self, reducer, depth, env)?;
+        substitute_expressions(self, reducer, depth, env)?;
         Ok(())
     }
 
     
 }
 
-fn substitute_expressions(vector : &mut Vec<Expr>, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<Par, ExecutionError> {
+fn substitute_expressions(par : &mut Par, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
     // the scala code use fold(), here we use imperative style instead to avoid extra allocation
     // note that we dont reverse here, thus it appends instead of prepending
 
-    let mut par = Par::default();
+    let mut count = par.exprs.len();
 
-    while !vector.is_empty() {
-        let mut expression = vector.remove(0);
+    while count > 0 {
+        count -= 1;
+        let mut expression = par.exprs.remove(0);
 
         match expression.expr_instance {
             Some(ExprInstance::EVarBody(EVar{ v : Some(var) })) => {
@@ -69,17 +71,17 @@ fn substitute_expressions(vector : &mut Vec<Expr>, reducer : &DebruijnInterprete
         }
     }
 
-    Ok(par)
+    Ok(())
 }
 
 
-fn substitute_connectives(vector : &mut Vec<Connective>, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<Par, ExecutionError> {
+fn substitute_connectives(par : &mut Par, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
-    if !vector.is_empty() {
+    if !par.connectives.is_empty() {
         unimplemented!("substitute_connectives() is not implemented");
     }
 
-    Ok(Par::default())
+    Ok(())
 
     // conns.toList.reverse.foldM(VectorPar()) { (par, conn) =>
     //     conn.connectiveInstance match {

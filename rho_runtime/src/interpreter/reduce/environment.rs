@@ -7,7 +7,7 @@ use super::*;
 #[derive(Default, Debug)]
 pub struct Env<T = Par> where T : Clone {
     level : usize,
-    shift : usize,
+    pub shift : usize,
 
     // Rc is used here to avoid duplicated instance.
     // Be careful when we want to change the binding in a frame

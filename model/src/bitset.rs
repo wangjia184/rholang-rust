@@ -307,6 +307,12 @@ impl<B: BitBlock> BitSet<B> {
         }
     }
 
+
+    pub fn truncate(&mut self, len : usize) {
+        let bit_vec = &mut self.bit_vec;
+        bit_vec.truncate(len);
+    }
+
     /// Truncates the underlying vector to the least length required.
     ///
     /// # Examples
