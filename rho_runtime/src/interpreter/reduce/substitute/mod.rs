@@ -6,9 +6,9 @@ pub mod sub_par;
 pub mod sub_expr;
 pub mod sub_match;
 pub mod sub_new;
-pub mod sub_send;
-pub mod sub_receive;
 pub mod sub_bundle;
+pub mod sub_receive;
+pub mod sub_send;
 
 pub trait Substitutable {
     fn substitute(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) 

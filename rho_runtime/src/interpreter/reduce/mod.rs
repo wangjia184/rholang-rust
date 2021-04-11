@@ -9,9 +9,9 @@ use tokio::task;
 use model::*;
 
 mod substitute;
-mod send;
-mod receive;
-mod expression;
+mod eval_send;
+mod eval_receive;
+mod eval_expression;
 mod environment;
 
 use substitute::*;

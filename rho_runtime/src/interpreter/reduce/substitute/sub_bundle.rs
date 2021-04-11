@@ -1,11 +1,16 @@
 use super::*;
 
-impl Substitutable for Send {
+impl Substitutable for Bundle {
 
     fn substitute(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
        
-        // substituteNoSort(term).flatMap(send => Sortable.sortMatch(send)).map(_.term)
-        unimplemented!("Send::substitute")
+        // substitutePar[M].substitute(term.body).map { subBundle =>
+        //     subBundle.singleBundle() match {
+        //       case Some(value) => term.merge(value)
+        //       case None        => term.copy(body = subBundle)
+        //     }
+        //   }
+        unimplemented!("Bundle::substitute")
         //Ok(self)
     }
 
@@ -13,19 +18,14 @@ impl Substitutable for Send {
     fn substitute_no_sort(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
 
-        // for {
-        //     channelsSub <- substitutePar[M].substituteNoSort(term.chan)
-        //     parsSub     <- term.data.toVector.traverse(substitutePar[M].substituteNoSort(_))
-        //     send = Send(
-        //       chan = channelsSub,
-        //       data = parsSub,
-        //       persistent = term.persistent,
-        //       locallyFree = term.locallyFree.until(env.shift),
-        //       connectiveUsed = term.connectiveUsed
-        //     )
-        //   } yield send
+        // substitutePar[M].substituteNoSort(term.body).map { subBundle =>
+        //     subBundle.singleBundle() match {
+        //       case Some(value) => term.merge(value)
+        //       case None        => term.copy(body = subBundle)
+        //     }
+        //   }
 
-        unimplemented!("Send::substitute_no_sort")
+        unimplemented!("Bundle::substitute_no_sort")
 
         //Ok(self)
     }
