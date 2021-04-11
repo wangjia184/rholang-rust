@@ -2,7 +2,9 @@ use super::*;
 
 impl Substitutable for Par {
     fn substitute(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
-        Ok(())
+        // substituteNoSort(term).flatMap(par => Sortable.sortMatch(par)).map(_.term)
+        unimplemented!("Not implemented yet");
+        //Ok(())
     }
     fn substitute_no_sort(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
@@ -36,15 +38,9 @@ impl Substitutable for Par {
 
 fn substitute_expressions(par : &mut Par, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
     // the scala code use fold(), here we use imperative style instead to avoid extra allocation
-    // note that we dont reverse here, thus it appends instead of prepending
-
-    let mut count = par.exprs.len();
-
-    while count > 0 {
-        count -= 1;
-        let mut expression = par.exprs.remove(0);
-
-        match expression.expr_instance {
+ 
+    for expression in &mut par.exprs {
+        match &mut expression.expr_instance {
             Some(ExprInstance::EVarBody(EVar{ v : Some(var) })) => {
                 // case EVarBody(e) =>
                 //     maybeSubstitute[M](e).map {
@@ -65,12 +61,24 @@ fn substitute_expressions(par : &mut Par, reducer : &DebruijnInterpreter, depth 
                 );
             }
             _ => {
-                expression.substitute(reducer, depth, env)?;
-                par.append_expr(expression, depth);
+                expression.substitute_no_sort(reducer, depth, env)?;
+                if let Some(ref instance) = expression.expr_instance {
+                    if let Some(bitset) = ExprInstanceLocallyFree::locally_free(instance, depth) {
+                        if let Some(ref mut locally_free) = par.locally_free {
+                            locally_free.union_with(&bitset);
+                        } else {
+                            par.locally_free = Some(bitset);
+                        }
+                    }
+        
+                    if ExprInstanceLocallyFree::connective_used(instance) {
+                        par.connective_used = true;
+                    }
+                }                
             }
         }
     }
-
+    
     Ok(())
 }
 

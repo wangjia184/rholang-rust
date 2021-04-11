@@ -39,5 +39,5 @@ pub async fn test_reduce() {
     });
 
     let reducer = Arc::new(reduce::DebruijnInterpreter::default());
-    reducer.evaluate(par).await;
+    reducer.evaluate(par, reduce::Env::<Par>::default()).await;
 }

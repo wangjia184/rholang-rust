@@ -10,7 +10,7 @@ pub mod sub_send;
 pub mod sub_receive;
 pub mod sub_bundle;
 
-trait Substitutable {
+pub trait Substitutable {
     fn substitute(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) 
         -> Result<(), ExecutionError> 
             where Self: std::marker::Sized;

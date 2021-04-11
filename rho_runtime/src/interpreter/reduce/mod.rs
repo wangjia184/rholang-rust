@@ -14,11 +14,12 @@ mod receive;
 mod expression;
 mod environment;
 
-use environment::*;
+use substitute::*;
+pub use environment::*;
 
 #[async_trait]
 trait AsyncEvaluator {
-    async fn evaluate(&mut self, reducer : Arc<DebruijnInterpreter>);
+    async fn evaluate(&mut self, reducer : Arc<DebruijnInterpreter>, env : Env);
 }
 
 type ThreadSafeEvaluator = Box<dyn AsyncEvaluator + std::marker::Send + std::marker::Sync>;
@@ -33,15 +34,20 @@ pub struct DebruijnInterpreter {
 
 impl DebruijnInterpreter {
 
+    pub fn push_error(&self, err : ExecutionError)
+    {
+        self.aborted.store(true, Ordering::Relaxed);
+        self.errors.push(err);
+    }
+
     pub fn add_error<S>(&self, e : ExecutionErrorKind, msg : S) -> ExecutionError 
         where S : Into<String> 
     {
-        self.aborted.store(true, Ordering::Relaxed);
         let err = ExecutionError{
             kind : e as i32,
             message : msg.into()
         };
-        self.errors.push(err.clone());
+        self.push_error(err.clone());
         err
     }
 
@@ -60,7 +66,7 @@ impl DebruijnInterpreter {
         }
     }
 
-    pub async fn evaluate(self : Arc<Self>, par : Par) {
+    pub async fn evaluate(self : Arc<Self>, par : Par, env : Env) {
         
 
         let evaluators : Vec<ThreadSafeEvaluator>;
@@ -73,9 +79,10 @@ impl DebruijnInterpreter {
 
         for (_idx, mut evaluator) in evaluators.into_iter().enumerate() {
             let cloned_self = self.clone();
+            let cloned_env = env.clone();
             handles.push(
                 task::spawn( async move {
-                    evaluator.evaluate(cloned_self).await;
+                    evaluator.evaluate(cloned_self, cloned_env).await;
                 })
             );
         }

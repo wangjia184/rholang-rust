@@ -37,7 +37,7 @@ impl AsyncEvaluator for SendEvaluator {
     * @param env An execution context
     *
     */
-    async fn evaluate(&mut self, reducer : Arc<DebruijnInterpreter>) {
+    async fn evaluate(&mut self, reducer : Arc<DebruijnInterpreter>, env : Env) {
  
         if reducer.is_aborted() {
             return; // abort the execution since error occured
@@ -49,9 +49,18 @@ impl AsyncEvaluator for SendEvaluator {
         }
 
         // charge[M](SEND_EVAL_COST)
-        let chan = self.send.chan.take().unwrap();
-        let evaluated_chan = &reducer.evaluate_expressions_in_par(chan);
 
-        println!("{:#?}", &self.send);
+        let chan = self.send.chan.take().unwrap();
+        let mut evaluated_chan = match reducer.evaluate_expressions_in_par(chan) {
+            Ok(p) => p,
+            Err(e) => {
+                &reducer.push_error(e);
+                return;
+            }
+        };
+
+        evaluated_chan.substitute_no_sort(&reducer, 0, &env);
+
+        println!("{:#?}", &evaluated_chan);
     }
 }

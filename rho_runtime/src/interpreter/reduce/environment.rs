@@ -1,26 +1,26 @@
 
-use std::rc::Rc;
+
 use super::*;
 
 
 // Environment Model of Evaluation
-#[derive(Default, Debug)]
-pub struct Env<T = Par> where T : Clone {
+#[derive(Default, Debug, Clone)]
+pub struct Env<T = Par> where T : Clone + std::marker::Send {
     level : usize,
     pub shift : usize,
 
-    // Rc is used here to avoid duplicated instance.
+    // Arc is used here to avoid duplicated instance.
     // Be careful when we want to change the binding in a frame
-    // Using Rc::make_mut() for Copy-on-Write
-    bindings : Rc<Vec<Rc<T>>>
+    // Using Arc::make_mut() for Copy-on-Write
+    bindings : Arc<Vec<Arc<T>>>
 }
 
-impl<T> Env<T> where T : Clone {
+impl<T> Env<T> where T : Clone + std::marker::Send {
     // create a new frame by adding a new binding
     pub fn clone_then_put(&self, t : T) -> Self {
         let mut new_bindings = self.bindings.clone();
-        let vector = Rc::make_mut(&mut new_bindings);
-        vector.push(Rc::new(t));
+        let vector = Arc::make_mut(&mut new_bindings);
+        vector.push(Arc::new(t));
         Self {
             level : self.level + 1,
             shift : self.shift,
@@ -29,7 +29,7 @@ impl<T> Env<T> where T : Clone {
     }
 
 
-    pub fn get(&self, k : usize) -> Option<Rc<T>> {
+    pub fn get(&self, k : usize) -> Option<Arc<T>> {
         let index = self.level + self.shift - k - 1;
         if index < self.bindings.len() {
             return Some(self.bindings[index as usize].clone());
