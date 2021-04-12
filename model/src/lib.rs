@@ -9,7 +9,7 @@ mod rho_types;
 pub mod constant;
 mod bitset;
 mod locally_free;
-pub mod sort;
+pub mod ordering;
 
 pub use bitset::BitSet;
 pub use rho_types::*;

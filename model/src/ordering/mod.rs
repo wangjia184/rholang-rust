@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::cmp::{ Ord, Ordering };
 use super::rho_types::*;
 
 pub mod sort_par;
@@ -24,7 +24,7 @@ mod sort_send_test;
   * And in most cases we dont need build the entrie tree if the comparion interrupts
   */
 
-  #[derive(Debug)]
+#[derive(Eq)]
 pub enum ScoreAtom {
     IntAtom(i64),
     StringAtom(String),
@@ -38,6 +38,33 @@ impl From<Score> for ScoreAtom {
     }
 }
 
+
+impl Ord for ScoreAtom {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self, other) {
+            (ScoreAtom::IntAtom(num1), ScoreAtom::IntAtom(num2)) => num1.cmp(num2),
+            (ScoreAtom::IntAtom(_), _) => Ordering::Less,
+            (_, ScoreAtom::IntAtom(_)) => Ordering::Greater,
+            (ScoreAtom::StringAtom(str1), ScoreAtom::StringAtom(str2)) => str1.cmp(str2),
+            (ScoreAtom::StringAtom(_), _) => Ordering::Less,
+            (_, ScoreAtom::StringAtom(_)) => Ordering::Greater,
+            (ScoreAtom::BytesAtom, ScoreAtom::BytesAtom) => todo!("Implement bytes"),
+        }
+    }
+}
+
+impl PartialOrd for ScoreAtom {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl PartialEq for ScoreAtom {
+    fn eq(&self, other: &Self) -> bool {
+        self.cmp(other) == Ordering::Equal
+    }
+}
+
 pub enum Node<'a> {
     Leaf(ScoreAtom),
     Children(Box<dyn Iterator<Item = Node<'a>> + Sync + 'a>),
@@ -47,7 +74,7 @@ pub trait Sortable<'a, ITER> where ITER : Iterator<Item = Node<'a>> + 'a {
     fn score_tree_iter(self) -> ITER;
 }
 
-
+// Depth-first traverse to compare two sortables
 pub fn comparer(mut left_iter : Box<dyn Iterator<Item = Node<'_>> + '_>, mut right_iter : Box<dyn Iterator<Item = Node<'_>> + '_>) -> Ordering {
     loop {
         match (left_iter.next(), right_iter.next()) {
@@ -57,14 +84,19 @@ pub fn comparer(mut left_iter : Box<dyn Iterator<Item = Node<'_>> + '_>, mut rig
             (Some(_), None) => return Ordering::Greater,
             (Some(Node::Leaf(_)), Some(Node::Children(_)) ) => return Ordering::Less,
             (Some(Node::Children(_)), Some(Node::Leaf(_)) ) => return Ordering::Greater,
-            (Some(Node::Leaf(x)), Some(Node::Leaf(y)) ) => {
-                todo!()
-            },
-            
-            (Some(Node::Children(x)), Some(Node::Children(y)) ) => {
-                todo!()
-            },
-        }
+            (Some(Node::Leaf(ref left)), Some(Node::Leaf(ref right)) ) => {
+                let order = left.cmp(right);
+                if order != Ordering::Equal {
+                    return order;
+                }
+            } 
+            (Some(Node::Children(left)), Some(Node::Children(right)) ) => {
+                let order = comparer(left, right);
+                if order != Ordering::Equal {
+                    return order;
+                }
+            }
+        };
     }
     
 }
