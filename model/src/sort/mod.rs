@@ -1,5 +1,7 @@
 use super::rho_types::*;
 
+pub mod sort_par;
+pub mod sort_send;
 /**
   * Sorts the insides of the Par and ESet/EMap of the rholangADT
   *
@@ -19,7 +21,7 @@ use super::rho_types::*;
 
 
 pub enum ScoreAtom {
-    IntAtom(u16),
+    IntAtom(i64),
     StringAtom(String),
     BytesAtom,
 }
@@ -27,7 +29,7 @@ pub enum ScoreAtom {
 
 impl From<Score> for ScoreAtom {
     fn from(score : Score) -> Self {
-        Self::IntAtom(score as u16)
+        Self::IntAtom(score as i64)
     }
 }
 
@@ -37,75 +39,10 @@ pub enum Node {
 }
 
 pub trait Sortable<ITER> where ITER : Iterator<Item = Node> {
-    fn score_tree_iter(&self) -> ITER;
+    fn score_tree_iter(self) -> ITER;
 }
 
 
-
-
-
-
-impl Sortable<SendScoreTreeIter<'_>> for Send {
-    fn score_tree_iter<'b>(&'b self) -> SendScoreTreeIter<'b> {
-        SendScoreTreeIter{
-            data : self,
-            stage : 0,
-        }
-    }
-}
-
-struct SendScoreTreeIter<'a> {
-    data : &'a Send,
-    stage : u16,
-}
-
-
-impl Iterator for SendScoreTreeIter<'_> {
-    type Item = Node;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        
-
-        // Node(List(
-        //         Leaf(ScoreAtom(IntAtom(Score.SEND))),
-        //         Leaf(ScoreAtom(IntAtom(0))),
-        //         Node(List(
-        //             Leaf(ScoreAtom(IntAtom(Score.PAR))),
-        //             Node(List(
-        //                 Leaf(ScoreAtom(IntAtom(Score.RECEIVE))), 
-        //                 Leaf(ScoreAtom(IntAtom(0))), 
-        //                 Leaf(ScoreAtom(IntAtom(0))), 
-        //                 Node(List(
-        //                     Leaf(ScoreAtom(IntAtom(Score.PAR))),
-        //                     Leaf(ScoreAtom(IntAtom(0)))
-        //                 )),
-        //                 Leaf(ScoreAtom(IntAtom(0))),
-        //                 Leaf(ScoreAtom(IntAtom(0)))
-        //             )),
-        //             Leaf(ScoreAtom(IntAtom(0)))
-        //         )),
-        //         Leaf(ScoreAtom(IntAtom(0)))
-        // ))
-
-        // sendScore = Node(
-        //     Score.SEND,
-        //     Seq(Leaf(persistentScore)) ++ Seq(sortedChan.score) ++ sortedData.map(_.score) ++ Seq(
-        //       Leaf(connectiveUsedScore)
-        //     ): _*
-        //   )
-        
-          
-        match self.stage {
-            0 => {
-                self.stage += 1;
-                Some(Node::Leaf(Score::SEND.into()))
-            },
-
-
-            _ => None
-        }
-    }
-}
 
 
 
