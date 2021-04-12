@@ -6,15 +6,15 @@ impl<'a> Sortable<'a, SendScoreTreeIter<'a>> for &'a Send {
         SendScoreTreeIter{
             term : self,
             stage : 0,
-            data : &self.data[..],
+            data_slice : &self.data[..],
         }
     }
 }
 
-struct SendScoreTreeIter<'a> {
+pub struct SendScoreTreeIter<'a> {
     pub term : &'a Send,
     stage : u16,
-    data : &'a [Par],
+    data_slice : &'a [Par],
 }
 
 
@@ -73,6 +73,7 @@ impl<'a> Iterator for SendScoreTreeIter<'a> {
 }
 
 
+
 // sendScore = Node(
 //     Score.SEND,
 //     Seq(Leaf(persistentScore)) ++ Seq(sortedChan.score) ++ sortedData.map(_.score) ++ Seq(
@@ -83,7 +84,7 @@ impl<'a> SendScoreTreeIter<'a> {
 
     fn object_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
-        Some(Node::Leaf(Score::SEND.into()))
+        Some(Node::Leaf(ScoreAtom::IntAtom(Score::SEND as i64)))
     }
 
     fn persistent_score(&mut self) -> Option<Node<'a>> {
@@ -104,8 +105,8 @@ impl<'a> SendScoreTreeIter<'a> {
 
     fn data_score<'b>(&'b mut self) -> Option<Node<'a>> {
         if !self.term.data.is_empty() {
-            let sub_iter = self.data[0].score_tree_iter();
-            self.data = &self.data[1..];
+            let sub_iter = self.data_slice[0].score_tree_iter();
+            self.data_slice = &self.data_slice[1..];
             Some(Node::Children(Box::new(sub_iter)))
         } else {
             self.stage += 1;

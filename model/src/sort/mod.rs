@@ -2,6 +2,10 @@ use super::rho_types::*;
 
 pub mod sort_par;
 pub mod sort_send;
+pub mod sort_receive;
+
+mod sort_send_test;
+
 /**
   * Sorts the insides of the Par and ESet/EMap of the rholangADT
   *
@@ -19,7 +23,7 @@ pub mod sort_send;
   * And in most cases we dont need build the entrie tree if the comparion interrupts
   */
 
-
+  #[derive(Debug)]
 pub enum ScoreAtom {
     IntAtom(i64),
     StringAtom(String),
@@ -35,7 +39,7 @@ impl From<Score> for ScoreAtom {
 
 pub enum Node<'a> {
     Leaf(ScoreAtom),
-    Children(Box<dyn Iterator<Item = Node<'a>> + 'a>),
+    Children(Box<dyn Iterator<Item = Node<'a>> + Sync + 'a>),
 }
 
 pub trait Sortable<'a, ITER> where ITER : Iterator<Item = Node<'a>> + 'a {
