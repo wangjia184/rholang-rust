@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use super::rho_types::*;
 
 pub mod sort_par;
@@ -47,6 +48,26 @@ pub trait Sortable<'a, ITER> where ITER : Iterator<Item = Node<'a>> + 'a {
 }
 
 
+pub fn comparer(mut left_iter : Box<dyn Iterator<Item = Node<'_>> + '_>, mut right_iter : Box<dyn Iterator<Item = Node<'_>> + '_>) -> Ordering {
+    loop {
+        match (left_iter.next(), right_iter.next()) {
+
+            (None, None) => return Ordering::Equal,
+            (None, Some(_)) => return Ordering::Less,
+            (Some(_), None) => return Ordering::Greater,
+            (Some(Node::Leaf(_)), Some(Node::Children(_)) ) => return Ordering::Less,
+            (Some(Node::Children(_)), Some(Node::Leaf(_)) ) => return Ordering::Greater,
+            (Some(Node::Leaf(x)), Some(Node::Leaf(y)) ) => {
+                todo!()
+            },
+            
+            (Some(Node::Children(x)), Some(Node::Children(y)) ) => {
+                todo!()
+            },
+        }
+    }
+    
+}
 
 
 
