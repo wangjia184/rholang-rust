@@ -1,7 +1,7 @@
 use super::*;
 
 
-impl<'a> Sortable<SendScoreTreeIter<'a>> for &'a Send {
+impl<'a> Sortable<'a, SendScoreTreeIter<'a>> for &'a Send {
     fn score_tree_iter(self) -> SendScoreTreeIter<'a> {
         SendScoreTreeIter{
             term : self,
@@ -12,14 +12,14 @@ impl<'a> Sortable<SendScoreTreeIter<'a>> for &'a Send {
 }
 
 struct SendScoreTreeIter<'a> {
-    term : &'a Send,
+    pub term : &'a Send,
     stage : u16,
     data : &'a [Par],
 }
 
 
-impl Iterator for SendScoreTreeIter<'_> {
-    type Item = Node;
+impl<'a> Iterator for SendScoreTreeIter<'a> {
+    type Item = Node<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         
@@ -79,22 +79,22 @@ impl Iterator for SendScoreTreeIter<'_> {
 //       Leaf(connectiveUsedScore)
 //     ): _*
 //   )
-impl SendScoreTreeIter<'_> {
+impl<'a> SendScoreTreeIter<'a> {
 
-    fn object_score(&mut self) -> Option<Node> {
+    fn object_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         Some(Node::Leaf(Score::SEND.into()))
     }
 
-    fn persistent_score(&mut self) -> Option<Node> {
+    fn persistent_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         let persistent_score = if self.term.persistent {1} else {0};
         Some(Node::Leaf(ScoreAtom::IntAtom(persistent_score)))
     }
 
-    fn channel_score(&mut self) -> Option<Node> {
+    fn channel_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
-        if let Some(par) = self.term.chan {
+        if let Some(ref par) = self.term.chan {
             let sub_iter = par.score_tree_iter();
             Some(Node::Children(Box::new(sub_iter)))
         } else {
@@ -102,7 +102,7 @@ impl SendScoreTreeIter<'_> {
         }
     }
 
-    fn data_score<'a>(&'a mut self) -> Option<Node> {
+    fn data_score<'b>(&'b mut self) -> Option<Node<'a>> {
         if !self.term.data.is_empty() {
             let sub_iter = self.data[0].score_tree_iter();
             self.data = &self.data[1..];
@@ -113,7 +113,7 @@ impl SendScoreTreeIter<'_> {
         }
     }
 
-    fn connective_used_score(&mut self) -> Option<Node> {
+    fn connective_used_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         let persistent_score = if self.term.connective_used {1} else {0};
         Some(Node::Leaf(ScoreAtom::IntAtom(persistent_score)))

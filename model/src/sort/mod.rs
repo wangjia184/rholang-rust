@@ -33,12 +33,12 @@ impl From<Score> for ScoreAtom {
     }
 }
 
-pub enum Node {
+pub enum Node<'a> {
     Leaf(ScoreAtom),
-    Children(Box<dyn Iterator<Item = Node>>),
+    Children(Box<dyn Iterator<Item = Node<'a>> + 'a>),
 }
 
-pub trait Sortable<ITER> where ITER : Iterator<Item = Node> {
+pub trait Sortable<'a, ITER> where ITER : Iterator<Item = Node<'a>> + 'a {
     fn score_tree_iter(self) -> ITER;
 }
 

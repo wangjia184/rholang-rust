@@ -1,6 +1,6 @@
 use super::*;
 
-impl<'a> Sortable<ParScoreTreeIter<'a>> for &'a Par {
+impl<'a> Sortable<'a, ParScoreTreeIter<'a>> for &'a Par {
     fn score_tree_iter(self) -> ParScoreTreeIter<'a> {
         ParScoreTreeIter{
             term : self,
@@ -9,14 +9,14 @@ impl<'a> Sortable<ParScoreTreeIter<'a>> for &'a Par {
     }
 }
 
-struct ParScoreTreeIter<'a> {
-    term : &'a Par,
+pub struct ParScoreTreeIter<'a> {
+    pub term : &'a Par,
     stage : u16,
 }
 
 
-impl Iterator for ParScoreTreeIter<'_> {
-    type Item = Node;
+impl<'a> Iterator for ParScoreTreeIter<'a> {
+    type Item = Node<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         
