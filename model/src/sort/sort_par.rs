@@ -3,14 +3,14 @@ use super::*;
 impl<'a> Sortable<ParScoreTreeIter<'a>> for &'a Par {
     fn score_tree_iter(self) -> ParScoreTreeIter<'a> {
         ParScoreTreeIter{
-            data : self,
+            term : self,
             stage : 0,
         }
     }
 }
 
 struct ParScoreTreeIter<'a> {
-    data : &'a Par,
+    term : &'a Par,
     stage : u16,
 }
 
