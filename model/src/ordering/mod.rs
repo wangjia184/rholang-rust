@@ -11,6 +11,7 @@ pub mod sort_new;
 
 mod sort_send_test;
 mod sort_new_test;
+mod sort_receive_test;
 /**
   * Sorts the insides of the Par and ESet/EMap of the rholangADT
   *

@@ -100,14 +100,9 @@ impl<'a> ReceiveScoreTreeIter<'a> {
                 return this.body_score()
             }
         };
-
+   
         if let Some(ref mut iter) = self.bind_iter {
-            match iter.next() {
-                Some(node) => Some(node),
-                None => {
-                    func(self)
-                }
-            }
+            iter.next().or_else(||func(self))
         }
         else {
             func(self)
