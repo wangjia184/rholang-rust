@@ -189,3 +189,16 @@ impl Sortable for Par {
         // });
     }
 }
+
+
+
+impl Sortable for Vec<Par> {
+    fn sort(&mut self) {
+        for p in &mut *self {
+            p.sort();
+        }
+        self.sort_by( |left, right| {
+            comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+        });
+    }
+}

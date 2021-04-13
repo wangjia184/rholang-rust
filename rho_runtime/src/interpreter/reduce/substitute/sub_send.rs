@@ -3,10 +3,9 @@ use super::*;
 impl Substitutable for Send {
 
     fn substitute(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
-       
-        // substituteNoSort(term).flatMap(send => Sortable.sortMatch(send)).map(_.term)
-        unimplemented!("Send::substitute")
-        //Ok(self)
+        self.substitute_no_sort(reducer, depth, env)?;
+        self.sort();
+        Ok(())
     }
 
 

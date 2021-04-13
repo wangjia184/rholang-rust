@@ -3,8 +3,9 @@ use super::*;
 impl Substitutable for Par {
     fn substitute(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
         // substituteNoSort(term).flatMap(par => Sortable.sortMatch(par)).map(_.term)
-        unimplemented!("Not implemented yet");
-        //Ok(())
+        self.substitute_no_sort(reducer, depth, env)?;
+        self.sort();
+        Ok(())
     }
     fn substitute_no_sort(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
