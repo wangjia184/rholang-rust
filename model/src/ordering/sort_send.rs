@@ -1,20 +1,20 @@
 use super::*;
 
 
-impl<'a> Sortable<'a, SendScoreTreeIter<'a>> for &'a Send {
+impl<'a> Sortable<'a, SendScoreTreeIter<'a>> for &'a mut Send {
     fn score_tree_iter(self) -> SendScoreTreeIter<'a> {
         SendScoreTreeIter{
             term : self,
             stage : 0,
-            data_slice : &self.data[..],
+            //data_slice : &self.data[..],
         }
     }
 }
 
 pub struct SendScoreTreeIter<'a> {
-    pub term : &'a Send,
+    pub term : &'a mut Send,
     stage : u16,
-    data_slice : &'a [Par],
+    //data_slice : &'a [Par],
 }
 
 
@@ -104,14 +104,14 @@ impl<'a> SendScoreTreeIter<'a> {
     }
 
     fn data_score<'b>(&'b mut self) -> Option<Node<'a>> {
-        if !self.term.data.is_empty() {
-            let sub_iter = self.data_slice[0].score_tree_iter();
-            self.data_slice = &self.data_slice[1..];
-            Some(Node::Children(Box::new(sub_iter)))
-        } else {
+        // if !self.term.data.is_empty() {
+        //     let sub_iter = self.data_slice[0].score_tree_iter();
+        //     self.data_slice = &self.data_slice[1..];
+        //     Some(Node::Children(Box::new(sub_iter)))
+        // } else {
             self.stage += 1;
             self.connective_used_score()
-        }
+        //}
     }
 
     fn connective_used_score(&mut self) -> Option<Node<'a>> {

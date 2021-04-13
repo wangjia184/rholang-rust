@@ -1,7 +1,7 @@
 use super::*;
 
 
-impl<'a> Sortable<'a, ReceiveScoreTreeIter<'a>> for &'a Receive {
+impl<'a> Sortable<'a, ReceiveScoreTreeIter<'a>> for &'a mut Receive {
     fn score_tree_iter(self) -> ReceiveScoreTreeIter<'a> {
         ReceiveScoreTreeIter{
             term : self,
@@ -11,7 +11,7 @@ impl<'a> Sortable<'a, ReceiveScoreTreeIter<'a>> for &'a Receive {
 }
 
 pub struct ReceiveScoreTreeIter<'a> {
-    pub term : &'a Receive,
+    pub term : &'a mut Receive,
     stage : u16,
 }
 
@@ -86,7 +86,7 @@ impl<'a> ReceiveScoreTreeIter<'a> {
 
     fn body_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
-        if let Some(ref par) = self.term.body {
+        if let Some(ref mut par) = self.term.body {
             let sub_iter = par.score_tree_iter();
             Some(Node::Children(Box::new(sub_iter)))
         } else {

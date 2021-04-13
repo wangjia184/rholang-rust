@@ -1,21 +1,21 @@
 use super::*;
 
-impl<'a> Sortable<'a, ParScoreTreeIter<'a>> for &'a Par {
+impl<'a> Sortable<'a, ParScoreTreeIter<'a>> for &'a mut Par {
     fn score_tree_iter(self) -> ParScoreTreeIter<'a> {
         ParScoreTreeIter{
             term : self,
             stage : 0,
-            sends_slice : &self.sends[..],
-            receives_slice : &self.receives[..],
+            //sends_slice : &self.sends[..],
+            //receives_slice : &self.receives[..],
         }
     }
 }
 
 pub struct ParScoreTreeIter<'a> {
-    pub term : &'a Par,
+    pub term : &'a mut Par,
     stage : u16,
-    sends_slice : &'a [Send],
-    receives_slice : &'a [Receive],
+    //sends_slice : &'a [Send],
+    //receives_slice : &'a [Receive],
 }
 
 
@@ -87,25 +87,25 @@ impl<'a> ParScoreTreeIter<'a> {
     }
 
     fn sends_score<'b>(&'b mut self) -> Option<Node<'a>> {
-        if !self.sends_slice.is_empty() {
-            let sub_iter = self.sends_slice[0].score_tree_iter();
-            self.sends_slice = &self.sends_slice[1..];
-            Some(Node::Children(Box::new(sub_iter)))
-        } else {
+        // if !self.sends_slice.is_empty() {
+        //     let sub_iter = self.sends_slice[0].score_tree_iter();
+        //     self.sends_slice = &self.sends_slice[1..];
+        //     Some(Node::Children(Box::new(sub_iter)))
+        // } else {
             self.stage += 1;
             self.receives_score()
-        }
+        //}
     }
 
     fn receives_score<'b>(&'b mut self) -> Option<Node<'a>> {
-        if !self.receives_slice.is_empty() {
-            let sub_iter = self.receives_slice[0].score_tree_iter();
-            self.receives_slice = &self.receives_slice[1..];
-            Some(Node::Children(Box::new(sub_iter)))
-        } else {
+        // if !self.receives_slice.is_empty() {
+        //     let sub_iter = self.receives_slice[0].score_tree_iter();
+        //     self.receives_slice = &self.receives_slice[1..];
+        //     Some(Node::Children(Box::new(sub_iter)))
+        // } else {
             self.stage += 1;
             self.exprs_score()
-        }
+        //}
     }
 
     fn exprs_score<'b>(&'b mut self) -> Option<Node<'a>> {
