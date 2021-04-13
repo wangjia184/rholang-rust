@@ -62,23 +62,27 @@ impl<'a> Iterator for ReceiveScoreTreeIter<'a> {
 //   )
 impl<'a> ReceiveScoreTreeIter<'a> {
 
+    #[inline]
     fn object_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         Some(Node::Leaf(ScoreAtom::IntAtom(Score::RECEIVE as i64)))
     }
 
+    #[inline]
     fn persistent_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         let persistent_score = if self.term.persistent {1} else {0};
         Some(Node::Leaf(ScoreAtom::IntAtom(persistent_score)))
     }
 
+    #[inline]
     fn peek_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         let peek_score = if self.term.peek {1} else {0};
         Some(Node::Leaf(ScoreAtom::IntAtom(peek_score)))
     }
 
+    #[inline]
     fn bind_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         // TODO : not implemented
@@ -95,11 +99,13 @@ impl<'a> ReceiveScoreTreeIter<'a> {
         }
     }
 
+    #[inline]
     fn bind_count_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         Some(Node::Leaf(ScoreAtom::IntAtom(self.term.bind_count as i64)))
     }
 
+    #[inline]
     fn connective_used_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         let persistent_score = if self.term.connective_used {1} else {0};

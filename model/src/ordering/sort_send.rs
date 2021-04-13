@@ -103,6 +103,7 @@ impl<'a> SendScoreTreeIter<'a> {
             let sub_iter = par.score_tree_iter();
             Some(Node::Children(Box::new(sub_iter)))
         } else {
+            warn!("SendScoreTreeIter::channel_score() returns None.");
             self.data_score()
         }
     }
@@ -118,6 +119,7 @@ impl<'a> SendScoreTreeIter<'a> {
         }
     }
 
+    #[inline]
     fn connective_used_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         let persistent_score = if self.term.connective_used {1} else {0};

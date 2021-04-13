@@ -3,11 +3,17 @@ use super::*;
 
 impl<'a> Scorable<'a, NewScoreTreeIter<'a>> for &'a New {
     fn score_tree_iter(self) -> NewScoreTreeIter<'a> {
+        let mut injections : Vec<&Par> = self.injections.values().collect();
+        injections.sort_by( |left, right| {
+            comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+        });
         NewScoreTreeIter{
             term : self,
             stage : 0,
             has_uri : !self.uri.is_empty(),
             uri : &self.uri[..],
+            injection_index : 0,
+            injections : injections,
         }
     }
 }
@@ -18,6 +24,8 @@ pub(super) struct NewScoreTreeIter<'a> {
     stage : u16,
     has_uri : bool,
     uri : &'a [String],
+    injection_index : usize,
+    injections : Vec<&'a Par>,
 }
 
 
@@ -37,7 +45,12 @@ impl<'a> Iterator for NewScoreTreeIter<'a> {
             2 => {
                 self.uri_score()
             },
-            
+            3 => {
+                self.injections_score()
+            },
+            4 => {
+                self.par_score()
+            },
             _ => None
         }
     }
@@ -49,11 +62,13 @@ impl<'a> Iterator for NewScoreTreeIter<'a> {
 //   )
 impl<'a> NewScoreTreeIter<'a> {
 
+    #[inline]
     fn object_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
-        Some(Node::Leaf(ScoreAtom::IntAtom(Score::RECEIVE as i64)))
+        Some(Node::Leaf(ScoreAtom::IntAtom(Score::NEW as i64)))
     }
 
+    #[inline]
     fn bind_count_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         Some(Node::Leaf(ScoreAtom::IntAtom(self.term.bind_count as i64)))
@@ -77,19 +92,34 @@ impl<'a> NewScoreTreeIter<'a> {
         
     }
 
-
     fn injections_score(&mut self) -> Option<Node<'a>> {
-        self.stage += 1;
-        self.par_score()
+        if !self.injections.is_empty() {
+            if self.injection_index < self.injections.len() {
+                let sub_iter = self.injections[self.injection_index].score_tree_iter();
+                self.injection_index += 1;
+                Some(Node::Children(Box::new(sub_iter)))
+            } else {
+                self.stage += 1;
+                self.par_score()
+            }
+        }
+        else {
+            self.stage += 1;
+            Some(Node::Leaf(ScoreAtom::IntAtom(Score::ABSENT as i64)))
+        }
     }
 
+    #[inline]
     fn par_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
-        None
+        if let Some(ref par) = self.term.p {
+            let sub_iter = par.score_tree_iter();
+            Some(Node::Children(Box::new(sub_iter)))
+        } else {
+            warn!("NewScoreTreeIter::par_score() returns None");
+            None
+        }
     }
-
-    
-
 }
 
 

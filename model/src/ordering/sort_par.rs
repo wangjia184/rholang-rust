@@ -86,6 +86,7 @@ impl<'a> Iterator for ParScoreTreeIter<'a> {
 //   )
 impl<'a> ParScoreTreeIter<'a> {
 
+    #[inline]
     fn object_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         Some(Node::Leaf(Score::PAR.into()))
@@ -149,6 +150,7 @@ impl<'a> ParScoreTreeIter<'a> {
         self.connective_used_score()
     }
 
+    #[inline]
     fn connective_used_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         let persistent_score = if self.term.connective_used {1} else {0};

@@ -126,9 +126,9 @@ fn news_should_be_sorted_basing_on_bind_count_urls_and_then_body() {
     //     )), 
     //     Leaf(ScoreAtom(IntAtom(0)))
     // ))
-
-    traverse(0, Box::new(par.score_tree_iter()));
     par.sort();
+    traverse(0, Box::new(par.score_tree_iter()));
+    
     //println!("{:#?}", &par);
 
 
