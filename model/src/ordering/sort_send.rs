@@ -75,7 +75,7 @@ impl<'a> Iterator for SendScoreTreeIter<'a> {
     }
 }
 
-
+static OBJECT_SCORE : Option<Node<'_>> = Some(Node::Leaf(ScoreAtom::IntAtom(Score::SEND as i64)));
 
 // sendScore = Node(
 //     Score.SEND,
@@ -84,12 +84,13 @@ impl<'a> Iterator for SendScoreTreeIter<'a> {
 //     ): _*
 //   )
 impl<'a> SendScoreTreeIter<'a> {
-
+    #[inline]
     fn object_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
-        Some(Node::Leaf(ScoreAtom::IntAtom(Score::SEND as i64)))
+        Some(Node::Leaf(ScoreAtom::IntAtom(Score::SEND as i64))) //OBJECT_SCORE
     }
 
+    #[inline]
     fn persistent_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         let persistent_score = if self.term.persistent {1} else {0};
