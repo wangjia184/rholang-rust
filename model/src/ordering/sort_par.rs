@@ -7,6 +7,8 @@ impl<'a> Scorable<'a, ParScoreTreeIter<'a>> for &'a Par {
             stage : 0,
             sends_slice : &self.sends[..],
             receives_slice : &self.receives[..],
+            exprs_slice : &self.exprs[..],
+            news_slice : &self.news[..],
         }
     }
 }
@@ -17,6 +19,8 @@ pub(super) struct ParScoreTreeIter<'a> {
     stage : u16,
     sends_slice : &'a [Send],
     receives_slice : &'a [Receive],
+    exprs_slice : &'a [Expr],
+    news_slice : &'a [New],
 }
 
 
@@ -115,8 +119,14 @@ impl<'a> ParScoreTreeIter<'a> {
     }
 
     fn news_score<'b>(&'b mut self) -> Option<Node<'a>> {
-        self.stage += 1;
-        self.matches_score()
+        if !self.news_slice.is_empty() {
+            let sub_iter = self.news_slice[0].score_tree_iter();
+            self.news_slice = &self.news_slice[1..];
+            Some(Node::Children(Box::new(sub_iter)))
+        } else {
+            self.stage += 1;
+            self.matches_score()
+        }
     }
 
     fn matches_score<'b>(&'b mut self) -> Option<Node<'a>> {
@@ -156,7 +166,7 @@ impl Sortable for Par {
         for s in &mut self.sends { s.sort(); }
         for r in &mut self.receives { r.sort(); }
         // for e in &mut self.exprs { e.sort(); } n.sort(); }
-        // for n in &mut self.news { e.sort(); } n.sort(); }
+        for n in &mut self.news { n.sort(); }
         // for m in &mut self.matches { m.sort(); }
         // for b in &mut self.bundles { b.sort(); }
         // for c in &mut self.connectives { c.sort(); }
@@ -172,9 +182,9 @@ impl Sortable for Par {
         // self.exprs.sort_by( |left, right| {
         //     comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
         // });
-        // self.news.sort_by( |left, right| {
-        //     comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
-        // });
+        self.news.sort_by( |left, right| {
+            comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+        });
         // self.matches.sort_by( |left, right| {
         //     comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
         // });

@@ -5,8 +5,9 @@ impl Substitutable for New {
     fn substitute(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
        
         // substituteNoSort(term).flatMap(newSub => Sortable.sortMatch(newSub)).map(_.term)
-        unimplemented!("New::substitute")
-        //Ok(self)
+        self.substitute_no_sort(reducer, depth, env)?;
+        self.sort();
+        Ok(())
     }
 
 

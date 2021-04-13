@@ -64,8 +64,7 @@ impl<'a> NewScoreTreeIter<'a> {
             if !self.uri.is_empty() {
                 let u = &self.uri[0];
                 self.uri = &self.uri[1..];
-                //Some(Node::Leaf(ScoreAtom::StringAtom(u)))
-                None
+                Some(Node::Leaf(ScoreAtom::StringAtom(u)))
             } else {
                 self.stage += 1;
                 self.injections_score()

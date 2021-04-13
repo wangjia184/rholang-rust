@@ -7,7 +7,7 @@ pub mod sort_receive;
 pub mod sort_new;
 
 mod sort_send_test;
-
+mod sort_new_test;
 /**
   * Sorts the insides of the Par and ESet/EMap of the rholangADT
   *
@@ -30,21 +30,21 @@ pub trait Sortable{
 }
 
 #[derive(Eq)]
-enum ScoreAtom {
+enum ScoreAtom<'s> {
     IntAtom(i64),
-    StringAtom(String),
+    StringAtom(&'s String),
     BytesAtom,
 }
 
 
-impl From<Score> for ScoreAtom {
+impl From<Score> for ScoreAtom<'_> {
     fn from(score : Score) -> Self {
         Self::IntAtom(score as i64)
     }
 }
 
 
-impl Ord for ScoreAtom {
+impl Ord for ScoreAtom<'_> {
     fn cmp(&self, other: &Self) -> Ordering {
         match (self, other) {
             (ScoreAtom::IntAtom(num1), ScoreAtom::IntAtom(num2)) => num1.cmp(num2),
@@ -58,20 +58,20 @@ impl Ord for ScoreAtom {
     }
 }
 
-impl PartialOrd for ScoreAtom {
+impl PartialOrd for ScoreAtom<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl PartialEq for ScoreAtom {
+impl PartialEq for ScoreAtom<'_> {
     fn eq(&self, other: &Self) -> bool {
         self.cmp(other) == Ordering::Equal
     }
 }
 
 enum Node<'a> {
-    Leaf(ScoreAtom),
+    Leaf(ScoreAtom<'a>),
     Children(Box<dyn Iterator<Item = Node<'a>> + Sync + 'a>),
 }
 
