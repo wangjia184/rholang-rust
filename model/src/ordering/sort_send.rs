@@ -1,7 +1,7 @@
 use super::*;
 
 
-impl<'a> Sortable<'a, SendScoreTreeIter<'a>> for &'a Send {
+impl<'a> Scorable<'a, SendScoreTreeIter<'a>> for &'a Send {
     fn score_tree_iter(self) -> SendScoreTreeIter<'a> {
         SendScoreTreeIter{
             term : self,
@@ -11,7 +11,10 @@ impl<'a> Sortable<'a, SendScoreTreeIter<'a>> for &'a Send {
     }
 }
 
-pub struct SendScoreTreeIter<'a> {
+
+
+
+pub(super) struct SendScoreTreeIter<'a> {
     pub term : &'a Send,
     stage : u16,
     data_slice : &'a [Par],
@@ -118,5 +121,18 @@ impl<'a> SendScoreTreeIter<'a> {
         self.stage += 1;
         let persistent_score = if self.term.connective_used {1} else {0};
         Some(Node::Leaf(ScoreAtom::IntAtom(persistent_score)))
+    }
+}
+
+
+
+impl Sortable for Send {
+    fn sort(&mut self) {
+        if let Some(ref mut chan) = self.chan {
+            chan.sort();
+        }
+        for item in &mut self.data {
+            item.sort();
+        }
     }
 }

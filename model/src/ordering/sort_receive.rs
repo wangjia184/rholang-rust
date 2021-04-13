@@ -1,7 +1,7 @@
 use super::*;
 
 
-impl<'a> Sortable<'a, ReceiveScoreTreeIter<'a>> for &'a Receive {
+impl<'a> Scorable<'a, ReceiveScoreTreeIter<'a>> for &'a Receive {
     fn score_tree_iter(self) -> ReceiveScoreTreeIter<'a> {
         ReceiveScoreTreeIter{
             term : self,
@@ -10,7 +10,8 @@ impl<'a> Sortable<'a, ReceiveScoreTreeIter<'a>> for &'a Receive {
     }
 }
 
-pub struct ReceiveScoreTreeIter<'a> {
+
+pub(super) struct ReceiveScoreTreeIter<'a> {
     pub term : &'a Receive,
     stage : u16,
 }
@@ -106,4 +107,14 @@ impl<'a> ReceiveScoreTreeIter<'a> {
     }
 
 
+}
+
+
+
+impl Sortable for Receive {
+    fn sort(&mut self) {
+        if let Some(ref mut body) = self.body {
+            body.sort();
+        }
+    }
 }

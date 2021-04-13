@@ -42,42 +42,16 @@ fn send_should_use_sorted_subtrees_and_their_scores_in_results() {
     p12.sends.push(send1.clone());
     p12.sends.push(send2.clone());
 
-    // The score tree is something like
-    // Node(List(
-    //     Leaf(ScoreAtom(IntAtom(999))),
-    //     Node(List(
-    //         Leaf(ScoreAtom(IntAtom(300))),
-    //         Leaf(ScoreAtom(IntAtom(0))),
-    //         Node(List(
-    //             Leaf(ScoreAtom(IntAtom(999))),
-    //             Leaf(ScoreAtom(IntAtom(0)))
-    //         )),
-    //         Leaf(ScoreAtom(IntAtom(0)))
-    //     )),
-    //     Node(List(
-    //         Leaf(ScoreAtom(IntAtom(300))),
-    //         Leaf(ScoreAtom(IntAtom(0))),
-    //         Node(List(
-    //             Leaf(ScoreAtom(IntAtom(999))),
-    //             Node(List(
-    //                 Leaf(ScoreAtom(IntAtom(301))),
-    //                 Leaf(ScoreAtom(IntAtom(0))),
-    //                 Leaf(ScoreAtom(IntAtom(0))),
-    //                 Node(List(
-    //                     Leaf(ScoreAtom(IntAtom(999))),
-    //                     Leaf(ScoreAtom(IntAtom(0)))
-    //                 )),
-    //                 Leaf(ScoreAtom(IntAtom(0))),
-    //                 Leaf(ScoreAtom(IntAtom(0)))
-    //             )),
-    //             Leaf(ScoreAtom(IntAtom(0)))
-    //         )),
-    //         Leaf(ScoreAtom(IntAtom(0)))
-    //     )),
-    //     Leaf(ScoreAtom(IntAtom(0)))
-    // ))
-    
-    traverse(0, Box::new(p12.score_tree_iter()));
+    let mut p21 = Par::default();
+    p21.sends.push(send2.clone());
+    p21.sends.push(send1.clone());
+
+    p12.sort();
+    p21.sort();
+
+    println!("{:#?}", &p21);
+
+
 
     
 }

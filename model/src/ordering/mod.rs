@@ -24,8 +24,12 @@ mod sort_send_test;
   * And in most cases we dont need build the entrie tree if the comparion interrupts
   */
 
+pub trait Sortable{
+    fn sort(&mut self);
+}
+
 #[derive(Eq)]
-pub enum ScoreAtom {
+enum ScoreAtom {
     IntAtom(i64),
     StringAtom(String),
     BytesAtom,
@@ -65,17 +69,19 @@ impl PartialEq for ScoreAtom {
     }
 }
 
-pub enum Node<'a> {
+enum Node<'a> {
     Leaf(ScoreAtom),
     Children(Box<dyn Iterator<Item = Node<'a>> + Sync + 'a>),
 }
 
-pub trait Sortable<'a, ITER> where ITER : Iterator<Item = Node<'a>> + 'a {
+trait Scorable<'a, ITER> where ITER : Iterator<Item = Node<'a>> + 'a {
     fn score_tree_iter(self) -> ITER;
 }
 
+
+
 // Depth-first traverse to compare two sortables
-pub fn comparer(mut left_iter : Box<dyn Iterator<Item = Node<'_>> + '_>, mut right_iter : Box<dyn Iterator<Item = Node<'_>> + '_>) -> Ordering {
+fn comparer(mut left_iter : Box<dyn Iterator<Item = Node<'_>> + '_>, mut right_iter : Box<dyn Iterator<Item = Node<'_>> + '_>) -> Ordering {
     loop {
         match (left_iter.next(), right_iter.next()) {
 

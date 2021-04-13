@@ -1,6 +1,6 @@
 use super::*;
 
-impl<'a> Sortable<'a, ParScoreTreeIter<'a>> for &'a Par {
+impl<'a> Scorable<'a, ParScoreTreeIter<'a>> for &'a Par {
     fn score_tree_iter(self) -> ParScoreTreeIter<'a> {
         ParScoreTreeIter{
             term : self,
@@ -11,7 +11,8 @@ impl<'a> Sortable<'a, ParScoreTreeIter<'a>> for &'a Par {
     }
 }
 
-pub struct ParScoreTreeIter<'a> {
+
+pub(super) struct ParScoreTreeIter<'a> {
     pub term : &'a Par,
     stage : u16,
     sends_slice : &'a [Send],
@@ -144,4 +145,47 @@ impl<'a> ParScoreTreeIter<'a> {
         Some(Node::Leaf(ScoreAtom::IntAtom(persistent_score)))
     }
     
+}
+
+
+
+impl Sortable for Par {
+    fn sort(&mut self) {
+
+        // first sort all nested struct
+        for s in &mut self.sends { s.sort(); }
+        for r in &mut self.receives { r.sort(); }
+        // for e in &mut self.exprs { e.sort(); } n.sort(); }
+        // for n in &mut self.news { e.sort(); } n.sort(); }
+        // for m in &mut self.matches { m.sort(); }
+        // for b in &mut self.bundles { b.sort(); }
+        // for c in &mut self.connectives { c.sort(); }
+        // for u in &mut self.unforgeables { u.sort(); }
+
+        // then sort current struct
+        self.sends.sort_by( |left, right| {
+            comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+        });
+        self.receives.sort_by( |left, right| {
+            comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+        });
+        // self.exprs.sort_by( |left, right| {
+        //     comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+        // });
+        // self.news.sort_by( |left, right| {
+        //     comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+        // });
+        // self.matches.sort_by( |left, right| {
+        //     comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+        // });
+        // self.bundles.sort_by( |left, right| {
+        //     comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+        // });
+        // self.connectives.sort_by( |left, right| {
+        //     comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+        // });
+        // self.unforgeables.sort_by( |left, right| {
+        //     comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+        // });
+    }
 }
