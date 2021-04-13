@@ -8,6 +8,7 @@ pub mod sort_receive_bind;
 pub mod sort_var;
 pub mod sort_var_instance;
 pub mod sort_new;
+pub mod sort_expression;
 
 mod sort_send_test;
 mod sort_new_test;

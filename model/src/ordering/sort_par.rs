@@ -167,7 +167,7 @@ impl Sortable for Par {
         // first sort all nested struct
         for s in &mut self.sends { s.sort(); }
         for r in &mut self.receives { r.sort(); }
-        // for e in &mut self.exprs { e.sort(); } n.sort(); }
+        for e in &mut self.exprs { e.sort(); }
         for n in &mut self.news { n.sort(); }
         // for m in &mut self.matches { m.sort(); }
         // for b in &mut self.bundles { b.sort(); }
@@ -181,9 +181,9 @@ impl Sortable for Par {
         self.receives.sort_by( |left, right| {
             comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
         });
-        // self.exprs.sort_by( |left, right| {
-        //     comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
-        // });
+        self.exprs.sort_by( |left, right| {
+            comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+        });
         self.news.sort_by( |left, right| {
             comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
         });

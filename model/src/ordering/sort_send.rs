@@ -27,26 +27,6 @@ impl<'a> Iterator for SendScoreTreeIter<'a> {
     fn next(&mut self) -> Option<Self::Item> {
         
 
-        // Node(List(
-        //         Leaf(ScoreAtom(IntAtom(Score.SEND))),
-        //         Leaf(ScoreAtom(IntAtom(0))),
-        //         Node(List(
-        //             Leaf(ScoreAtom(IntAtom(Score.PAR))),
-        //             Node(List(
-        //                 Leaf(ScoreAtom(IntAtom(Score.RECEIVE))), 
-        //                 Leaf(ScoreAtom(IntAtom(0))), 
-        //                 Leaf(ScoreAtom(IntAtom(0))), 
-        //                 Node(List(
-        //                     Leaf(ScoreAtom(IntAtom(Score.PAR))),
-        //                     Leaf(ScoreAtom(IntAtom(0)))
-        //                 )),
-        //                 Leaf(ScoreAtom(IntAtom(0))),
-        //                 Leaf(ScoreAtom(IntAtom(0)))
-        //             )),
-        //             Leaf(ScoreAtom(IntAtom(0)))
-        //         )),
-        //         Leaf(ScoreAtom(IntAtom(0)))
-        // ))
         
         
         match self.stage {
@@ -75,8 +55,6 @@ impl<'a> Iterator for SendScoreTreeIter<'a> {
     }
 }
 
-static OBJECT_SCORE : Option<Node<'_>> = Some(Node::Leaf(ScoreAtom::IntAtom(Score::SEND as i64)));
-
 // sendScore = Node(
 //     Score.SEND,
 //     Seq(Leaf(persistentScore)) ++ Seq(sortedChan.score) ++ sortedData.map(_.score) ++ Seq(
@@ -87,7 +65,7 @@ impl<'a> SendScoreTreeIter<'a> {
     #[inline]
     fn object_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
-        Some(Node::Leaf(ScoreAtom::IntAtom(Score::SEND as i64))) //OBJECT_SCORE
+        Some(Node::Leaf(ScoreAtom::IntAtom(Score::SEND as i64)))
     }
 
     #[inline]

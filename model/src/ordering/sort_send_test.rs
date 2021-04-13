@@ -31,7 +31,27 @@ fn send_should_use_sorted_subtrees_and_their_scores_in_results() {
 
     println!("{:#?}", &p21);
 
-
+    // Node(List(
+    //         Leaf(ScoreAtom(IntAtom(Score.SEND))),
+    //         Leaf(ScoreAtom(IntAtom(0))),
+    //         Node(List(
+    //             Leaf(ScoreAtom(IntAtom(Score.PAR))),
+    //             Node(List(
+    //                 Leaf(ScoreAtom(IntAtom(Score.RECEIVE))), 
+    //                 Leaf(ScoreAtom(IntAtom(0))), 
+    //                 Leaf(ScoreAtom(IntAtom(0))), 
+    //                 Node(List(
+    //                     Leaf(ScoreAtom(IntAtom(Score.PAR))),
+    //                     Leaf(ScoreAtom(IntAtom(0)))
+    //                 )),
+    //                 Leaf(ScoreAtom(IntAtom(0))),
+    //                 Leaf(ScoreAtom(IntAtom(0)))
+    //             )),
+    //             Leaf(ScoreAtom(IntAtom(0)))
+    //         )),
+    //         Leaf(ScoreAtom(IntAtom(0)))
+    // ))
+    
 
     
 }
