@@ -115,8 +115,14 @@ impl<'a> ParScoreTreeIter<'a> {
     }
 
     fn exprs_score<'b>(&'b mut self) -> Option<Node<'a>> {
-        self.stage += 1;
-        self.news_score()
+        if !self.exprs_slice.is_empty() {
+            let sub_iter = self.exprs_slice[0].score_tree_iter();
+            self.exprs_slice = &self.exprs_slice[1..];
+            Some(Node::Children(Box::new(sub_iter)))
+        } else {
+            self.stage += 1;
+            self.news_score()
+        }
     }
 
     fn news_score<'b>(&'b mut self) -> Option<Node<'a>> {

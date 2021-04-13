@@ -26,9 +26,6 @@ impl<'a> Iterator for SendScoreTreeIter<'a> {
 
     fn next(&mut self) -> Option<Self::Item> {
         
-
-        
-        
         match self.stage {
             0 => {
                 self.object_score()

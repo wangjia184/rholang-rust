@@ -13,8 +13,8 @@ impl<'a> Scorable<'a, VarInstanceScoreTreeIter<'a>> for &'a var::VarInstance {
 
 
 pub(super) struct VarInstanceScoreTreeIter<'a> {
-    pub term : &'a var::VarInstance,
-    stage : u16,
+    pub(super) term : &'a var::VarInstance,
+    pub(super) stage : u16,
 }
 
 

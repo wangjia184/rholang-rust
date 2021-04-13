@@ -6,8 +6,7 @@ impl<'a> Scorable<'a, ReceiveScoreTreeIter<'a>> for &'a Receive {
         ReceiveScoreTreeIter{
             term : self,
             stage : 0,
-            bind_index : 0,
-            bind_iter : None,
+            binds_slice : &self.binds,
         }
     }
 }
@@ -16,8 +15,7 @@ impl<'a> Scorable<'a, ReceiveScoreTreeIter<'a>> for &'a Receive {
 pub(super) struct ReceiveScoreTreeIter<'a> {
     pub term : &'a Receive,
     stage : u16,
-    bind_index : usize,
-    bind_iter : Option<Box<dyn Iterator<Item = Node<'a>> + Sync + 'a>>,
+    binds_slice : &'a [ReceiveBind],
 }
 
 
@@ -88,24 +86,13 @@ impl<'a> ReceiveScoreTreeIter<'a> {
 
     fn bind_score(&mut self) -> Option<Node<'a>> {
 
-        let func = |this: &mut Self| -> Option<Node<'a>> {
-            // get the iter of next bind
-            if this.bind_index < this.term.binds.len() {
-                this.bind_iter.replace(Box::new(this.term.binds[this.bind_index].score_tree_iter()));
-                this.bind_index += 1;
-                return this.bind_score();
-            } else {
-                // all binds are traversed,
-                this.stage += 1;
-                return this.body_score()
-            }
-        };
-   
-        if let Some(ref mut iter) = self.bind_iter {
-            iter.next().or_else(||func(self))
-        }
-        else {
-            func(self)
+        if !self.binds_slice.is_empty() {
+            let sub_iter = self.binds_slice[0].score_tree_iter();
+            self.binds_slice = &self.binds_slice[1..];
+            Some(Node::Children(Box::new(sub_iter)))
+        } else {
+            self.stage += 1;
+            self.body_score()
         }
 
     }
