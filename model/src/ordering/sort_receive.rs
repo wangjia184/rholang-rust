@@ -6,6 +6,8 @@ impl<'a> Scorable<'a, ReceiveScoreTreeIter<'a>> for &'a Receive {
         ReceiveScoreTreeIter{
             term : self,
             stage : 0,
+            bind_index : 0,
+            bind_iter : None,
         }
     }
 }
@@ -14,6 +16,8 @@ impl<'a> Scorable<'a, ReceiveScoreTreeIter<'a>> for &'a Receive {
 pub(super) struct ReceiveScoreTreeIter<'a> {
     pub term : &'a Receive,
     stage : u16,
+    bind_index : usize,
+    bind_iter : Option<Box<dyn Iterator<Item = Node<'a>> + Sync + 'a>>,
 }
 
 
@@ -82,11 +86,33 @@ impl<'a> ReceiveScoreTreeIter<'a> {
         Some(Node::Leaf(ScoreAtom::IntAtom(peek_score)))
     }
 
-    #[inline]
     fn bind_score(&mut self) -> Option<Node<'a>> {
-        self.stage += 1;
-        // TODO : not implemented
-        self.body_score()
+
+        let func = |this: &mut Self| -> Option<Node<'a>> {
+            // get the iter of next bind
+            if this.bind_index < this.term.binds.len() {
+                this.bind_iter.replace(Box::new(this.term.binds[this.bind_index].score_tree_iter()));
+                this.bind_index += 1;
+                return this.bind_score();
+            } else {
+                // all binds are traversed,
+                this.stage += 1;
+                return this.body_score()
+            }
+        };
+
+        if let Some(ref mut iter) = self.bind_iter {
+            match iter.next() {
+                Some(node) => Some(node),
+                None => {
+                    func(self)
+                }
+            }
+        }
+        else {
+            func(self)
+        }
+
     }
 
     fn body_score(&mut self) -> Option<Node<'a>> {
@@ -119,6 +145,9 @@ impl<'a> ReceiveScoreTreeIter<'a> {
 
 impl Sortable for Receive {
     fn sort(&mut self) {
+        for b in &mut self.binds {
+            b.sort();
+        }
         if let Some(ref mut body) = self.body {
             body.sort();
         }

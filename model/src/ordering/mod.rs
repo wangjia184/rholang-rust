@@ -4,6 +4,9 @@ use super::rho_types::*;
 pub mod sort_par;
 pub mod sort_send;
 pub mod sort_receive;
+pub mod sort_receive_bind;
+pub mod sort_var;
+pub mod sort_var_instance;
 pub mod sort_new;
 
 mod sort_send_test;

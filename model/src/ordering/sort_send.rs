@@ -109,7 +109,7 @@ impl<'a> SendScoreTreeIter<'a> {
     }
 
     fn data_score<'b>(&'b mut self) -> Option<Node<'a>> {
-        if !self.term.data.is_empty() {
+        if !self.data_slice.is_empty() {
             let sub_iter = self.data_slice[0].score_tree_iter();
             self.data_slice = &self.data_slice[1..];
             Some(Node::Children(Box::new(sub_iter)))
