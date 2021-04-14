@@ -8,6 +8,7 @@ pub(in super::super)  struct GIntScoreTreeIter<'a> {
 }
 
 impl<'a> From<GIntScoreTreeIter<'a>> for ScoreTreeIter<'a> {
+    #[inline]
     fn from(inner: GIntScoreTreeIter<'a>) -> ScoreTreeIter<'a> {
         ScoreTreeIter::ExprUnderlying(ExprUnderlyingIterWapper::GInt(inner))
     }
@@ -16,6 +17,7 @@ impl<'a> From<GIntScoreTreeIter<'a>> for ScoreTreeIter<'a> {
 impl<'a> Iterator for GIntScoreTreeIter<'a> {
     type Item = Node<'a>;
 
+    
     fn next(&mut self) -> Option<Self::Item> {
         
         match self.stage {

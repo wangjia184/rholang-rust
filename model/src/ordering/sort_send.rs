@@ -12,6 +12,7 @@ impl<'a> Scorable<'a> for &'a Send {
 }
 
 impl<'a> From<SendScoreTreeIter<'a>> for ScoreTreeIter<'a> {
+    #[inline]
     fn from(inner: SendScoreTreeIter<'a>) -> ScoreTreeIter<'a> {
         ScoreTreeIter::Send(inner)
     }

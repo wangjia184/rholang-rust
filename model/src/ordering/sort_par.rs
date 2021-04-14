@@ -14,6 +14,7 @@ impl<'a> Scorable<'a> for &'a Par {
 }
 
 impl<'a> From<ParScoreTreeIter<'a>> for ScoreTreeIter<'a> {
+    #[inline]
     fn from(inner: ParScoreTreeIter<'a>) -> ScoreTreeIter<'a> {
         ScoreTreeIter::Par(inner)
     }

@@ -11,6 +11,7 @@ impl<'a> Scorable<'a> for &'a Var {
 }
 
 impl<'a> From<VarScoreTreeIter<'a>> for ScoreTreeIter<'a> {
+    #[inline]
     fn from(inner: VarScoreTreeIter<'a>) -> ScoreTreeIter<'a> {
         ScoreTreeIter::Var(inner)
     }

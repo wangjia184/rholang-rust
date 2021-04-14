@@ -19,6 +19,7 @@ impl<'a> Scorable<'a> for &'a New {
 }
 
 impl<'a> From<NewScoreTreeIter<'a>> for ScoreTreeIter<'a> {
+    #[inline]
     fn from(inner: NewScoreTreeIter<'a>) -> ScoreTreeIter<'a> {
         ScoreTreeIter::New(inner)
     }

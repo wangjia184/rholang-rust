@@ -9,20 +9,14 @@ use sort_var_instance::VarInstanceScoreTreeIter;
 // To avoid Box<dyn trait> and heap allocation
 // use enum here for polymorphism
 pub(super) enum ExprUnderlyingIterWapper<'a>{
-    GInt(sort_gint::GIntScoreTreeIter<'a>),
+    GInt(GIntScoreTreeIter<'a>),
     VarInstance(VarInstanceScoreTreeIter<'a>),
-}
-
-impl<'a> From<ExprUnderlyingIterWapper<'a>> for ScoreTreeIter<'a> {
-    fn from(inner: ExprUnderlyingIterWapper<'a>) -> Self {
-        ScoreTreeIter::ExprUnderlying(inner)
-    }
 }
 
 impl<'a> Iterator for ExprUnderlyingIterWapper<'a> {
     type Item = Node<'a>;
 
-    #[inline]
+    
     fn next(&mut self) -> Option<Self::Item> {
         
         match self {
@@ -32,6 +26,15 @@ impl<'a> Iterator for ExprUnderlyingIterWapper<'a> {
         }
     }
 }
+
+
+impl<'a> From<ExprUnderlyingIterWapper<'a>> for ScoreTreeIter<'a> {
+    #[inline]
+    fn from(inner: ExprUnderlyingIterWapper<'a>) -> Self {
+        ScoreTreeIter::ExprUnderlying(inner)
+    }
+}
+
 
 impl<'a> Scorable<'a> for &'a Expr {
     fn score_tree_iter(self) -> ScoreTreeIter<'a> {
@@ -59,12 +62,11 @@ impl<'a> Scorable<'a> for &'a Expr {
 
 
 impl<'a> From<ExprScoreTreeIter<'a>> for ScoreTreeIter<'a> {
+    #[inline]
     fn from(inner: ExprScoreTreeIter<'a>) -> ScoreTreeIter<'a> {
         ScoreTreeIter::Expr(inner)
     }
 }
-
-
 
 pub(super) struct ExprScoreTreeIter<'a> {
     type_score : Option<ScoreAtom<'a>>,

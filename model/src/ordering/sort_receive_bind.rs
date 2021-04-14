@@ -12,6 +12,7 @@ impl<'a> Scorable<'a> for &'a ReceiveBind {
 }
 
 impl<'a> From<ReceiveBindScoreTreeIter<'a>> for ScoreTreeIter<'a> {
+    #[inline]
     fn from(inner: ReceiveBindScoreTreeIter<'a>) -> ScoreTreeIter<'a> {
         ScoreTreeIter::ReceiveBind(inner)
     }
