@@ -9,13 +9,15 @@ impl<'a> Scorable<'a, ExprScoreTreeIter<'a>> for &'a Expr {
 
             Some(ExprInstance::GInt(ref num)) => 
                 ExprScoreTreeIter{
-                    no_wrapper : true,
+                    wapper : false,
+                    type_score : None,
                     inner : Some(Box::new(GIntScoreTreeIter{ number : num, stage : 0 })),
                 },
 
             Some(ExprInstance::EVarBody(EVar { v: Some(Var { var_instance : Some(ref var)}) })) => 
                 ExprScoreTreeIter{
-                    no_wrapper : true,
+                    wapper : true,
+                    type_score : Some(ScoreAtom::IntAtom(Score::EVAR as i64)),
                     inner : Some(Box::new(VarInstanceScoreTreeIter{ term : var, stage : 0 })),
                 },
                 
@@ -33,7 +35,8 @@ impl<'a> Scorable<'a, ExprScoreTreeIter<'a>> for &'a Expr {
 
 
 pub(super) struct ExprScoreTreeIter<'a> {
-    no_wrapper : bool, // do not generate wrapper, keep the same structure as Scala code
+    wapper : bool,
+    type_score : Option<ScoreAtom<'a>>,
     inner : Option<Box<dyn Iterator<Item = Node<'a>> + Sync + 'a>>,
 }
 
@@ -43,22 +46,20 @@ impl<'a> Iterator for ExprScoreTreeIter<'a> {
 
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.no_wrapper {
-            
-            if let Some(inner) = &mut self.inner {
-                if let Some(node) = inner.next() {
-                    Some(node)
+        if self.wapper {
+            if let Some(type_score) = self.type_score.take() {
+                Some(Node::Leaf(type_score))
+            } else {
+                if let Some(inner) = self.inner.take() {
+                    Some(Node::Children(inner))
                 } else {
-                    self.inner = None;
                     None
                 }
-            } else {
-                None
             }
         } else {
-            if let Some(inner) = self.inner.take() {
-                Some(Node::Children(Box::new(inner)))
-            }
+            if let Some(ref mut inner) = self.inner {
+                inner.next()
+            } 
             else {
                 None
             }

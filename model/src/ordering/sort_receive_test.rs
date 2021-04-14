@@ -22,15 +22,201 @@ fn traverse(depth : usize, iter : Box<dyn Iterator<Item = Node<'_>> + '_>) {
     }
 }
 
-
+// ScoreAtom::IntAtom(999)
+// {
+//   ScoreAtom::IntAtom(301)
+//   ScoreAtom::IntAtom(0)
+//   ScoreAtom::IntAtom(0)
+//   {
+//     {
+//       ScoreAtom::IntAtom(999)
+//       {
+//         ScoreAtom::IntAtom(2)
+//         ScoreAtom::IntAtom(2)
+//       }
+//       ScoreAtom::IntAtom(0)
+//     }
+//     {
+//       ScoreAtom::IntAtom(999)
+//       {
+//         ScoreAtom::IntAtom(2)
+//         ScoreAtom::IntAtom(100)
+//       }
+//       ScoreAtom::IntAtom(0)
+//     }
+//     ScoreAtom::IntAtom(0)
+//   }
+//   {
+//     ScoreAtom::IntAtom(999)
+//     ScoreAtom::IntAtom(0)
+//   }
+//   ScoreAtom::IntAtom(0)
+//   ScoreAtom::IntAtom(0)
+// }
+// {
+//   ScoreAtom::IntAtom(301)
+//   ScoreAtom::IntAtom(0)
+//   ScoreAtom::IntAtom(0)
+//   {
+//     {
+//       ScoreAtom::IntAtom(999)
+//       {
+//         ScoreAtom::IntAtom(2)
+//         ScoreAtom::IntAtom(3)
+//       }
+//       ScoreAtom::IntAtom(0)
+//     }
+//     {
+//       ScoreAtom::IntAtom(999)
+//       {
+//         ScoreAtom::IntAtom(2)
+//         ScoreAtom::IntAtom(0)
+//       }
+//       ScoreAtom::IntAtom(0)
+//     }
+//     ScoreAtom::IntAtom(0)
+//   }
+//   {
+//     ScoreAtom::IntAtom(999)
+//     ScoreAtom::IntAtom(0)
+//   }
+//   ScoreAtom::IntAtom(0)
+//   ScoreAtom::IntAtom(0)
+// }
+// {
+//   ScoreAtom::IntAtom(301)
+//   ScoreAtom::IntAtom(0)
+//   ScoreAtom::IntAtom(0)
+//   {
+//     {
+//       ScoreAtom::IntAtom(999)
+//       {
+//         ScoreAtom::IntAtom(2)
+//         ScoreAtom::IntAtom(3)
+//       }
+//       ScoreAtom::IntAtom(0)
+//     }
+//     {
+//       ScoreAtom::IntAtom(999)
+//       {
+//         ScoreAtom::IntAtom(2)
+//         ScoreAtom::IntAtom(0)
+//       }
+//       ScoreAtom::IntAtom(0)
+//     }
+//     ScoreAtom::IntAtom(0)
+//   }
+//   {
+//     ScoreAtom::IntAtom(999)
+//     {
+//       ScoreAtom::IntAtom(100)
+//       {
+//         ScoreAtom::IntAtom(50)
+//         ScoreAtom::IntAtom(0)
+//       }
+//     }
+//     ScoreAtom::IntAtom(0)
+//   }
+//   ScoreAtom::IntAtom(0)
+//   ScoreAtom::IntAtom(0)
+// }
+// {
+//   ScoreAtom::IntAtom(301)
+//   ScoreAtom::IntAtom(0)
+//   ScoreAtom::IntAtom(0)
+//   {
+//     {
+//       ScoreAtom::IntAtom(999)
+//       {
+//         ScoreAtom::IntAtom(2)
+//         ScoreAtom::IntAtom(3)
+//       }
+//       ScoreAtom::IntAtom(0)
+//     }
+//     {
+//       ScoreAtom::IntAtom(999)
+//       {
+//         ScoreAtom::IntAtom(2)
+//         ScoreAtom::IntAtom(1)
+//       }
+//       ScoreAtom::IntAtom(0)
+//     }
+//     ScoreAtom::IntAtom(0)
+//   }
+//   {
+//     ScoreAtom::IntAtom(999)
+//     ScoreAtom::IntAtom(0)
+//   }
+//   ScoreAtom::IntAtom(0)
+//   ScoreAtom::IntAtom(0)
+// }
+// {
+//   ScoreAtom::IntAtom(301)
+//   ScoreAtom::IntAtom(1)
+//   ScoreAtom::IntAtom(0)
+//   {
+//     {
+//       ScoreAtom::IntAtom(999)
+//       {
+//         ScoreAtom::IntAtom(2)
+//         ScoreAtom::IntAtom(3)
+//       }
+//       ScoreAtom::IntAtom(0)
+//     }
+//     {
+//       ScoreAtom::IntAtom(999)
+//       {
+//         ScoreAtom::IntAtom(2)
+//         ScoreAtom::IntAtom(0)
+//       }
+//       ScoreAtom::IntAtom(0)
+//     }
+//     ScoreAtom::IntAtom(0)
+//   }
+//   {
+//     ScoreAtom::IntAtom(999)
+//     ScoreAtom::IntAtom(0)
+//   }
+//   ScoreAtom::IntAtom(0)
+//   ScoreAtom::IntAtom(0)
+// }
+// {
+//   ScoreAtom::IntAtom(301)
+//   ScoreAtom::IntAtom(1)
+//   ScoreAtom::IntAtom(1)
+//   {
+//     {
+//       ScoreAtom::IntAtom(999)
+//       {
+//         ScoreAtom::IntAtom(2)
+//         ScoreAtom::IntAtom(3)
+//       }
+//       ScoreAtom::IntAtom(0)
+//     }
+//     {
+//       ScoreAtom::IntAtom(999)
+//       {
+//         ScoreAtom::IntAtom(2)
+//         ScoreAtom::IntAtom(0)
+//       }
+//       ScoreAtom::IntAtom(0)
+//     }
+//     ScoreAtom::IntAtom(0)
+//   }
+//   {
+//     ScoreAtom::IntAtom(999)
+//     ScoreAtom::IntAtom(0)
+//   }
+//   ScoreAtom::IntAtom(0)
+//   ScoreAtom::IntAtom(0)
+// }
+// ScoreAtom::IntAtom(0)
 #[test]
 fn receive_should_be_sorted_basing_on_persistence_peek_channels_patterns_and_then_body() {
     
-
-
-    let mut par = Par::default();
+    let mut par1 = Par::default();
     
-    par.receives.push(
+    par1.receives.push(
         {
             let mut receive = Receive::default();
             receive.binds.push(
@@ -67,7 +253,7 @@ fn receive_should_be_sorted_basing_on_persistence_peek_channels_patterns_and_the
     );
 
 
-    par.receives.push(
+    par1.receives.push(
         {
             let mut receive = Receive::default();
             receive.binds.push(
@@ -116,7 +302,7 @@ fn receive_should_be_sorted_basing_on_persistence_peek_channels_patterns_and_the
     );
 
 
-    par.receives.push(
+    par1.receives.push(
         {
             let mut receive = Receive::default();
             receive.binds.push(
@@ -153,7 +339,7 @@ fn receive_should_be_sorted_basing_on_persistence_peek_channels_patterns_and_the
     );
 
 
-    par.receives.push(
+    par1.receives.push(
         {
             let mut receive = Receive::default();
             receive.binds.push(
@@ -190,7 +376,7 @@ fn receive_should_be_sorted_basing_on_persistence_peek_channels_patterns_and_the
     );
 
 
-    par.receives.push(
+    par1.receives.push(
         {
             let mut receive = Receive::default();
             receive.binds.push(
@@ -226,7 +412,7 @@ fn receive_should_be_sorted_basing_on_persistence_peek_channels_patterns_and_the
         }
     );
 
-    par.receives.push(
+    par1.receives.push(
         {
             let mut receive = Receive::default();
             receive.binds.push(
@@ -262,7 +448,7 @@ fn receive_should_be_sorted_basing_on_persistence_peek_channels_patterns_and_the
         }
     );
 
-    //println!("{:#?}", &par);
-    par.sort();
-    traverse(0, Box::new(par.score_tree_iter()));
+
+    par1.sort();
+    //traverse(0, Box::new(par.score_tree_iter()));
 }
