@@ -1,7 +1,37 @@
 use super::*;
-use super::sort_var_instance::VarInstanceScoreTreeIter;
+
 use expr::ExprInstance;
-mod sort_gint; pub(super) use sort_gint::*;
+mod sort_gint;
+use sort_gint::GIntScoreTreeIter;
+mod sort_var_instance;
+use sort_var_instance::VarInstanceScoreTreeIter;
+
+// To avoid Box<dyn trait> and heap allocation
+// use enum here for polymorphism
+pub(super) enum ExprUnderlyingIterWapper<'a>{
+    GInt(sort_gint::GIntScoreTreeIter<'a>),
+    VarInstance(VarInstanceScoreTreeIter<'a>),
+}
+
+impl<'a> From<ExprUnderlyingIterWapper<'a>> for ScoreTreeIter<'a> {
+    fn from(inner: ExprUnderlyingIterWapper<'a>) -> Self {
+        ScoreTreeIter::ExprUnderlying(inner)
+    }
+}
+
+impl<'a> Iterator for ExprUnderlyingIterWapper<'a> {
+    type Item = Node<'a>;
+
+    #[inline]
+    fn next(&mut self) -> Option<Self::Item> {
+        
+        match self {
+            ExprUnderlyingIterWapper::GInt(iter) => iter.next(),
+            ExprUnderlyingIterWapper::VarInstance(iter) => iter.next(),
+            _ => unreachable!("Bug! Some branch in ExprInstanceScoreTreeIter::score_tree_iter() is not implemented.")
+        }
+    }
+}
 
 impl<'a> Scorable<'a> for &'a Expr {
     fn score_tree_iter(self) -> ScoreTreeIter<'a> {
@@ -14,7 +44,7 @@ impl<'a> Scorable<'a> for &'a Expr {
             Some(ExprInstance::EVarBody(EVar { v: Some(Var { var_instance : Some(ref var)}) })) => 
                 ExprScoreTreeIter {
                     type_score : Some(ScoreAtom::IntAtom(Score::EVAR as i64)),
-                    inner : Some(Box::new(VarInstanceScoreTreeIter{ term : var, stage : 0 }.into()))
+                    inner : Some(VarInstanceScoreTreeIter{ term : var, stage : 0 }.into())
                 }.into(),
                 
 
@@ -38,7 +68,7 @@ impl<'a> From<ExprScoreTreeIter<'a>> for ScoreTreeIter<'a> {
 
 pub(super) struct ExprScoreTreeIter<'a> {
     type_score : Option<ScoreAtom<'a>>,
-    inner : Option<Box<ScoreTreeIter<'a>>>,
+    inner : Option<ExprUnderlyingIterWapper<'a>>,
 }
 
 
@@ -51,7 +81,7 @@ impl<'a> Iterator for ExprScoreTreeIter<'a> {
             Some(Node::Leaf(type_score))
         } else {
             if let Some(inner) = self.inner.take() {
-                Some(Node::Children(*inner))
+                Some(Node::Children(inner.into()))
             } else {
                 None
             }

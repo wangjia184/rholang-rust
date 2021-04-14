@@ -9,14 +9,25 @@ impl<'a> Scorable<'a> for &'a var::VarInstance {
     }
 }
 
-impl<'a> From<VarInstanceScoreTreeIter<'a>> for ScoreTreeIter<'a> {
-    fn from(inner: VarInstanceScoreTreeIter<'a>) -> ScoreTreeIter<'a> {
-        ScoreTreeIter::VarInstance(inner)
+impl<'a> From<VarInstanceScoreTreeIter<'a>> for ExprUnderlyingIterWapper<'a> {
+    fn from(inner: VarInstanceScoreTreeIter<'a>) -> Self {
+        ExprUnderlyingIterWapper::VarInstance(inner)
     }
 }
 
 
-pub(super) struct VarInstanceScoreTreeIter<'a> {
+impl<'a> From<VarInstanceScoreTreeIter<'a>> for ScoreTreeIter<'a> {
+    fn from(inner: VarInstanceScoreTreeIter<'a>) -> ScoreTreeIter<'a> {
+        ScoreTreeIter::ExprUnderlying(inner.into())
+    }
+}
+
+
+
+
+
+
+pub(in super::super) struct VarInstanceScoreTreeIter<'a> {
     pub(super) term : &'a var::VarInstance,
     pub(super) stage : u16,
 }

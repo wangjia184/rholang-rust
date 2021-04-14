@@ -136,7 +136,6 @@ ScoreAtom::IntAtom(0)
             }
         }
     
-        println!("{}", &output);
         assert!(output.eq(target));
 
     

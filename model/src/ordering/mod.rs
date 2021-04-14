@@ -46,7 +46,6 @@ pub mod sort_send;
 pub mod sort_receive;
 pub mod sort_receive_bind;
 pub mod sort_var;
-mod sort_var_instance;
 pub mod sort_new;
 pub mod sort_expression;
 
@@ -70,14 +69,14 @@ enum ScoreTreeIter<'a>{
     Receive(sort_receive::ReceiveScoreTreeIter<'a>),
     ReceiveBind(sort_receive_bind::ReceiveBindScoreTreeIter<'a>),
     Var(sort_var::VarScoreTreeIter<'a>),
-    VarInstance(sort_var_instance::VarInstanceScoreTreeIter<'a>),
     Expr(sort_expression::ExprScoreTreeIter<'a>),
-    ExprGInt(sort_expression::GIntScoreTreeIter<'a>),
+    ExprUnderlying(sort_expression::ExprUnderlyingIterWapper<'a>),
 }
 
 impl<'a> Iterator for ScoreTreeIter<'a> {
     type Item = Node<'a>;
 
+    #[inline]
     fn next(&mut self) -> Option<Self::Item> {
         
         match self {
@@ -87,9 +86,8 @@ impl<'a> Iterator for ScoreTreeIter<'a> {
             ScoreTreeIter::Receive(iter) => iter.next(),
             ScoreTreeIter::ReceiveBind(iter) => iter.next(),
             ScoreTreeIter::Var(iter) => iter.next(),
-            ScoreTreeIter::VarInstance(iter) => iter.next(),
             ScoreTreeIter::Expr(iter) => iter.next(),
-            ScoreTreeIter::ExprGInt(iter) => iter.next(),
+            ScoreTreeIter::ExprUnderlying(iter) => iter.next(),
             _ => unreachable!("Bug! Some branch in ScoreTreeIter::score_tree_iter() is not implemented.")
         }
     }

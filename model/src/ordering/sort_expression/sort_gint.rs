@@ -9,7 +9,7 @@ pub(in super::super)  struct GIntScoreTreeIter<'a> {
 
 impl<'a> From<GIntScoreTreeIter<'a>> for ScoreTreeIter<'a> {
     fn from(inner: GIntScoreTreeIter<'a>) -> ScoreTreeIter<'a> {
-        ScoreTreeIter::ExprGInt(inner)
+        ScoreTreeIter::ExprUnderlying(ExprUnderlyingIterWapper::GInt(inner))
     }
 }
 
