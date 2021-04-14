@@ -1,11 +1,11 @@
 use super::*;
 
 
-impl<'a> Scorable<'a, NewScoreTreeIter<'a>> for &'a New {
-    fn score_tree_iter(self) -> NewScoreTreeIter<'a> {
+impl<'a> Scorable<'a> for &'a New {
+    fn score_tree_iter(self) -> ScoreTreeIter<'a> {
         let mut injections : Vec<&Par> = self.injections.values().collect();
         injections.sort_by( |left, right| {
-            comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+            comparer(left.score_tree_iter(), right.score_tree_iter() )
         });
         NewScoreTreeIter{
             term : self,
@@ -14,10 +14,15 @@ impl<'a> Scorable<'a, NewScoreTreeIter<'a>> for &'a New {
             uri : &self.uri[..],
             injection_index : 0,
             injections : injections,
-        }
+        }.into()
     }
 }
 
+impl<'a> From<NewScoreTreeIter<'a>> for ScoreTreeIter<'a> {
+    fn from(inner: NewScoreTreeIter<'a>) -> ScoreTreeIter<'a> {
+        ScoreTreeIter::New(inner)
+    }
+}
 
 pub(super) struct NewScoreTreeIter<'a> {
     pub term : &'a New,
@@ -97,7 +102,7 @@ impl<'a> NewScoreTreeIter<'a> {
             if self.injection_index < self.injections.len() {
                 let sub_iter = self.injections[self.injection_index].score_tree_iter();
                 self.injection_index += 1;
-                Some(Node::Children(Box::new(sub_iter)))
+                Some(Node::Children(sub_iter.into()))
             } else {
                 self.stage += 1;
                 self.par_score()
@@ -114,7 +119,7 @@ impl<'a> NewScoreTreeIter<'a> {
         self.stage += 1;
         if let Some(ref par) = self.term.p {
             let sub_iter = par.score_tree_iter();
-            Some(Node::Children(Box::new(sub_iter)))
+            Some(Node::Children(sub_iter.into()))
         } else {
             warn!("NewScoreTreeIter::par_score() returns None");
             None

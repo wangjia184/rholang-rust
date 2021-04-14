@@ -1,15 +1,20 @@
 use super::*;
 
 
-impl<'a> Scorable<'a, VarScoreTreeIter<'a>> for &'a Var {
-    fn score_tree_iter(self) -> VarScoreTreeIter<'a> {
+impl<'a> Scorable<'a> for &'a Var {
+    fn score_tree_iter(self) -> ScoreTreeIter<'a> {
         VarScoreTreeIter{
             term : self,
             stage : 0,
-        }
+        }.into()
     }
 }
 
+impl<'a> From<VarScoreTreeIter<'a>> for ScoreTreeIter<'a> {
+    fn from(inner: VarScoreTreeIter<'a>) -> ScoreTreeIter<'a> {
+        ScoreTreeIter::Var(inner)
+    }
+}
 
 pub(super) struct VarScoreTreeIter<'a> {
     pub term : &'a Var,
@@ -45,7 +50,7 @@ impl<'a> VarScoreTreeIter<'a> {
         self.stage += 1;
         if let Some(ref var) = self.term.var_instance {
             let sub_iter = var.score_tree_iter();
-            Some(Node::Children(Box::new(sub_iter)))
+            Some(Node::Children(sub_iter.into()))
         } else {
             Some(Node::Leaf(ScoreAtom::IntAtom(Score::ABSENT as i64)))
         }

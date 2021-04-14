@@ -1,13 +1,17 @@
 use super::*;
 
-impl<'a> Scorable<'a, VarInstanceScoreTreeIter<'a>> for &'a var::VarInstance {
-    fn score_tree_iter(self) -> VarInstanceScoreTreeIter<'a> {
-
-
+impl<'a> Scorable<'a> for &'a var::VarInstance {
+    fn score_tree_iter(self) -> ScoreTreeIter<'a> {
         VarInstanceScoreTreeIter{
             term : self,
             stage : 0,
-        }
+        }.into()
+    }
+}
+
+impl<'a> From<VarInstanceScoreTreeIter<'a>> for ScoreTreeIter<'a> {
+    fn from(inner: VarInstanceScoreTreeIter<'a>) -> ScoreTreeIter<'a> {
+        ScoreTreeIter::VarInstance(inner)
     }
 }
 

@@ -1,17 +1,21 @@
 use super::*;
 
 
-impl<'a> Scorable<'a, SendScoreTreeIter<'a>> for &'a Send {
-    fn score_tree_iter(self) -> SendScoreTreeIter<'a> {
+impl<'a> Scorable<'a> for &'a Send {
+    fn score_tree_iter(self) -> ScoreTreeIter<'a> {
         SendScoreTreeIter{
             term : self,
             stage : 0,
             data_slice : &self.data[..],
-        }
+        }.into()
     }
 }
 
-
+impl<'a> From<SendScoreTreeIter<'a>> for ScoreTreeIter<'a> {
+    fn from(inner: SendScoreTreeIter<'a>) -> ScoreTreeIter<'a> {
+        ScoreTreeIter::Send(inner)
+    }
+}
 
 
 pub(super) struct SendScoreTreeIter<'a> {
@@ -76,7 +80,7 @@ impl<'a> SendScoreTreeIter<'a> {
         self.stage += 1;
         if let Some(ref par) = self.term.chan {
             let sub_iter = par.score_tree_iter();
-            Some(Node::Children(Box::new(sub_iter)))
+            Some(Node::Children(sub_iter.into()))
         } else {
             warn!("SendScoreTreeIter::channel_score() returns None.");
             self.data_score()
@@ -87,7 +91,7 @@ impl<'a> SendScoreTreeIter<'a> {
         if !self.data_slice.is_empty() {
             let sub_iter = self.data_slice[0].score_tree_iter();
             self.data_slice = &self.data_slice[1..];
-            Some(Node::Children(Box::new(sub_iter)))
+            Some(Node::Children(sub_iter.into()))
         } else {
             self.stage += 1;
             self.connective_used_score()

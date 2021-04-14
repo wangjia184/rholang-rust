@@ -1,15 +1,22 @@
 use super::*;
 
 
-impl<'a> Scorable<'a, ReceiveBindScoreTreeIter<'a>> for &'a ReceiveBind {
-    fn score_tree_iter(self) -> ReceiveBindScoreTreeIter<'a> {
+impl<'a> Scorable<'a> for &'a ReceiveBind {
+    fn score_tree_iter(self) -> ScoreTreeIter<'a> {
         ReceiveBindScoreTreeIter{
             term : self,
             stage : 0,
             patterns_slice : &self.patterns[..],
-        }
+        }.into()
     }
 }
+
+impl<'a> From<ReceiveBindScoreTreeIter<'a>> for ScoreTreeIter<'a> {
+    fn from(inner: ReceiveBindScoreTreeIter<'a>) -> ScoreTreeIter<'a> {
+        ScoreTreeIter::ReceiveBind(inner)
+    }
+}
+
 
 
 pub(super) struct ReceiveBindScoreTreeIter<'a> {
@@ -51,7 +58,7 @@ impl<'a> ReceiveBindScoreTreeIter<'a> {
         self.stage += 1;
         if let Some(ref par) = self.term.source {
             let sub_iter = par.score_tree_iter();
-            Some(Node::Children(Box::new(sub_iter)))
+            Some(Node::Children(sub_iter.into()))
         } else {
             self.patterns_score()
         }
@@ -61,7 +68,7 @@ impl<'a> ReceiveBindScoreTreeIter<'a> {
         if !self.patterns_slice.is_empty() {
             let sub_iter = self.patterns_slice[0].score_tree_iter();
             self.patterns_slice = &self.patterns_slice[1..];
-            Some(Node::Children(Box::new(sub_iter)))
+            Some(Node::Children(sub_iter.into()))
         } else {
             self.stage += 1;
             self.reminder_score()
@@ -72,7 +79,7 @@ impl<'a> ReceiveBindScoreTreeIter<'a> {
         self.stage += 1;
         if let Some(ref remainder) = self.term.remainder {
             let sub_iter = remainder.score_tree_iter();
-            Some(Node::Children(Box::new(sub_iter)))
+            Some(Node::Children(sub_iter.into()))
         } else {
             Some(Node::Leaf(ScoreAtom::IntAtom(Score::ABSENT as i64)))
         }

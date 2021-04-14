@@ -1,7 +1,7 @@
 use super::*;
 
 #[cfg(test)] 
-fn traverse(depth : usize, iter : Box<dyn Iterator<Item = Node<'_>> + '_>) {
+fn traverse(depth : usize, iter : ScoreTreeIter) {
     for node in iter {
         match node {
             Node::Leaf(scored_atom) => {
@@ -127,7 +127,7 @@ fn news_should_be_sorted_basing_on_bind_count_urls_and_then_body() {
     //     Leaf(ScoreAtom(IntAtom(0)))
     // ))
     par.sort();
-    traverse(0, Box::new(par.score_tree_iter()));
+    traverse(0, par.score_tree_iter());
     
     //println!("{:#?}", &par);
 

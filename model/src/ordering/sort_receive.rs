@@ -1,16 +1,21 @@
 use super::*;
 
 
-impl<'a> Scorable<'a, ReceiveScoreTreeIter<'a>> for &'a Receive {
-    fn score_tree_iter(self) -> ReceiveScoreTreeIter<'a> {
+impl<'a> Scorable<'a> for &'a Receive {
+    fn score_tree_iter(self) -> ScoreTreeIter<'a> {
         ReceiveScoreTreeIter{
             term : self,
             stage : 0,
             binds_slice : &self.binds,
-        }
+        }.into()
     }
 }
 
+impl<'a> From<ReceiveScoreTreeIter<'a>> for ScoreTreeIter<'a> {
+    fn from(inner: ReceiveScoreTreeIter<'a>) -> ScoreTreeIter<'a> {
+        ScoreTreeIter::Receive(inner)
+    }
+}
 
 pub(super) struct ReceiveScoreTreeIter<'a> {
     pub term : &'a Receive,
@@ -89,7 +94,7 @@ impl<'a> ReceiveScoreTreeIter<'a> {
         if !self.binds_slice.is_empty() {
             let sub_iter = self.binds_slice[0].score_tree_iter();
             self.binds_slice = &self.binds_slice[1..];
-            Some(Node::Children(Box::new(sub_iter)))
+            Some(Node::Children(sub_iter.into()))
         } else {
             self.stage += 1;
             self.body_score()
@@ -101,7 +106,7 @@ impl<'a> ReceiveScoreTreeIter<'a> {
         self.stage += 1;
         if let Some(ref par) = self.term.body {
             let sub_iter = par.score_tree_iter();
-            Some(Node::Children(Box::new(sub_iter)))
+            Some(Node::Children(sub_iter.into()))
         } else {
             self.bind_count_score()
         }

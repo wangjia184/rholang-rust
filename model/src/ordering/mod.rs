@@ -1,20 +1,7 @@
 use std::cmp::{ Ord, Ordering };
 use super::rho_types::*;
 
-pub mod sort_par;
-pub mod sort_send;
-pub mod sort_receive;
-pub mod sort_receive_bind;
-pub mod sort_var;
-mod sort_var_instance;
-pub mod sort_new;
-pub mod sort_expression;
 
-pub use sort_var_instance::*;
-
-mod sort_send_test;
-mod sort_new_test;
-mod sort_receive_test;
 /**
   * Sorts the insides of the Par and ESet/EMap of the rholangADT
   *
@@ -32,6 +19,10 @@ mod sort_receive_test;
   * And in most cases we dont need build the entrie tree if the comparion interrupts
   */
 
+trait Scorable<'a> {
+    fn score_tree_iter(self) -> ScoreTreeIter<'a>;
+}
+
 pub trait Sortable{
     fn sort(&mut self);
 }
@@ -44,11 +35,95 @@ enum ScoreAtom<'s> {
 }
 
 
-impl From<Score> for ScoreAtom<'_> {
-    fn from(score : Score) -> Self {
-        Self::IntAtom(score as i64)
+enum Node<'a> {
+    Leaf(ScoreAtom<'a>),
+    Children(ScoreTreeIter<'a>),
+}
+
+
+pub mod sort_par;
+pub mod sort_send;
+pub mod sort_receive;
+pub mod sort_receive_bind;
+pub mod sort_var;
+mod sort_var_instance;
+pub mod sort_new;
+pub mod sort_expression;
+
+
+mod sort_send_test;
+mod sort_new_test;
+mod sort_receive_test;
+
+
+
+
+
+
+
+// To avoid Box<dyn trait> and heap allocation
+// use enum here for polymorphism
+enum ScoreTreeIter<'a>{
+    Par(sort_par::ParScoreTreeIter<'a>),
+    New(sort_new::NewScoreTreeIter<'a>),
+    Send(sort_send::SendScoreTreeIter<'a>),
+    Receive(sort_receive::ReceiveScoreTreeIter<'a>),
+    ReceiveBind(sort_receive_bind::ReceiveBindScoreTreeIter<'a>),
+    Var(sort_var::VarScoreTreeIter<'a>),
+    VarInstance(sort_var_instance::VarInstanceScoreTreeIter<'a>),
+    Expr(sort_expression::ExprScoreTreeIter<'a>),
+    ExprGInt(sort_expression::GIntScoreTreeIter<'a>),
+}
+
+impl<'a> Iterator for ScoreTreeIter<'a> {
+    type Item = Node<'a>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        
+        match self {
+            ScoreTreeIter::Par(iter) => iter.next(),
+            ScoreTreeIter::New(iter) => iter.next(),
+            ScoreTreeIter::Send(iter) => iter.next(),
+            ScoreTreeIter::Receive(iter) => iter.next(),
+            ScoreTreeIter::ReceiveBind(iter) => iter.next(),
+            ScoreTreeIter::Var(iter) => iter.next(),
+            ScoreTreeIter::VarInstance(iter) => iter.next(),
+            ScoreTreeIter::Expr(iter) => iter.next(),
+            ScoreTreeIter::ExprGInt(iter) => iter.next(),
+            _ => unreachable!("Bug! Some branch in ScoreTreeIter::score_tree_iter() is not implemented.")
+        }
     }
 }
+
+
+
+// Depth-first traverse to compare two sortables
+fn comparer<'a,'b>(mut left_iter : ScoreTreeIter<'a>, mut right_iter : ScoreTreeIter<'b>) -> Ordering {
+    loop {
+        match (left_iter.next(), right_iter.next()) {
+
+            (None, None) => return Ordering::Equal,
+            (None, Some(_)) => return Ordering::Less,
+            (Some(_), None) => return Ordering::Greater,
+            (Some(Node::Leaf(_)), Some(Node::Children(_)) ) => return Ordering::Less,
+            (Some(Node::Children(_)), Some(Node::Leaf(_)) ) => return Ordering::Greater,
+            (Some(Node::Leaf(ref left)), Some(Node::Leaf(ref right)) ) => {
+                let order = left.cmp(right);
+                if order != Ordering::Equal {
+                    return order;
+                }
+            } 
+            (Some(Node::Children(left)), Some(Node::Children(right)) ) => {
+                let order = comparer(left, right);
+                if order != Ordering::Equal {
+                    return order;
+                }
+            }
+        };
+    }
+    
+}
+
 
 
 impl Ord for ScoreAtom<'_> {
@@ -76,45 +151,6 @@ impl PartialEq for ScoreAtom<'_> {
         self.cmp(other) == Ordering::Equal
     }
 }
-
-enum Node<'a> {
-    Leaf(ScoreAtom<'a>),
-    Children(Box<dyn Iterator<Item = Node<'a>> + Sync + 'a>),
-}
-
-trait Scorable<'a, ITER> where ITER : Iterator<Item = Node<'a>> + 'a {
-    fn score_tree_iter(self) -> ITER;
-}
-
-
-
-// Depth-first traverse to compare two sortables
-fn comparer(mut left_iter : Box<dyn Iterator<Item = Node<'_>> + '_>, mut right_iter : Box<dyn Iterator<Item = Node<'_>> + '_>) -> Ordering {
-    loop {
-        match (left_iter.next(), right_iter.next()) {
-
-            (None, None) => return Ordering::Equal,
-            (None, Some(_)) => return Ordering::Less,
-            (Some(_), None) => return Ordering::Greater,
-            (Some(Node::Leaf(_)), Some(Node::Children(_)) ) => return Ordering::Less,
-            (Some(Node::Children(_)), Some(Node::Leaf(_)) ) => return Ordering::Greater,
-            (Some(Node::Leaf(ref left)), Some(Node::Leaf(ref right)) ) => {
-                let order = left.cmp(right);
-                if order != Ordering::Equal {
-                    return order;
-                }
-            } 
-            (Some(Node::Children(left)), Some(Node::Children(right)) ) => {
-                let order = comparer(left, right);
-                if order != Ordering::Equal {
-                    return order;
-                }
-            }
-        };
-    }
-    
-}
-
 
 
 

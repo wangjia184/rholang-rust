@@ -2,13 +2,16 @@ use super::*;
 
 
 
-pub(super) struct GIntScoreTreeIter<'a> {
+pub(in super::super)  struct GIntScoreTreeIter<'a> {
     pub(super) number :&'a i64,
     pub(super) stage : u16,
 }
 
-
-
+impl<'a> From<GIntScoreTreeIter<'a>> for ScoreTreeIter<'a> {
+    fn from(inner: GIntScoreTreeIter<'a>) -> ScoreTreeIter<'a> {
+        ScoreTreeIter::ExprGInt(inner)
+    }
+}
 
 impl<'a> Iterator for GIntScoreTreeIter<'a> {
     type Item = Node<'a>;

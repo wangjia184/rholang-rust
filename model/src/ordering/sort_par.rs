@@ -1,7 +1,7 @@
 use super::*;
 
-impl<'a> Scorable<'a, ParScoreTreeIter<'a>> for &'a Par {
-    fn score_tree_iter(self) -> ParScoreTreeIter<'a> {
+impl<'a> Scorable<'a> for &'a Par {
+    fn score_tree_iter(self) -> ScoreTreeIter<'a> {
         ParScoreTreeIter{
             term : self,
             stage : 0,
@@ -9,7 +9,13 @@ impl<'a> Scorable<'a, ParScoreTreeIter<'a>> for &'a Par {
             receives_slice : &self.receives[..],
             exprs_slice : &self.exprs[..],
             news_slice : &self.news[..],
-        }
+        }.into()
+    }
+}
+
+impl<'a> From<ParScoreTreeIter<'a>> for ScoreTreeIter<'a> {
+    fn from(inner: ParScoreTreeIter<'a>) -> ScoreTreeIter<'a> {
+        ScoreTreeIter::Par(inner)
     }
 }
 
@@ -89,14 +95,14 @@ impl<'a> ParScoreTreeIter<'a> {
     #[inline]
     fn object_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
-        Some(Node::Leaf(Score::PAR.into()))
+        Some(Node::Leaf(ScoreAtom::IntAtom(Score::PAR as i64)))
     }
 
     fn sends_score<'b>(&'b mut self) -> Option<Node<'a>> {
         if !self.sends_slice.is_empty() {
             let sub_iter = self.sends_slice[0].score_tree_iter();
             self.sends_slice = &self.sends_slice[1..];
-            Some(Node::Children(Box::new(sub_iter)))
+            Some(Node::Children(sub_iter.into()))
         } else {
             self.stage += 1;
             self.receives_score()
@@ -107,7 +113,7 @@ impl<'a> ParScoreTreeIter<'a> {
         if !self.receives_slice.is_empty() {
             let sub_iter = self.receives_slice[0].score_tree_iter();
             self.receives_slice = &self.receives_slice[1..];
-            Some(Node::Children(Box::new(sub_iter)))
+            Some(Node::Children(sub_iter.into()))
         } else {
             self.stage += 1;
             self.exprs_score()
@@ -118,7 +124,7 @@ impl<'a> ParScoreTreeIter<'a> {
         if !self.exprs_slice.is_empty() {
             let sub_iter = self.exprs_slice[0].score_tree_iter();
             self.exprs_slice = &self.exprs_slice[1..];
-            Some(Node::Children(Box::new(sub_iter)))
+            Some(Node::Children(sub_iter.into()))
         } else {
             self.stage += 1;
             self.news_score()
@@ -129,7 +135,7 @@ impl<'a> ParScoreTreeIter<'a> {
         if !self.news_slice.is_empty() {
             let sub_iter = self.news_slice[0].score_tree_iter();
             self.news_slice = &self.news_slice[1..];
-            Some(Node::Children(Box::new(sub_iter)))
+            Some(Node::Children(sub_iter.into()))
         } else {
             self.stage += 1;
             self.matches_score()
@@ -182,28 +188,28 @@ impl Sortable for Par {
 
         // then sort current struct
         self.sends.sort_by( |left, right| {
-            comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+            comparer(left.score_tree_iter(), right.score_tree_iter() )
         });
         self.receives.sort_by( |left, right| {
-            comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+            comparer(left.score_tree_iter(), right.score_tree_iter() )
         });
         self.exprs.sort_by( |left, right| {
-            comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+            comparer(left.score_tree_iter(), right.score_tree_iter() )
         });
         self.news.sort_by( |left, right| {
-            comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+            comparer(left.score_tree_iter(), right.score_tree_iter() )
         });
         // self.matches.sort_by( |left, right| {
-        //     comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+        //     comparer(left.score_tree_iter(), right.score_tree_iter() )
         // });
         // self.bundles.sort_by( |left, right| {
-        //     comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+        //     comparer(left.score_tree_iter(), right.score_tree_iter() )
         // });
         // self.connectives.sort_by( |left, right| {
-        //     comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+        //     comparer(left.score_tree_iter(), right.score_tree_iter() )
         // });
         // self.unforgeables.sort_by( |left, right| {
-        //     comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+        //     comparer(left.score_tree_iter(), right.score_tree_iter() )
         // });
     }
 }
@@ -216,7 +222,7 @@ impl Sortable for Vec<Par> {
             p.sort();
         }
         self.sort_by( |left, right| {
-            comparer(Box::new(left.score_tree_iter()), Box::new(right.score_tree_iter()) )
+            comparer(left.score_tree_iter(), right.score_tree_iter() )
         });
     }
 }
