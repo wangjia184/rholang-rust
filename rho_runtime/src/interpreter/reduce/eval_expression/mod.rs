@@ -1,6 +1,5 @@
-use std::sync::Arc;
 use std::mem;
-use async_trait::async_trait;
+
 
 use super::*;
 use model::expr::ExprInstance;
@@ -9,24 +8,10 @@ mod plus;
 #[cfg(test)]
 mod plus_test;
 
-struct ExprEvaluator {
-    pub exp : Expr,
-}
 
-impl From<Expr> for ExprEvaluator {
-    fn from(e: Expr) -> Self {
-        ExprEvaluator { exp : e }
-    }
-}
-
-impl From<Expr> for ThreadSafeEvaluator {
-    fn from(e: Expr) -> Self {
-        Box::new(ExprEvaluator { exp : e })
-    }
-}
 
 #[async_trait]
-impl AsyncEvaluator for ExprEvaluator {
+impl AsyncEvaluator for Expr {
     async fn evaluate(&mut self, _reducer : Arc<DebruijnInterpreter>, env : Env) {
  
         

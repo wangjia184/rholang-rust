@@ -1,28 +1,11 @@
-use std::sync::Arc;
 
-use async_trait::async_trait;
 
 use super::*;
 
 
-struct SendEvaluator {
-    pub send : Send,
-}
-
-impl From<Send> for SendEvaluator {
-    fn from(send: Send) -> Self {
-        SendEvaluator { send : send }
-    }
-}
-
-impl From<Send> for ThreadSafeEvaluator {
-    fn from(send: Send) -> Self {
-        Box::new(SendEvaluator { send : send })
-    }
-}
 
 #[async_trait]
-impl AsyncEvaluator for SendEvaluator {
+impl AsyncEvaluator for Send {
 
    /** Algorithm as follows:
     *
@@ -43,34 +26,31 @@ impl AsyncEvaluator for SendEvaluator {
             return; // abort the execution since error occured
         }
 
-        if self.send.chan.is_none() {
+        if self.chan.is_none() {
             &reducer.add_error(ExecutionErrorKind::InvalidSend, "Send::chan is None");
             return;
         }
 
         // charge[M](SEND_EVAL_COST)
 
-        if let Err(err) = self.evaluate_send(&reducer, env) {
+        if let Err(err) = evaluate_send(self, &reducer, env) {
             &reducer.push_error(err);
             return;
         }
     }
 }
 
-impl SendEvaluator {
-    
-    fn evaluate_send(&mut self, reducer : &Arc<DebruijnInterpreter>, env : Env) -> Result<(), ExecutionError>{
+fn evaluate_send(send: &mut Send, reducer : &Arc<DebruijnInterpreter>, env : Env) -> Result<(), ExecutionError>{
  
 
-        // charge[M](SEND_EVAL_COST)
+    // charge[M](SEND_EVAL_COST)
 
-        let chan = self.send.chan.take().unwrap();
-        let mut evaluated_chan = reducer.evaluate_expressions_in_par(chan)?;
+    let chan = send.chan.take().unwrap();
+    let mut evaluated_chan = reducer.evaluate_expressions_in_par(chan)?;
 
-        evaluated_chan.substitute(&reducer, 0, &env)?;
+    evaluated_chan.substitute(&reducer, 0, &env)?;
 
-        println!("{:#?}", &evaluated_chan);
+    println!("{:#?}", &evaluated_chan);
 
-        Ok(())
-    }
+    Ok(())
 }

@@ -4,7 +4,7 @@ use std::sync::Arc;
 use model::*;
 
 mod reduce;
-
+use reduce::AsyncEvaluator;
 
 
 pub async fn test_reduce() {
@@ -39,5 +39,5 @@ pub async fn test_reduce() {
     });
 
     let reducer = Arc::new(reduce::DebruijnInterpreter::default());
-    reducer.evaluate(par, reduce::Env::<Par>::default()).await;
+    par.evaluate(reducer, reduce::Env::<Par>::default()).await;
 }

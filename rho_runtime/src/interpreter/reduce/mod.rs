@@ -9,6 +9,7 @@ use tokio::task;
 use model::*;
 
 mod substitute;
+pub mod eval_par;
 mod eval_send;
 mod eval_receive;
 mod eval_expression;
@@ -18,11 +19,10 @@ use substitute::*;
 pub use environment::*;
 
 #[async_trait]
-trait AsyncEvaluator {
+pub trait AsyncEvaluator {
     async fn evaluate(&mut self, reducer : Arc<DebruijnInterpreter>, env : Env);
 }
 
-type ThreadSafeEvaluator = Box<dyn AsyncEvaluator + std::marker::Send + std::marker::Sync>;
 
 #[derive(Default)]
 pub struct DebruijnInterpreter {
@@ -30,6 +30,9 @@ pub struct DebruijnInterpreter {
     aborted : AtomicBool,
     errors : SegQueue<ExecutionError>,
 }
+
+
+
 
 
 impl DebruijnInterpreter {
@@ -65,33 +68,4 @@ impl DebruijnInterpreter {
             Ok(())
         }
     }
-
-    pub async fn evaluate(self : Arc<Self>, par : Par, env : Env) {
-        
-
-        let evaluators : Vec<ThreadSafeEvaluator>;
-        evaluators = par.sends.into_iter().map( |s| s.into() )
-            .chain( par.receives.into_iter().map( |r| r.into() ) )
-            .collect();
-
-
-        let mut handles = Vec::new();
-
-        for (_idx, mut evaluator) in evaluators.into_iter().enumerate() {
-            let cloned_self = self.clone();
-            let cloned_env = env.clone();
-            handles.push(
-                task::spawn( async move {
-                    evaluator.evaluate(cloned_self, cloned_env).await;
-                })
-            );
-        }
-
-        for handle in handles {
-            handle.await.expect("Panic in Evaluator");
-        }
-
-    }
-
-
 }
