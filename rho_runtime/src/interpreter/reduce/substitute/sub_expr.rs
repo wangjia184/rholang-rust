@@ -2,20 +2,20 @@ use super::*;
 
 impl Substitutable for Expr {
 
-    fn substitute(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
         
         let func = |par : &mut Par| { 
-            par.substitute(reducer, depth, env)
+            par.substitute(context, depth, env)
         };
 
         dispatch( self, func)
     }
 
 
-    fn substitute_no_sort(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute_no_sort(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
         let func = |par : &mut Par| {
-            par.substitute_no_sort(reducer, depth, env)
+            par.substitute_no_sort(context, depth, env)
         };
 
         dispatch( self, func)

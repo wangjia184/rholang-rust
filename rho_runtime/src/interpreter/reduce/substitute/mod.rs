@@ -11,10 +11,10 @@ pub mod sub_receive;
 pub mod sub_send;
 
 pub trait Substitutable {
-    fn substitute(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) 
+    fn substitute(&mut self, context : &InterpreterContext, depth : i32, env : &Env) 
         -> Result<(), ExecutionError> 
             where Self: std::marker::Sized;
-    fn substitute_no_sort(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) 
+    fn substitute_no_sort(&mut self, context : &InterpreterContext, depth : i32, env : &Env) 
         -> Result<(), ExecutionError> 
             where Self: std::marker::Sized;
 }

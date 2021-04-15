@@ -18,11 +18,9 @@ impl AsyncEvaluator for Par {
     * @param env An execution context
     *
     */
-    async fn evaluate(&mut self, reducer : Arc<DebruijnInterpreter>, env : Env) {
+    async fn evaluate(&mut self, context : &Arc<InterpreterContext>, env : &Env) -> Result<(), ExecutionError> {
  
-        if reducer.is_aborted() {
-            return; // abort the execution since error occured
-        }
+        context.may_raise_aborted_error()?;
 
         // val terms: Seq[GeneratedMessage] = Seq(
         //     par.sends,
@@ -63,26 +61,23 @@ impl AsyncEvaluator for Par {
         let mut handles = Vec::new();
 
         while let Some(s) = self.sends.pop() {
-            handles.push(spawn_evaluation(s, reducer.clone(), env.clone()));
+            handles.push(context.spawn_evaluation(s, &env));
         }
         while let Some(r) = self.receives.pop() {
-            handles.push(spawn_evaluation(r, reducer.clone(), env.clone()));
+            handles.push(context.spawn_evaluation(r, &env));
         }
 
         for handle in handles {
-            handle.await.expect("Panic in Evaluator");
+            let result = handle.await;
+            if result.is_err() {
+                break; // we dont need log the error since it is already handled in spawn_evaluation
+            }
         }
+
+        Ok(())
     }
 }
 
-fn spawn_evaluation<T>(t : T, reducer : Arc<DebruijnInterpreter>, env : Env) -> tokio::task::JoinHandle<()>
-    where T : AsyncEvaluator + std::marker::Send + 'static
-{
-    
-    task::spawn( async move {
-        let mut evaluator = t;
-        let reference = &mut evaluator;
-        reference.evaluate(reducer, env).await;
-    })
-}
+
+
 

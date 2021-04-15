@@ -2,15 +2,15 @@ use super::*;
 
 impl Substitutable for Receive {
 
-    fn substitute(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
-        self.substitute_no_sort(reducer, depth, env)?;
+        self.substitute_no_sort(context, depth, env)?;
         self.sort();
         Ok(())
     }
 
 
-    fn substitute_no_sort(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute_no_sort(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
 
         // for {

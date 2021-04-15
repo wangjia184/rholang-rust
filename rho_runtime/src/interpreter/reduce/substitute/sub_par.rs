@@ -1,43 +1,43 @@
 use super::*;
 
 impl Substitutable for Par {
-    fn substitute(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
         // substituteNoSort(term).flatMap(par => Sortable.sortMatch(par)).map(_.term)
-        self.substitute_no_sort(reducer, depth, env)?;
+        self.substitute_no_sort(context, depth, env)?;
         self.sort();
         Ok(())
     }
-    fn substitute_no_sort(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute_no_sort(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
         for s in &mut self.sends {
-            s.substitute_no_sort(reducer, depth, env)?;
+            s.substitute_no_sort(context, depth, env)?;
         }
         for b in &mut self.bundles {
-            b.substitute_no_sort(reducer, depth, env)?;
+            b.substitute_no_sort(context, depth, env)?;
         }
         for r in &mut self.receives {
-            r.substitute_no_sort(reducer, depth, env)?;
+            r.substitute_no_sort(context, depth, env)?;
         }
         for n in &mut self.news {
-            n.substitute_no_sort(reducer, depth, env)?;
+            n.substitute_no_sort(context, depth, env)?;
         }
         for m in &mut self.matches {
-            m.substitute_no_sort(reducer, depth, env)?;
+            m.substitute_no_sort(context, depth, env)?;
         }
 
         if let Some(ref mut bitset) = self.locally_free {
             bitset.truncate(env.shift); // term.locallyFree.until(env.shift)  need test
         }
  
-        substitute_connectives(self, reducer, depth, env)?;
-        substitute_expressions(self, reducer, depth, env)?;
+        substitute_connectives(self, context, depth, env)?;
+        substitute_expressions(self, context, depth, env)?;
         Ok(())
     }
 
     
 }
 
-fn substitute_expressions(par : &mut Par, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+fn substitute_expressions(par : &mut Par, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
     // the scala code use fold(), here we use imperative style instead to avoid extra allocation
  
     for expression in &mut par.exprs {
@@ -62,7 +62,7 @@ fn substitute_expressions(par : &mut Par, reducer : &DebruijnInterpreter, depth 
                 );
             }
             _ => {
-                expression.substitute_no_sort(reducer, depth, env)?;
+                expression.substitute_no_sort(context, depth, env)?;
                 if let Some(ref instance) = expression.expr_instance {
                     if let Some(bitset) = ExprInstanceLocallyFree::locally_free(instance, depth) {
                         if let Some(ref mut locally_free) = par.locally_free {
@@ -84,7 +84,7 @@ fn substitute_expressions(par : &mut Par, reducer : &DebruijnInterpreter, depth 
 }
 
 
-fn substitute_connectives(par : &mut Par, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+fn substitute_connectives(par : &mut Par, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
     if !par.connectives.is_empty() {
         unimplemented!("substitute_connectives() is not implemented");

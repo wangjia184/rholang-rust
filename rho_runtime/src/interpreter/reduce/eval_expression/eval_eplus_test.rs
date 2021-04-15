@@ -1,10 +1,11 @@
+use tokio_test;
 use std::sync::Arc;
-use super::super::DebruijnInterpreter;
+use super::*;
 
-use model::{ *, expr::* };
 
 #[test]
 fn expression_should_handle_simple_addition() {
+    
     let mut p1 = Par::default();
     p1.exprs.push(Expr {
         expr_instance : Some( ExprInstance::GInt(7))
@@ -23,8 +24,9 @@ fn expression_should_handle_simple_addition() {
         }))
     });
 
-    let reducer = Arc::new(DebruijnInterpreter::default());
-    let par = reducer.evaluate_expressions_in_par(par).unwrap();
+    let context = Arc::new(InterpreterContext::default());
+    let env = Env::<Par>::default();
+    tokio_test::block_on( par.evaluate_nested_expressions(&context, &env) ).unwrap();
 
     assert_eq!( par.exprs.len(), 1 );
 
@@ -63,8 +65,9 @@ fn expression_should_handle_long_addition() {
         }))
     });
 
-    let reducer = Arc::new(DebruijnInterpreter::default());
-    let par = reducer.evaluate_expressions_in_par(par).unwrap();
+    let context = Arc::new(InterpreterContext::default());
+    let env = Env::<Par>::default();
+    tokio_test::block_on( par.evaluate_nested_expressions(&context, &env) ).unwrap();
 
     assert_eq!( par.exprs.len(), 1 );
 
@@ -102,8 +105,9 @@ fn expression_should_not_overflow_in_addition() {
         }))
     });
 
-    let reducer = Arc::new(DebruijnInterpreter::default());
-    let par = reducer.evaluate_expressions_in_par(par).unwrap();
+    let context = Arc::new(InterpreterContext::default());
+    let env = Env::<Par>::default();
+    tokio_test::block_on( par.evaluate_nested_expressions(&context, &env) ).unwrap();
 
     assert_eq!( par.exprs.len(), 1 );
 
@@ -117,4 +121,5 @@ fn expression_should_not_overflow_in_addition() {
             panic!("{:#?}", &par.exprs[0]);
         }
     }
+    
 }

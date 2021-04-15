@@ -15,9 +15,28 @@ impl ExecutionError {
 
 }
 
+impl From<ExecutionErrorKind> for ExecutionError   {
+    #[inline]
+    fn from(kind: ExecutionErrorKind) -> Self 
+    { 
+        ExecutionError{
+            kind : kind as i32,
+            message : "".into()
+        }
+    }
+}
 
 
-
+impl<S> From<(ExecutionErrorKind, S)> for ExecutionError  where S : Into<String>  {
+    #[inline]
+    fn from(tuple: (ExecutionErrorKind, S)) -> Self 
+    { 
+        ExecutionError{
+            kind : tuple.0 as i32,
+            message : tuple.1.into()
+        }
+    }
+}
 
 
 

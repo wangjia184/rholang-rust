@@ -2,7 +2,7 @@ use super::*;
 
 impl Substitutable for Match {
 
-    fn substitute(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
        
         // substituteNoSort(term).flatMap(mat => Sortable.sortMatch(mat)).map(_.term)
         unimplemented!("Match::substitute")
@@ -10,11 +10,11 @@ impl Substitutable for Match {
     }
 
 
-    fn substitute_no_sort(&mut self, reducer : &DebruijnInterpreter, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute_no_sort(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
         match self.target {
             Some(ref mut target) => {
-                target.substitute_no_sort(reducer, depth, env)?;
+                target.substitute_no_sort(context, depth, env)?;
             },
             _ => {
                 return Err(ExecutionError::new(ExecutionErrorKind::InvalidMatch, "No `target` in match"));

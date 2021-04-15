@@ -20,37 +20,29 @@ impl AsyncEvaluator for Send {
     * @param env An execution context
     *
     */
-    async fn evaluate(&mut self, reducer : Arc<DebruijnInterpreter>, env : Env) {
+    async fn evaluate(&mut self, context : &Arc<InterpreterContext>, env : &Env) -> Result<(), ExecutionError> {
  
-        if reducer.is_aborted() {
-            return; // abort the execution since error occured
-        }
+        context.may_raise_aborted_error()?;
 
         if self.chan.is_none() {
-            &reducer.add_error(ExecutionErrorKind::InvalidSend, "Send::chan is None");
-            return;
+            return Err((ExecutionErrorKind::InvalidSend, "Send::chan is None").into());
         }
 
         // charge[M](SEND_EVAL_COST)
 
-        if let Err(err) = evaluate_send(self, &reducer, env) {
-            &reducer.push_error(err);
-            return;
+        // evalChan <- evalExpr(send.chan)
+        if let Some(ref mut chan) = self.chan {
+            chan.evaluate_nested_expressions(context, env).await?;
+
+            // subChan  <- substituteAndCharge[Par, M](evalChan, 0, env)
+            chan.substitute(&context, 0, &env)?;
         }
+
+        
+
+        println!("{:#?}", &self.chan);
+
+        Ok(())
     }
 }
 
-fn evaluate_send(send: &mut Send, reducer : &Arc<DebruijnInterpreter>, env : Env) -> Result<(), ExecutionError>{
- 
-
-    // charge[M](SEND_EVAL_COST)
-
-    let chan = send.chan.take().unwrap();
-    let mut evaluated_chan = reducer.evaluate_expressions_in_par(chan)?;
-
-    evaluated_chan.substitute(&reducer, 0, &env)?;
-
-    println!("{:#?}", &evaluated_chan);
-
-    Ok(())
-}
