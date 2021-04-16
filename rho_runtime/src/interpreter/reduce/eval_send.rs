@@ -30,31 +30,30 @@ impl AsyncEvaluator for Send {
 
         // charge[M](SEND_EVAL_COST)
 
-        let chan = match self.chan {
-            Some(ref mut c) => c,
+        let channel = match self.chan.take() {
+            Some(mut chan) => {
+                // evalChan <- evalExpr(send.chan)
+                chan.evaluate_nested_expressions(context, env).await?;
+
+                // subChan  <- substituteAndCharge[Par, M](evalChan, 0, env)
+                chan.substitute(&context, 0, &env)?;
+
+                match chan.single_bundle() {
+                    Some(bundle) => {
+                        if !bundle.write_flag {
+                            return Err((ExecutionErrorKind::NonWritableChannel, "Trying to send on non-writeable channel.").into());
+                        }
+                        match bundle.body.take() {
+                            Some(par) => par,
+                            None => return Err((ExecutionErrorKind::InvalidBundle, "Bundle::body is missing").into()),
+                        }
+                    },
+                    None => chan,
+                }
+            },
             None => return Err((ExecutionErrorKind::InvalidSend, "Send::chan is missing").into()),
         };
 
-
-        // evalChan <- evalExpr(send.chan)
-        chan.evaluate_nested_expressions(context, env).await?;
-
-        // subChan  <- substituteAndCharge[Par, M](evalChan, 0, env)
-        chan.substitute(&context, 0, &env)?;
-
-        let unbunded = match chan.single_bundle() {
-            Some(b) => {
-                if !b.write_flag {
-                    return Err((ExecutionErrorKind::NonWritableChannel, "Trying to send on non-writeable channel.").into());
-                }
-                if let Some(ref p) = b.body {
-                    p
-                } else {
-                    return Err((ExecutionErrorKind::InvalidBundle, "Bundle::body is missing").into());
-                }
-            },
-            None => chan,
-        };
 
         for dataum in &mut self.data {
             dataum.evaluate_nested_expressions(context, env).await?;
@@ -63,7 +62,7 @@ impl AsyncEvaluator for Send {
         }
     
 
-        
+        //_         <- produce(channel, ListParWithRandom(substData, rand), send.persistent)
 
         println!("{:#?}", &self);
 

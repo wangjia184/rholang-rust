@@ -701,7 +701,9 @@ pub enum ExecutionErrorKind {
     UnexpectedOperand = 3,
     UndefinedOperator = 4,
     InvalidSend = 5,
-    InvalidMatch = 6,
-    InvalidBundle = 7,
-    NonWritableChannel = 8,
+    InvalidReceive = 6,
+    InvalidMatch = 7,
+    InvalidBundle = 8,
+    NonWritableChannel = 9,
+    NonReadableChannel = 10,
 }

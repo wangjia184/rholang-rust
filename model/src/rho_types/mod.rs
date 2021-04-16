@@ -27,13 +27,13 @@ impl From<Expr> for Par {
 
 impl Par {
 
-    pub fn single_bundle(&mut self) -> Option<&Bundle> {
+    pub fn single_bundle(&mut self) -> Option<&mut Bundle> {
         if self.sends.is_empty() && self.receives.is_empty() && 
            self.news.is_empty() && self.exprs.is_empty() && 
            self.matches.is_empty() && self.unforgeables.is_empty() &&
            self.connectives.is_empty() && self.bundles.len() > 0 {
 
-            Some(&self.bundles[0])
+            Some(&mut self.bundles[0])
 
         } else {
             None
