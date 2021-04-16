@@ -11,10 +11,17 @@ impl Substitutable for Send {
 
     fn substitute_no_sort(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
-
-        // for {
         //     channelsSub <- substitutePar[M].substituteNoSort(term.chan)
+        if let Some(ref mut chan) = self.chan {
+            chan.substitute_no_sort(context, depth, env)?;
+        }
+
         //     parsSub     <- term.data.toVector.traverse(substitutePar[M].substituteNoSort(_))
+        for p in &mut self.data {
+            p.substitute_no_sort(context, depth, env)?;
+        }
+
+
         //     send = Send(
         //       chan = channelsSub,
         //       data = parsSub,
@@ -22,11 +29,11 @@ impl Substitutable for Send {
         //       locallyFree = term.locallyFree.until(env.shift),
         //       connectiveUsed = term.connectiveUsed
         //     )
-        //   } yield send
+        if let Some(ref mut bitset) = self.locally_free {
+            bitset.truncate(env.shift);
+        }
 
-        unimplemented!("Send::substitute_no_sort")
-
-        //Ok(self)
+        Ok(())
     }
     
 }

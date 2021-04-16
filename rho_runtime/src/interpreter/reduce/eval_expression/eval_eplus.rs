@@ -9,7 +9,7 @@ impl AsyncExprInstanceEvaluator for EPlus {
                 par.evaluate_single_expression(context, env).await?
             },
             None => {
-                return Err((ExecutionErrorKind::InvalidExpression, "EPlus::p2 is None").into());
+                return Err((ExecutionErrorKind::InvalidExpression, "EPlus::p1 is None").into());
             }
         };
 

@@ -30,17 +30,42 @@ impl AsyncEvaluator for Send {
 
         // charge[M](SEND_EVAL_COST)
 
-        // evalChan <- evalExpr(send.chan)
-        if let Some(ref mut chan) = self.chan {
-            chan.evaluate_nested_expressions(context, env).await?;
+        let chan = match self.chan {
+            Some(ref mut c) => c,
+            None => return Err((ExecutionErrorKind::InvalidSend, "Send::chan is missing").into()),
+        };
 
-            // subChan  <- substituteAndCharge[Par, M](evalChan, 0, env)
-            chan.substitute(&context, 0, &env)?;
+
+        // evalChan <- evalExpr(send.chan)
+        chan.evaluate_nested_expressions(context, env).await?;
+
+        // subChan  <- substituteAndCharge[Par, M](evalChan, 0, env)
+        chan.substitute(&context, 0, &env)?;
+
+        let unbunded = match chan.single_bundle() {
+            Some(b) => {
+                if !b.write_flag {
+                    return Err((ExecutionErrorKind::NonWritableChannel, "Trying to send on non-writeable channel.").into());
+                }
+                if let Some(ref p) = b.body {
+                    p
+                } else {
+                    return Err((ExecutionErrorKind::InvalidBundle, "Bundle::body is missing").into());
+                }
+            },
+            None => chan,
+        };
+
+        for dataum in &mut self.data {
+            dataum.evaluate_nested_expressions(context, env).await?;
+            // substituteAndCharge
+            dataum.substitute(context, 0, env)?;
         }
+    
 
         
 
-        println!("{:#?}", &self.chan);
+        println!("{:#?}", &self);
 
         Ok(())
     }
