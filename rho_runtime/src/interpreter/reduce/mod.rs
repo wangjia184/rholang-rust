@@ -13,6 +13,10 @@ mod eval_send;
 mod eval_receive;
 mod eval_expression;
 mod environment;
+
+#[cfg(test)] mod eval_receive_test;
+
+
 use eval_expression::AsyncParExpressionEvaluator;
 use substitute::*;
 pub use environment::*;

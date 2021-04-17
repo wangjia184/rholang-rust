@@ -65,6 +65,9 @@ impl AsyncEvaluator for Receive {
         //     receive.peek
         //   )
 
+        println!("{:#?}", &binds);
+        println!("{:#?}", &body);
+
         Ok(())
     }
 }
