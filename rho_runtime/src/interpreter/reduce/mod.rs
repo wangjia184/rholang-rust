@@ -1,8 +1,8 @@
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
-use crossbeam::queue::SegQueue;
+use std::sync::atomic::{Ordering};
 
 
+use super::*;
 use async_trait::async_trait;
 use tokio::task;
 
@@ -31,12 +31,7 @@ pub trait AsyncEvaluator<S> where S : Storage + std::marker::Send + std::marker:
 
 
 
-#[derive(Default)]
-pub struct InterpreterContext<S> where S : Storage + std::marker::Send + std::marker::Sync {
-    storage : S,
-    aborted : AtomicBool,
-    errors : SegQueue<ExecutionError>,
-}
+
 
 
 

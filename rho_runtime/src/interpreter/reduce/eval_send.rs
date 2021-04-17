@@ -64,7 +64,11 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluat
 
         //_         <- produce(channel, ListParWithRandom(substData, rand), send.persistent)
 
-        println!("{:#?}", &self);
+        let mut list_par_with_random = ListParWithRandom::default();
+        list_par_with_random.pars.append(&mut self.data);
+
+        context.storage.produce(channel, list_par_with_random, self.persistent).await;
+        //println!("{:#?}", &self);
 
         Ok(())
     }

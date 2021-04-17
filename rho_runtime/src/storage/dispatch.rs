@@ -14,7 +14,7 @@ pub(super) struct ProduceTask {
 }
 
 pub struct Dispatcher {
-
+    tx: Sender<PendingTask>,
     rx : Receiver<PendingTask>,
 }
 
@@ -43,8 +43,8 @@ impl Dispatcher {
 
     pub fn create() -> (HotStore, Self) {
         let (tx, rx) : (Sender<PendingTask>, Receiver<PendingTask>) = mpsc::channel(1000);
-        let hot_store = HotStore { tx : ShardedLock::new(tx) };
-        let dispatcher = Self { rx : rx };
+        let hot_store = HotStore { tx : ShardedLock::new(tx.clone()) };
+        let dispatcher = Self { rx : rx, tx : tx };
         (hot_store, dispatcher)
     }
 
@@ -59,7 +59,7 @@ impl Dispatcher {
 
 
     async fn handle_produce(&mut self, produce : ProduceTask) {
-
+        println!("handle_produce {}", &produce.channel_hash.to_hex());
     }
 
 
