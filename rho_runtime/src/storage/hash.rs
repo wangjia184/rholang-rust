@@ -28,7 +28,7 @@ impl<T : Message> StableHash for T {
 
 
 #[test]
-fn locally_free_should_not_be_involved_when_generate_hash_1() {
+fn locally_free_should_not_be_involved_when_generate_hash() {
     let mut par1 = Par::default();
     {
         let mut bitset = BitSet::new();
@@ -43,24 +43,12 @@ fn locally_free_should_not_be_involved_when_generate_hash_1() {
         par2.locally_free = Some(bitset);
     }
 
-    
-    assert_eq!( par1.generate_hash_key(), par2.generate_hash_key());
-}
-
-#[test]
-fn locally_free_should_not_be_involved_when_generate_hash_2() {
-    let mut par1 = Par::default();
+    let mut par3 = Par::default();
     {
-        let mut bitset = BitSet::new();
-        bitset.insert(3);
-        par1.locally_free = Some(bitset);
-    }
-
-    let mut par2 = Par::default();
-    {
-        par2.locally_free = None;
+        par3.locally_free = None;
     }
 
     
     assert_eq!( par1.generate_hash_key(), par2.generate_hash_key());
+    assert_eq!( par2.generate_hash_key(), par3.generate_hash_key());
 }
