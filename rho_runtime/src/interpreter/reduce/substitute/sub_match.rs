@@ -1,8 +1,8 @@
 use super::*;
 
-impl Substitutable for Match {
+impl<S : Storage + std::marker::Send + std::marker::Sync> Substitutable<S> for Match {
 
-    fn substitute(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute(&mut self, context : &InterpreterContext<S>, depth : i32, env : &Env) -> Result<(), ExecutionError> {
        
         // substituteNoSort(term).flatMap(mat => Sortable.sortMatch(mat)).map(_.term)
         unimplemented!("Match::substitute")
@@ -10,7 +10,7 @@ impl Substitutable for Match {
     }
 
 
-    fn substitute_no_sort(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute_no_sort(&mut self, context : &InterpreterContext<S>, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
         match self.target {
             Some(ref mut target) => {

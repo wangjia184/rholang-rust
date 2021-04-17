@@ -1,8 +1,8 @@
 use super::*;
 
 #[async_trait]
-impl AsyncExprInstanceEvaluator for EPlus {
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext>, env : &Env) -> Result<ExprInstance, ExecutionError> {
+impl<S : Storage + std::marker::Send + std::marker::Sync> AsyncExprInstanceEvaluator<S> for EPlus {
+    async fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<ExprInstance, ExecutionError> {
 
         let v1 = match self.p1 {
             Some(ref mut par) => {

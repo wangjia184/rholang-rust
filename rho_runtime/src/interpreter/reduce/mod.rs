@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use crossbeam::queue::SegQueue;
 
+
 use async_trait::async_trait;
 use tokio::task;
 
@@ -21,16 +22,18 @@ use eval_expression::AsyncParExpressionEvaluator;
 use substitute::*;
 pub use environment::*;
 
+use crate::storage::Storage;
+
 #[async_trait]
-pub trait AsyncEvaluator {
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext>, env : &Env) -> Result<(), ExecutionError>;
+pub trait AsyncEvaluator<S> where S : Storage + std::marker::Send + std::marker::Sync {
+    async fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError>;
 }
 
 
 
 #[derive(Default)]
-pub struct InterpreterContext {
-
+pub struct InterpreterContext<S> where S : Storage + std::marker::Send + std::marker::Sync {
+    storage : S,
     aborted : AtomicBool,
     errors : SegQueue<ExecutionError>,
 }
@@ -39,10 +42,10 @@ pub struct InterpreterContext {
 
 
 
-impl InterpreterContext {
+impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterContext<S> {
 
     fn spawn_evaluation<T>(self : &Arc<Self>, t : T, env : &Env) -> tokio::task::JoinHandle<Result<(), ExecutionError>>
-        where T : AsyncEvaluator + std::marker::Send + 'static
+        where T : AsyncEvaluator<S> + std::marker::Send + 'static
     {
         let cloned_context = self.clone();
         let cloned_env = env.clone();

@@ -5,7 +5,7 @@ use super::*;
 
 
 #[async_trait]
-impl AsyncEvaluator for Send {
+impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluator<S> for Send {
 
    /** Algorithm as follows:
     *
@@ -20,7 +20,7 @@ impl AsyncEvaluator for Send {
     * @param env An execution context
     *
     */
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext>, env : &Env) -> Result<(), ExecutionError> {
+    async fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
  
         context.may_raise_aborted_error()?;
 

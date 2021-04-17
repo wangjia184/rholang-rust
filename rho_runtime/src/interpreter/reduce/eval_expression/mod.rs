@@ -7,25 +7,25 @@ mod eval_eplus;
 #[cfg(test)] mod eval_eplus_test;
 
 #[async_trait]
-pub trait AsyncExprInstanceEvaluator {
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext>, env : &Env) -> Result<ExprInstance, ExecutionError> ;
+pub trait AsyncExprInstanceEvaluator<S> where  S : Storage + std::marker::Send + std::marker::Sync {
+    async fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<ExprInstance, ExecutionError> ;
 
 }
 
 // AsyncExpressionEvaluator is implemented by Par
 #[async_trait]
-pub trait AsyncParExpressionEvaluator {
-    async fn evaluate_nested_expressions(&mut self, context : &Arc<InterpreterContext>, env : &Env) -> Result<(), ExecutionError>;
+pub trait AsyncParExpressionEvaluator<S> where  S : Storage + std::marker::Send + std::marker::Sync {
+    async fn evaluate_nested_expressions(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError>;
 
-    async fn evaluate_single_expression(&mut self, context : &Arc<InterpreterContext>, env : &Env) -> Result<Expr, ExecutionError>;
+    async fn evaluate_single_expression(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<Expr, ExecutionError>;
 }
 
 #[async_trait]
-impl AsyncParExpressionEvaluator for Par {
+impl<S : Storage + std::marker::Send + std::marker::Sync> AsyncParExpressionEvaluator<S> for Par {
     /**
     * evalExpr Evaluate any top level expressions in @param Par .
     */
-    async fn evaluate_nested_expressions(&mut self, context : &Arc<InterpreterContext>, env : &Env) -> Result<(), ExecutionError> {
+    async fn evaluate_nested_expressions(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
 
         //for {
         //      evaledExprs <- par.exprs.toList.traverse(evalExprToPar)
@@ -79,7 +79,7 @@ impl AsyncParExpressionEvaluator for Par {
     }
 
 
-    async fn evaluate_single_expression(&mut self, context : &Arc<InterpreterContext>, env : &Env) -> Result<Expr, ExecutionError>
+    async fn evaluate_single_expression(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<Expr, ExecutionError>
     {
         if !self.sends.is_empty() || !self.receives.is_empty() || !self.news.is_empty() || 
            !self.matches.is_empty() || !self.unforgeables.is_empty() || !self.bundles.is_empty() {

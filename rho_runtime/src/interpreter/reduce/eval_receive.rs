@@ -2,8 +2,8 @@ use super::*;
 
 
 #[async_trait]
-impl AsyncEvaluator for Receive {
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext>, env : &Env) -> Result<(), ExecutionError> {
+impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluator<S> for Receive {
+    async fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
         context.may_raise_aborted_error()?;
 
         

@@ -2,8 +2,8 @@ use super::*;
 
 
 #[async_trait]
-impl AsyncEvaluator for Expr {
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext>, env : &Env) -> Result<(), ExecutionError> {
+impl<S : Storage + std::marker::Send + std::marker::Sync> AsyncEvaluator<S> for Expr {
+    async fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
   
         match &mut self.expr_instance {
             Some(ExprInstance::GBool(_)) => Ok(()),

@@ -1,15 +1,15 @@
 use super::*;
 
-impl Substitutable for Send {
+impl<S : Storage + std::marker::Send + std::marker::Sync> Substitutable<S> for Send {
 
-    fn substitute(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute(&mut self, context : &InterpreterContext<S>, depth : i32, env : &Env) -> Result<(), ExecutionError> {
         self.substitute_no_sort(context, depth, env)?;
         self.sort();
         Ok(())
     }
 
 
-    fn substitute_no_sort(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute_no_sort(&mut self, context : &InterpreterContext<S>, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
         //     channelsSub <- substitutePar[M].substituteNoSort(term.chan)
         if let Some(ref mut chan) = self.chan {

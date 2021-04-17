@@ -1,8 +1,8 @@
 use super::*;
 
-impl Substitutable for Expr {
+impl<S : Storage + std::marker::Send + std::marker::Sync> Substitutable<S> for Expr {
 
-    fn substitute(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute(&mut self, context : &InterpreterContext<S>, depth : i32, env : &Env) -> Result<(), ExecutionError> {
         
         let func = |par : &mut Par| { 
             par.substitute(context, depth, env)
@@ -12,7 +12,7 @@ impl Substitutable for Expr {
     }
 
 
-    fn substitute_no_sort(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute_no_sort(&mut self, context : &InterpreterContext<S>, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
         let func = |par : &mut Par| {
             par.substitute_no_sort(context, depth, env)

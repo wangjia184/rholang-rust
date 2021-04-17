@@ -16,7 +16,7 @@ thiserror = "1.0"
 libc = "0.2"
 bit-vec = "0.6"
 prost = "0.7"
-tokio = {version = "1.4", features = ["full"] }
+tokio = {version = "1.5", features = ["full"] }
 async-trait = "0.1"
 crossbeam = "0.8"
 blake3 = "0.3"

@@ -19,5 +19,8 @@ fn main() {
 
 
 async fn run() {
-    interpreter::test_reduce().await;
+    //interpreter::test_reduce().await;
+
+    let (store,mut dispatcher) = storage::Dispatcher::create();
+    dispatcher.run().await;
 }

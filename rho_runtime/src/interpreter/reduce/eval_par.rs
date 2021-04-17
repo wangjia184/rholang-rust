@@ -3,7 +3,7 @@ use super::*;
 
 
 #[async_trait]
-impl AsyncEvaluator for Par {
+impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluator<S> for Par {
 
    /** Algorithm as follows:
     *
@@ -18,7 +18,7 @@ impl AsyncEvaluator for Par {
     * @param env An execution context
     *
     */
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext>, env : &Env) -> Result<(), ExecutionError> {
+    async fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
  
         context.may_raise_aborted_error()?;
 

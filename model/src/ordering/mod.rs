@@ -48,7 +48,8 @@ pub mod sort_receive_bind;
 pub mod sort_var;
 pub mod sort_new;
 pub mod sort_expression;
-
+mod hash;
+pub use hash::*;
 
 mod sort_send_test;
 mod sort_new_test;
@@ -233,3 +234,5 @@ enum Score {
 
     PAR = 999,
 }
+
+

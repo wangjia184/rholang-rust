@@ -1,8 +1,8 @@
 use super::*;
 
-impl Substitutable for Receive {
+impl<S : Storage + std::marker::Send + std::marker::Sync> Substitutable<S> for Receive {
 
-    fn substitute(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute(&mut self, context : &InterpreterContext<S>, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
         self.substitute_no_sort(context, depth, env)?;
         self.sort();
@@ -10,7 +10,7 @@ impl Substitutable for Receive {
     }
 
 
-    fn substitute_no_sort(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute_no_sort(&mut self, context : &InterpreterContext<S>, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
 
         // for {
