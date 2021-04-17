@@ -14,8 +14,9 @@ pub trait StableHash {
 impl<T : Message> StableHash for T {
     fn generate_hash_key(&self) -> Hash {
 
-        let stopper = LocallyFreeEncodingStopper::default();
         let mut buffer = BytesMut::new();
+
+        let stopper = LocallyFreeEncodingStopper::default();
         self.encode(&mut buffer).unwrap();
         drop(stopper);
         
@@ -25,29 +26,39 @@ impl<T : Message> StableHash for T {
     }
 }
 
+
 #[test]
-fn locally_free_should_not_be_involved_when_generate_hash() {
+fn locally_free_should_not_be_involved_when_generate_hash_1() {
     let mut par1 = Par::default();
     {
-        par1.sends.push({
-            let mut send = Send::default();
-            send.chan = Some(Par::default());
-            send
-        });
         let mut bitset = BitSet::new();
         bitset.insert(3);
-        bitset.insert(4);
-        bitset.insert(95);
         par1.locally_free = Some(bitset);
     }
 
     let mut par2 = Par::default();
     {
-        par2.sends.push({
-            let mut send = Send::default();
-            send.chan = Some(Par::default());
-            send
-        });
+        let mut bitset = BitSet::new();
+        bitset.insert(9);
+        par2.locally_free = Some(bitset);
+    }
+
+    
+    assert_eq!( par1.generate_hash_key(), par2.generate_hash_key());
+}
+
+#[test]
+fn locally_free_should_not_be_involved_when_generate_hash_2() {
+    let mut par1 = Par::default();
+    {
+        let mut bitset = BitSet::new();
+        bitset.insert(3);
+        par1.locally_free = Some(bitset);
+    }
+
+    let mut par2 = Par::default();
+    {
+        par2.locally_free = None;
     }
 
     
