@@ -92,7 +92,7 @@ pub struct Par {
     pub connectives: ::prost::alloc::vec::Vec<Connective>,
     ///[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
     #[prost(message, optional, tag="9")]
-    pub locally_free: ::core::option::Option<super::bitset::BitSet>,
+    pub locally_free: ::core::option::Option<crate::BitSet>,
     #[prost(bool, tag="10")]
     pub connective_used: bool,
 }
@@ -193,7 +193,7 @@ pub struct Send {
     pub persistent: bool,
     ///[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
     #[prost(message, optional, tag="5")]
-    pub locally_free: ::core::option::Option<super::bitset::BitSet>,
+    pub locally_free: ::core::option::Option<crate::BitSet>,
     #[prost(bool, tag="6")]
     pub connective_used: bool,
 }
@@ -242,7 +242,7 @@ pub struct Receive {
     pub bind_count: i32,
     ///[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
     #[prost(message, optional, tag="6")]
-    pub locally_free: ::core::option::Option<super::bitset::BitSet>,
+    pub locally_free: ::core::option::Option<crate::BitSet>,
     #[prost(bool, tag="7")]
     pub connective_used: bool,
 }
@@ -264,7 +264,7 @@ pub struct New {
     pub injections: ::std::collections::HashMap<::prost::alloc::string::String, Par>,
     ///[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
     #[prost(message, optional, tag="5")]
-    pub locally_free: ::core::option::Option<super::bitset::BitSet>,
+    pub locally_free: ::core::option::Option<crate::BitSet>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MatchCase {
@@ -283,7 +283,7 @@ pub struct Match {
     pub cases: ::prost::alloc::vec::Vec<MatchCase>,
     ///[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
     #[prost(message, optional, tag="4")]
-    pub locally_free: ::core::option::Option<super::bitset::BitSet>,
+    pub locally_free: ::core::option::Option<crate::BitSet>,
     #[prost(bool, tag="5")]
     pub connective_used: bool,
 }
@@ -371,7 +371,7 @@ pub struct EList {
     pub ps: ::prost::alloc::vec::Vec<Par>,
     ///[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
     #[prost(message, optional, tag="3")]
-    pub locally_free: ::core::option::Option<super::bitset::BitSet>,
+    pub locally_free: ::core::option::Option<crate::BitSet>,
     #[prost(bool, tag="4")]
     pub connective_used: bool,
     #[prost(message, optional, tag="5")]
@@ -383,7 +383,7 @@ pub struct ETuple {
     pub ps: ::prost::alloc::vec::Vec<Par>,
     ///[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
     #[prost(message, optional, tag="3")]
-    pub locally_free: ::core::option::Option<super::bitset::BitSet>,
+    pub locally_free: ::core::option::Option<crate::BitSet>,
     #[prost(bool, tag="4")]
     pub connective_used: bool,
 }
@@ -393,7 +393,7 @@ pub struct ESet {
     pub ps: ::prost::alloc::vec::Vec<Par>,
     ///[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
     #[prost(message, optional, tag="3")]
-    pub locally_free: ::core::option::Option<super::bitset::BitSet>,
+    pub locally_free: ::core::option::Option<crate::BitSet>,
     #[prost(bool, tag="4")]
     pub connective_used: bool,
     #[prost(message, optional, tag="5")]
@@ -405,7 +405,7 @@ pub struct EMap {
     pub kvs: ::prost::alloc::vec::Vec<KeyValuePair>,
     ///[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
     #[prost(message, optional, tag="3")]
-    pub locally_free: ::core::option::Option<super::bitset::BitSet>,
+    pub locally_free: ::core::option::Option<crate::BitSet>,
     #[prost(bool, tag="4")]
     pub connective_used: bool,
     #[prost(message, optional, tag="5")]
@@ -423,7 +423,7 @@ pub struct EMethod {
     pub arguments: ::prost::alloc::vec::Vec<Par>,
     ///[(scalapb.field).type = "coop.rchain.models.AlwaysEqual[scala.collection.immutable.BitSet]"];
     #[prost(message, optional, tag="5")]
-    pub locally_free: ::core::option::Option<super::bitset::BitSet>,
+    pub locally_free: ::core::option::Option<crate::BitSet>,
     #[prost(bool, tag="6")]
     pub connective_used: bool,
 }
