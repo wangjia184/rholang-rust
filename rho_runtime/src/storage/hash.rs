@@ -14,10 +14,11 @@ pub trait StableHash {
 impl<T : Message> StableHash for T {
     fn generate_hash_key(&self) -> Hash {
 
-        let _ = LocallyFreeEncodingStopper::default();
+        let stopper = LocallyFreeEncodingStopper::default();
         let mut buffer = BytesMut::new();
         self.encode(&mut buffer).unwrap();
-
+        drop(stopper);
+        
         let mut hasher = Blake3Hasher::new();
         hasher.update(&buffer);
         hasher.finalize()
@@ -49,5 +50,6 @@ fn locally_free_should_not_be_involved_when_generate_hash() {
         });
     }
 
+    
     assert_eq!( par1.generate_hash_key(), par2.generate_hash_key());
 }

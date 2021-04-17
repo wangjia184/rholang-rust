@@ -929,7 +929,7 @@ impl Default for LocallyFreeEncodingStopper {
 impl Drop for LocallyFreeEncodingStopper {
     #[inline]
     fn drop(&mut self){
-        LocallyFreeEncodingStopper::DISABLED.with( |x| x.replace(true) );
+        LocallyFreeEncodingStopper::DISABLED.with( |x| x.replace(false) );
     }
 }
 
@@ -994,4 +994,5 @@ impl prost::Message for BitSet<u32> {
 
     }
 }
+
 
