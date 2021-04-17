@@ -40,5 +40,5 @@ pub async fn test_reduce() {
 
     let context = Arc::new(reduce::InterpreterContext::default());
     let env = reduce::Env::<Par>::default();
-    par.evaluate(&context, &env).await;
+    par.evaluate(&context, &env).await.unwrap();
 }

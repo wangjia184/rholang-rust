@@ -706,4 +706,5 @@ pub enum ExecutionErrorKind {
     InvalidBundle = 8,
     NonWritableChannel = 9,
     NonReadableChannel = 10,
+    IllegalSubstitution = 11,
 }

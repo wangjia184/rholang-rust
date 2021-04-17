@@ -41,14 +41,30 @@ impl Par {
     }
 
     pub fn append(&mut self, other : &Par) {
-        self.sends.extend(other.sends.iter().cloned());
-        self.receives.extend(other.receives.iter().cloned());
-        self.news.extend(other.news.iter().cloned());
-        self.exprs.extend(other.exprs.iter().cloned());
-        self.matches.extend(other.matches.iter().cloned());
-        self.unforgeables.extend(other.unforgeables.iter().cloned());
-        self.bundles.extend(other.bundles.iter().cloned());
-        self.connectives.extend(other.connectives.iter().cloned());
+        if !other.sends.is_empty() {
+            self.sends.extend(other.sends.iter().cloned());
+        }
+        if !other.receives.is_empty() {
+            self.receives.extend(other.receives.iter().cloned());
+        }
+        if !other.news.is_empty() {
+            self.news.extend(other.news.iter().cloned());
+        }
+        if !other.exprs.is_empty() {
+            self.exprs.extend(other.exprs.iter().cloned());
+        }
+        if !other.matches.is_empty() {
+            self.matches.extend(other.matches.iter().cloned());
+        }
+        if !other.unforgeables.is_empty() {
+            self.unforgeables.extend(other.unforgeables.iter().cloned());
+        }
+        if !other.bundles.is_empty() {
+            self.bundles.extend(other.bundles.iter().cloned());
+        }
+        if !other.connectives.is_empty() {
+            self.connectives.extend(other.connectives.iter().cloned());
+        }
 
         if other.locally_free.is_some() {
             if let Some(ref mut locally_free) = self.locally_free {
@@ -193,9 +209,11 @@ impl Par {
     pub fn append_expr(&mut self, e : Expr, depth : i32) {
         
         if let Some(ref instance) = e.expr_instance {
-            if let Some(ref bitset) = ExprInstanceLocallyFree::locally_free(instance, depth) {
+            if let Some(bitset) = ExprInstanceLocallyFree::locally_free(instance, depth) {
                 if let Some(ref mut locally_free) = self.locally_free {
-                    locally_free.union_with(bitset);
+                    locally_free.union_with(&bitset);
+                } else {
+                    self.locally_free = Some(bitset);
                 }
             }
 

@@ -69,10 +69,13 @@ impl AsyncEvaluator for Par {
 
         for handle in handles {
             let result = handle.await;
-            if result.is_err() {
-                break; // we dont need log the error since it is already handled in spawn_evaluation
+            match result {
+                Ok(Err(err)) => return Err(err),
+                Err(err) => panic!("{}", err),
+                _ => (),
             }
         }
+
 
         Ok(())
     }

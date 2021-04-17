@@ -12,6 +12,7 @@ fn eval_of_single_channel_should_place_something_in_tuplespace() {
 
         receive.binds.push({
             let mut receive_bind = ReceiveBind::default();
+
             receive_bind.patterns.push({
                 let mut pattern_par = Par::default();
                 pattern_par.exprs.push(Expr {
@@ -21,13 +22,23 @@ fn eval_of_single_channel_should_place_something_in_tuplespace() {
                         })
                     }))
                 });
-                pattern_par.exprs.push(Expr {
+                pattern_par
+            });
+
+            receive_bind.patterns.push({
+                let mut pattern_par = Par::default();
+                 pattern_par.exprs.push(Expr {
                     expr_instance : Some(expr::ExprInstance::EVarBody(EVar{
                         v : Some(Var{ 
                             var_instance : Some(var::VarInstance::FreeVar(1))
                         })
                     }))
                 });
+                pattern_par
+            });
+
+            receive_bind.patterns.push({
+                let mut pattern_par = Par::default();
                 pattern_par.exprs.push(Expr {
                     expr_instance : Some(expr::ExprInstance::EVarBody(EVar{
                         v : Some(Var{ 
@@ -37,6 +48,7 @@ fn eval_of_single_channel_should_place_something_in_tuplespace() {
                 });
                 pattern_par
             });
+            
             receive_bind.source = Some({
                 let mut source_par = Par::default();
                 source_par.exprs.push(Expr {
@@ -59,5 +71,6 @@ fn eval_of_single_channel_should_place_something_in_tuplespace() {
     let context = Arc::new(InterpreterContext::default());
     let env = Env::<Par>::default();
     tokio_test::block_on( par.evaluate(&context, &env) ).unwrap();
+
     
 }

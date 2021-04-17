@@ -1,6 +1,6 @@
 use super::*;
 use model::expr::*;
-
+use model::var::*;
 
 pub mod sub_par;
 pub mod sub_expr;

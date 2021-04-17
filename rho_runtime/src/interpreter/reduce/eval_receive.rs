@@ -6,6 +6,8 @@ impl AsyncEvaluator for Receive {
     async fn evaluate(&mut self, context : &Arc<InterpreterContext>, env : &Env) -> Result<(), ExecutionError> {
         context.may_raise_aborted_error()?;
 
+        
+
         // charge[M](RECEIVE_EVAL_COST)
         let mut binds : Vec<(BindPattern, Par)> = Vec::with_capacity(self.binds.len());
         for receive_bind in &mut self.binds {
@@ -48,6 +50,7 @@ impl AsyncEvaluator for Receive {
 
             binds.push((bind_pattern, unbundled_source));
         }// ReceiveBind
+
 
         let body = match self.body.take() {
             Some(mut par) => {

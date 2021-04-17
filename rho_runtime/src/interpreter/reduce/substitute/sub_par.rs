@@ -29,53 +29,82 @@ impl Substitutable for Par {
             bitset.truncate(env.shift); // term.locallyFree.until(env.shift)  need test
         }
  
-        substitute_connectives(self, context, depth, env)?;
-        substitute_expressions(self, context, depth, env)?;
+        substitute_connectives_in_par(self, context, depth, env)?;
+        substitute_expressions_in_par(self, context, depth, env)?;
         Ok(())
     }
 
     
 }
 
-fn substitute_expressions(par : &mut Par, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+enum VarOrPar {
+    Var(Var),
+    ArcPar(Arc<Par>)
+}
+
+fn may_substitute_var(var : Var, depth : i32, env : &Env) -> Result<VarOrPar, ExecutionError> {
+    if depth != 0{
+        Ok(VarOrPar::Var(var))
+    } else {
+        match var.var_instance {
+            Some(VarInstance::BoundVar(index)) => {
+                match env.get(index) {
+                    Some(par) => Ok(VarOrPar::ArcPar(par)),
+                    None => Ok(VarOrPar::Var(var)),
+                }
+            },
+            _ => {
+                return Err((ExecutionErrorKind::IllegalSubstitution, format!("Illegal Substitution {:#?}", &var)).into());
+            }
+        }
+    }
+    
+    
+}
+
+fn substitute_expressions_in_par(par : &mut Par, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
     // the scala code use fold(), here we use imperative style instead to avoid extra allocation
  
-    for expression in &mut par.exprs {
+    // move exprs into a new vector, consider replace Vec with SmallVec after benchmark
+    let mut expressions : Vec<Expr> = Vec::with_capacity(par.exprs.len());
+    expressions.append(&mut par.exprs);
+
+    for mut expression in expressions {
         match &mut expression.expr_instance {
-            Some(ExprInstance::EVarBody(EVar{ v : Some(var) })) => {
-                // case EVarBody(e) =>
-                //     maybeSubstitute[M](e).map {
-                //         case Left(_e)    => par.prepend(_e, depth)
-                //         case Right(_par) => _par ++ par
-                //     }
-                let _ = var;
-                unimplemented!("Some(ExprInstance::EVarBody(EVar))");
-            },
-            Some(ExprInstance::EVarBody(EVar{ v : None })) => {
-                return Err(ExecutionError::new(ExecutionErrorKind::InvalidExpression,
-                    "Expr::expr_instance::EVarBody::Var is None")
-                );
+
+            // case EVarBody(e) =>
+            //     maybeSubstitute[M](e).map {
+            //         case Left(_e)    => par.prepend(_e, depth)
+            //         case Right(_par) => _par ++ par
+            //     }
+
+            Some(ExprInstance::EVarBody(evar)) => {
+                match evar.v.take() {
+                    Some(var) => {
+                        match may_substitute_var(var, depth, env)? {
+                            VarOrPar::Var(v) => {
+                                par.append_expr(Expr { 
+                                        expr_instance : Some(ExprInstance::EVarBody(EVar{
+                                            v : Some(v)
+                                        }))
+                                    }
+                                    , depth 
+                                );
+                            },
+                            VarOrPar::ArcPar(p) => {
+                                par.append(&*p);
+                            }
+                        };
+                    },
+                    None => return Err((ExecutionErrorKind::InvalidExpression,"EVar::v is missing").into()),
+                };
             },
             None => {
-                return Err(ExecutionError::new(ExecutionErrorKind::InvalidExpression,
-                    "Expr::expr_instance is None")
-                );
+                return Err((ExecutionErrorKind::InvalidExpression,"Expr::expr_instance is missing").into());
             }
             _ => {
                 expression.substitute_no_sort(context, depth, env)?;
-                if let Some(ref instance) = expression.expr_instance {
-                    if let Some(bitset) = ExprInstanceLocallyFree::locally_free(instance, depth) {
-                        if let Some(ref mut locally_free) = par.locally_free {
-                            locally_free.union_with(&bitset);
-                        } else {
-                            par.locally_free = Some(bitset);
-                        }
-                    }
-        
-                    if ExprInstanceLocallyFree::connective_used(instance) {
-                        par.connective_used = true;
-                    }
-                }                
+                par.append_expr(expression, depth);
             }
         }
     }
@@ -84,7 +113,7 @@ fn substitute_expressions(par : &mut Par, context : &InterpreterContext, depth :
 }
 
 
-fn substitute_connectives(par : &mut Par, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+fn substitute_connectives_in_par(par : &mut Par, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
     if !par.connectives.is_empty() {
         unimplemented!("substitute_connectives() is not implemented");

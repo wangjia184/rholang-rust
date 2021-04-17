@@ -29,8 +29,8 @@ impl<T> Env<T> where T : Clone + std::marker::Send {
     }
 
 
-    pub fn get(&self, k : usize) -> Option<Arc<T>> {
-        let index = self.level + self.shift - k - 1;
+    pub fn get(&self, k : i32) -> Option<Arc<T>> {
+        let index = self.level + self.shift - k as usize - 1;
         if index < self.bindings.len() {
             return Some(self.bindings[index as usize].clone());
         }
