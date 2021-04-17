@@ -11,7 +11,7 @@ mod bitset;
 mod locally_free;
 mod ordering;
 
-pub use bitset::BitSet;
+pub use bitset::{ LocallyFreeEncodingStopper, BitSet };
 pub use rho_types::*;
 pub use locally_free::*;
 pub use ordering::{ *, sort_par::*, sort_receive::*, sort_send::* };

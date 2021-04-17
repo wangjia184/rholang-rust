@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use prost::*;
 use prost::encoding::{ self, WireType, DecodeContext };
 use bytes::{ Buf, BufMut };
@@ -47,6 +48,8 @@ fn match_words<'a, 'b, B: BitBlock>(a: &'a BitVec<B>, b: &'b BitVec<B>)
          b.blocks().enumerate().chain(iter::repeat(B::zero()).enumerate().take(a_len).skip(b_len)))
     }
 }
+
+
 
 pub struct BitSet<B = u32> {
     bit_vec: BitVec<B>,
@@ -910,9 +913,35 @@ impl<'a, B: BitBlock> IntoIterator for &'a BitSet<B> {
 
 
 
+pub struct LocallyFreeEncodingStopper {
+}
+impl LocallyFreeEncodingStopper {
+    thread_local! {
+        static DISABLED: RefCell<bool> = RefCell::new(false);
+    }
+}
+impl Default for LocallyFreeEncodingStopper {
+    fn default() -> Self {
+        LocallyFreeEncodingStopper::DISABLED.with( |x| x.replace(true) );
+        Self{ }
+    }
+}
+impl Drop for LocallyFreeEncodingStopper {
+    #[inline]
+    fn drop(&mut self){
+        LocallyFreeEncodingStopper::DISABLED.with( |x| x.replace(true) );
+    }
+}
+
 
 impl prost::Message for BitSet<u32> {
     fn encoded_len(&self) -> usize {
+        let disabled = LocallyFreeEncodingStopper::DISABLED.with(|cell|
+            *cell.borrow()
+        );
+        if disabled  {
+            return 0;
+        }
         let bit_vec = &self.bit_vec;
         let vector : Vec<u8> = bit_vec.to_bytes();
         if !vector.is_empty() {
@@ -920,6 +949,7 @@ impl prost::Message for BitSet<u32> {
         } else {
             0
         }
+        
     }
 
     fn clear(&mut self){
@@ -928,10 +958,15 @@ impl prost::Message for BitSet<u32> {
 
 
     fn encode_raw<BUF>(&self, buf: &mut BUF) where BUF: BufMut, Self: Sized {
-        let bit_vec = &self.bit_vec;
-        let vector : Vec<u8> = bit_vec.to_bytes();
-        if !vector.is_empty() {
-            encoding::bytes::encode(1u32, &vector, buf);
+        let disabled = LocallyFreeEncodingStopper::DISABLED.with(|cell|
+            *cell.borrow()
+        );
+        if !disabled  {
+            let bit_vec = &self.bit_vec;
+            let vector : Vec<u8> = bit_vec.to_bytes();
+            if !vector.is_empty() {
+                encoding::bytes::encode(1u32, &vector, buf);
+            }
         }
     }
 

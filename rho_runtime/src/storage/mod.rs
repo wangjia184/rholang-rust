@@ -1,3 +1,4 @@
+mod hash;
 mod space_matcher;
 mod space_ops;
 mod space;

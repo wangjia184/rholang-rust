@@ -12,7 +12,7 @@ fn main() {
 
     let out_path = PathBuf::from(out_dir);
     let mut config = prost_build::Config::new();
-    //config.extern_path(".plugin", "::model");
+    config.extern_path(".plugin", "::model");
     match config.compile_protos(&["src/rho_types/rho_types.proto"], &["src/"]) {
         Err(e) =>  { panic!("Failed to generate from rho_types.proto {}", e); },
         Ok(_) => {
