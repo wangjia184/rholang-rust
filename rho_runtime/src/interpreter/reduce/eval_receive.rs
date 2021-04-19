@@ -68,8 +68,13 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluat
         //     receive.peek
         //   )
 
-        println!("{:#?}", &binds);
-        println!("{:#?}", &body);
+        let mut par_with_rand = ParWithRandom::default();
+        par_with_rand.body = Some(body);
+
+        context.storage.consume(binds, par_with_rand, self.persistent, self.peek).await;
+
+        //println!("{:#?}", &binds);
+        //println!("{:#?}", &body);
 
         Ok(())
     }
