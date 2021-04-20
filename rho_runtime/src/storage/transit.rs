@@ -1,55 +1,163 @@
 
-use std::rc::Rc;
-use std::cell::RefCell;
+
 use blake3::Hash;
-use tokio::task::JoinHandle;
-use rustc_hash::{FxHashMap, FxHashSet};
-use tokio::sync::oneshot::Receiver;
 
 use super::*;
-use smallvec::SmallVec;
 
-pub(super) type ShortVector<T> = SmallVec<[T; 5]>;
+struct IndependentConsumer {
+    pub(self) bind_pattern : BindPattern,
+    pub(self) body : ParWithRandom,
+    pub(self) persistent : bool,
+    pub(self) peek : bool,
+}
 
-#[derive(Default, Debug)]
-pub struct  Cargo{
+pub(super) struct  Transit {
+    id_base : u64,
+    dataums : ShortVector<Dataum>,
 
-    unmatched_produces : SmallVec<[ProduceTask; 5]>,
-    unmatched_consumes : SmallVec<[ConsumeTask; 5]>,  // should build a tree to optimize the matcher
-    unprocessed_produces : Option<ShortVector<ProduceTask>>,
-    unprocessed_consumes : Option<ShortVector<ConsumeTask>>,
+    independent_consumers : ShortVector<IndependentConsumer>,
 }
 
 #[derive(Debug)]
-pub(super) struct  TransitPort {
-    pub(super) cargo : Option<Cargo>,
-    pub(super) unprocessed_produces : Option<ShortVector<ProduceTask>>,
-    pub(super) unprocessed_consumes : Option<ShortVector<ConsumeTask>>,
-    pub(super) reference_count : FxHashMap<Hash, i32/* number of reference from consumes */>,
-    pub(super) join_group : Option<Rc<RefCell<JoinGroup>>>,
-    pub(super) signal : Option<Receiver<()>>,
+pub (super) struct  Dataum {
+    id : u64,
+    data : ListParWithRandom,
+    persistent : bool,
 }
 
-impl Default for TransitPort {
+impl Default for Transit {
     fn default() -> Self {
         Self {
-            cargo : Some(Cargo::default()),
-            unprocessed_produces : None,
-            unprocessed_consumes : None,
-            reference_count : FxHashMap::default(),
-            join_group : None,
-            signal : None,
+            id_base : 0,
+            dataums : ShortVector::default(),
+            independent_consumers : ShortVector::default(),
         }
     }
 }
 
 
-#[derive(Debug)]
-pub(super) struct  JoinGroup {
-    pub(super) id : u64,
-    pub(super) channel_set : FxHashSet<Hash>,
-    pub(super) handle : Option<JoinHandle<()>>,
+
+pub(super) type ProducingChannel = TransitWrapper;
+pub(super) type ConsumingChannel = (TransitWrapper, BindPattern, Hash);
+
+
+// we are only allowed to update the passed-in transit(s)
+// coordinator ensures there is no others are working on them when we are called here
+impl Transit {
+    // check all the existing consumers, if no match, save it
+    pub(super) fn produce( mut task : ProduceTask<ProducingChannel>) -> TransitWrapper {
+
+        let transit = &task.channel.transit;
+        
+
+        
+
+        // first try to search in independent consumers
+        match transit.independent_consumers.iter().position( |consumer| {
+            // only match length for now
+            consumer.bind_pattern.patterns.len() == task.data.pars.len()
+        }) 
+        {
+            Some(idx) => {
+                // a match is found
+                let transit = &mut task.channel.transit;
+                let consumer = transit.independent_consumers.remove(idx);
+
+                if let Err(_) = task.replier.send(Reply::ParWithBody( consumer.body, smallvec![task.data])) {
+                    error!("task.replier.send(Reply::ParWithBody( consumer.body, smallvec![task.data])) failed");
+                }
+            },
+            None => {
+                let transit = &mut task.channel.transit;
+                // store it for later match
+                transit.id_base += 1;
+                let dataum = Dataum{
+                    id : transit.id_base,
+                    data : task.data,
+                    persistent : task.persistent,
+                };
+                transit.dataums.push(dataum);
+
+                // TODO : check joined consumers
+
+                if let Err(_) = task.replier.send(Reply::None) {
+                    error!("task.replier.send(Reply::None) failed");
+                }
+            }
+        }
+
+        
+
+        task.channel
+    }
+
+    // check all the existing dataums, if no match, save it
+    pub(super) fn consume( mut task : ConsumeTask<ConsumingChannel>) -> ShortVector<TransitWrapper>{
+
+        // record the position of matched dataums in each channel
+        let mut tuples = ShortVector::new();
+        let mut matched = true;
+
+        for (ref mut wrapper, bind_pattern, hash) in &mut task.channels {
+
+            let transit = &mut wrapper.transit;
+
+            let mut idx = 0;
+            if matched {
+                if let Some(i) = transit.dataums.iter()
+                    .position( |dataum| {
+                        // only match length for now
+                        bind_pattern.patterns.len() == dataum.data.pars.len()
+                    }) 
+                {
+                        idx = i;
+                }
+                else {
+                    matched = false;
+                }
+            }
+            
+            tuples.push( (transit, idx, bind_pattern, hash) );
+        }// for
+
+        // all binds matched
+        if matched {
+
+            let data_list = tuples
+                .into_iter()
+                .map( |(transit, idx, _, _)| {
+                    transit.dataums.remove(idx).data
+                })
+                .collect();
+
+            if let Err(_) = task.replier.send(Reply::ParWithBody( task.body, data_list)) {
+                error!("task.replier.send(Reply::ParWithBody( task.body, data_list)) failed");
+            }
+        } else {
+            
+            if tuples.len() == 1 {
+                let (transit, _, bind_pattern, hash) = tuples.pop().unwrap();
+                let independent_consumer = IndependentConsumer {
+                    bind_pattern : bind_pattern.clone(),
+                    body : task.body,
+                    persistent : task.persistent,
+                    peek : task.peek,
+                };
+                transit.independent_consumers.push(independent_consumer);
+            } else {
+                todo!("Store the joined consumer");
+            }
+            if let Err(_) = task.replier.send(Reply::None) {
+                error!("task.replier.send(Reply::None) failed");
+            }
+            
+            drop(tuples);
+        }
+
+        task.channels.into_iter().map( |c| c.0).collect()
+    }
 }
+
 
 
 

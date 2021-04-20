@@ -2,7 +2,7 @@ use std::collections::hash_map::Entry;
 use std::cell::{ RefCell };
 use std::rc::Rc;
 use tokio::task;
-use tokio::sync::oneshot::{ self };
+
 use rustc_hash::{ FxHashMap };
 
 use super::*;
@@ -11,26 +11,26 @@ use tokio::sync::mpsc::{ self, Sender, Receiver };
 use blake3::Hash;
 
 enum PendingTask{
-    Produce(ProduceTask),
-    Consume(ConsumeTask),
+    Produce(ProduceTask<ProduceChannel>),
+    Consume(ConsumeTask<ConsumeChannel>),
 }
 
 pub(super) type ProduceChannel = (Hash, Par);
 
-#[derive(Debug)]
-pub(super) struct ProduceTask {
-    pub(super) id : u64, // increment id
-    pub(super) channel : ProduceChannel,
+pub(super) struct ProduceTask<T> {
+    pub(super) replier : oneshot::Sender<Reply>,
+    pub(super) channel : T,
     pub(super) data : ListParWithRandom,
     pub(super) persistent : bool,
 }
 
 pub(super) type ConsumeChannel = (Hash, BindPattern, Par);
 
-#[derive(Debug)]
-pub(super) struct ConsumeTask {
-    pub(super) id : u64, // increment id
-    pub(super) channels : Vec<ConsumeChannel>,
+
+
+pub(super) struct ConsumeTask<T> {
+    pub(super) replier : oneshot::Sender<Reply>,
+    pub(super) channels : ShortVector<T>,
     pub(super) body : ParWithRandom,
     pub(super) persistent : bool,
     pub(super) peek : bool,
@@ -39,33 +39,46 @@ pub(super) struct ConsumeTask {
 pub struct Coordinator {
     _tx: Sender<PendingTask>, // keep an instance here so that it will not close if no other senders
     rx : Receiver<PendingTask>,
-    transit_port_map : FxHashMap<Hash, Rc<RefCell<TransitPort>>>,
-    id_base : u64,
+    transit_port_map : FxHashMap<Hash, Rc<RefCell<TransitPort>>>
 }
+
+#[derive(Default)]
+pub struct TransitPort {
+    pub(super) completed_signal : Option<oneshot::Receiver<Transit>>,
+}
+
 
 pub struct  AsyncStore {
     tx : ShardedLock<Sender<PendingTask>>,
 }
 
+pub enum Reply {
+    None,
+    ParWithBody(ParWithRandom, ShortVector<ListParWithRandom>),
+}
+
 #[async_trait]
 impl Storage for AsyncStore {
     
-    async fn produce(&self, channel : Par, data : ListParWithRandom, persistent : bool){
+    async fn produce(&self, channel : Par, data : ListParWithRandom, persistent : bool) -> Reply {
+        let (tx, rx) = oneshot::channel();
         let produce_task = ProduceTask{
-            id : 0, // to be updated on receiving
+            replier : tx,
             channel : (channel.blake3_hash(), channel),
             data : data,
             persistent : persistent,
         };
         let sender = self.tx.read().unwrap().clone();
         if let Err(err) = sender.send(PendingTask::Produce(produce_task)).await {
-            panic!("HotStore::produce failed. {}", &err);
+            panic!("sender.send(PendingTask::Produce(produce_task)) failed. {}", &err);
         }
+        rx.await.unwrap()
     }
 
-    async fn consume(&self, binds : Vec<(BindPattern, Par)>, body : ParWithRandom, persistent : bool, peek : bool) {
+    async fn consume(&self, binds : Vec<(BindPattern, Par)>, body : ParWithRandom, persistent : bool, peek : bool) -> Reply {
+        let (tx, rx) = oneshot::channel();
         let consume_task = ConsumeTask{
-            id : 0, // to be updated on receiving
+            replier : tx,
             channels : binds.into_iter().map(|tuple| (tuple.1.blake3_hash(), tuple.0, tuple.1)).collect(),
             body : body,
             persistent : persistent,
@@ -73,9 +86,15 @@ impl Storage for AsyncStore {
         };
         let sender = self.tx.read().unwrap().clone();
         if let Err(err) = sender.send(PendingTask::Consume(consume_task)).await {
-            panic!("HotStore::produce failed. {}", &err);
+            panic!("sender.send(PendingTask::Consume(consume_task)) failed. {}", &err);
         }
+        rx.await.unwrap()
     }
+}
+
+pub(super) struct TransitWrapper {
+    pub(super) transit : Transit,
+    pub(self) sender : oneshot::Sender<Transit>,
 }
 
 
@@ -84,20 +103,17 @@ impl Coordinator {
     pub fn create() -> (AsyncStore, Self) {
         let (tx, rx) : (Sender<PendingTask>, Receiver<PendingTask>) = mpsc::channel(1000);
         let hot_store = AsyncStore { tx : ShardedLock::new(tx.clone()) };
-        let coordinator = Self { rx : rx, _tx : tx, transit_port_map : FxHashMap::default(), id_base : 0 };
+        let coordinator = Self { rx : rx, _tx : tx, transit_port_map : FxHashMap::default() };
         (hot_store, coordinator)
     }
 
     pub async fn run(&mut self) {
         while let Some(pending_task) = self.rx.recv().await {
-            self.id_base += 1; // assign an increment id to each received message
             match  pending_task {
-                PendingTask::Produce(mut produce) => {
-                    produce.id = self.id_base;
+                PendingTask::Produce(produce) => {
                     self.handle_produce(produce)
                 },
-                PendingTask::Consume(mut consume) => {
-                    consume.id = self.id_base;
+                PendingTask::Consume(consume) => {
                     self.handle_consume(consume);
                 },
                 _ => unreachable!("Bug, this branch must not reach"),
@@ -115,52 +131,121 @@ impl Coordinator {
     }
 
 
-    fn handle_produce(&mut self, produce : ProduceTask) {
-        //println!("handle_produce {:?}", &produce);
-/* 
+    fn handle_produce(&mut self, produce : ProduceTask<ProduceChannel>) {
+
+        // get the transit port of this channel
         let transit_port = self.get_or_create_transit_port(produce.channel.0);
-        transit_port.unprocessed_produces.get_or_insert_with(|| ShortVector::new()).push(produce);
-
-        match transit_port.cargo {
-            None => { 
-                // there is already a coroutine working on it
+        // create a pair of sender + receiver
+        let (tx, rx) = oneshot::channel();
+        
+        // replace receiver which will be signaled when current coroutine completes
+        let mut prev_signal = match transit_port.borrow_mut().completed_signal.replace(rx) {
+            Some(signal) => {
+                signal
             },
-            Some(ref cargo) => { // no corouting working on this one
+            None => {
+                // no previous Receiver, this is a fresh new channel
+                // simulate one
+                let (prev_tx, prev_rx) = oneshot::channel();
+                if let Err(_) = prev_tx.send(Transit::default()) {
+                    panic!("prev_tx.send(Transit::default()) must not fail");
+                }
+                prev_rx
+            }
+        };
+        
+        task::spawn( async move {
+            // first ensure previous coroutines are completed
+            let wrapper = TransitWrapper{
+                transit : prev_signal.await.unwrap(),  // must succeed
+                sender : tx,
+            };
 
-            },
-            
-        }*/
+            // now handle it
+            let wrapper = {
+                let producing_task = ProduceTask::<ProducingChannel> {
+                    replier : produce.replier,
+                    data : produce.data,
+                    persistent: produce.persistent,
+                    channel : wrapper,
+                };
+                Transit::produce(producing_task)
+            };
+
+            // now send the signal
+            if let Err(_) = wrapper.sender.send(wrapper.transit) {
+                panic!("wrapper.sender.send(wrapper.transit) must not fail");
+            }
+        });
 
     }
 
-    fn handle_consume(&mut self, consume : ConsumeTask) {
+    fn handle_consume(&mut self, mut consume : ConsumeTask<ConsumeChannel>) {
 
-        let mut signals = ShortVector::new();
-        let mut hash_map = FxHashMap::default();
-
+        let mut tuples = ShortVector::default();
+        let mut channels = ShortVector::with_capacity(consume.channels.len());
+        channels.append(&mut consume.channels);
         // get all signals
-        for tuple in consume.channels {
+        for tuple in channels {
             // get the transit port of this channel
             let transit_port = self.get_or_create_transit_port(tuple.0);
             // create a pair of sender + receiver
             let (tx, rx) = oneshot::channel();
-            // replace receiver which will be signaled when current coroutine completes
-            if let Some(signal) = transit_port.borrow_mut().signal.replace(rx) {
-                signals.push(signal); // save the previous Receiver
-            }
-            hash_map.insert(tuple.0, (tuple.1, tuple.2, tx));
+
+            tuples.push(
+                // replace receiver which will be signaled when current coroutine completes
+                match transit_port.borrow_mut().completed_signal.replace(rx) {
+                    Some(signal) => {
+                        (tuple.0, tuple.1, signal, tx)
+                    },
+                    None => {
+                        // no previous Receiver, this is a fresh new channel
+                        // simulate one
+                        let (prev_tx, prev_rx) = oneshot::channel();
+                        if let Err(_) = prev_tx.send(Transit::default()) {
+                            panic!("prev_tx.send(Transit::default()) must not fail");
+                        }
+                        (tuple.0, tuple.1, prev_rx, tx)
+                    }
+                }
+            );
         }
-        
-        task::spawn( async move {
-            // first ensure no other coroutines are operating these channels
-            for signal in signals {
-                signal.await.unwrap(); // should never fail
-            }
-        });
-        
-        //println!("handle_consume {:?}", &join_group);
 
         
+        task::spawn( async move {
+
+            let mut channels = ShortVector::default();
+
+            // first ensure previous coroutines are completed
+            for (hash, bind_pattern, rx, tx) in tuples.into_iter() {
+                let wrapper = TransitWrapper{
+                    transit : rx.await.unwrap(),  // must succeed
+                    sender : tx,
+                };
+                channels.push((wrapper, bind_pattern, hash));
+                //signals.push((transit, tx));
+            }
+
+            // now handle it
+            let wrappers = {
+                let consuming_task = ConsumeTask::<ConsumingChannel> {
+                    replier : consume.replier,
+                    body : consume.body,
+                    persistent: consume.persistent,
+                    peek : consume.peek,
+                    channels : channels,
+                };
+                Transit::consume(consuming_task)
+            };
+
+            // now send the signals
+            for wrapper in wrappers {
+                if let Err(_) = wrapper.sender.send(wrapper.transit) {
+                    panic!("wrapper.sender.send(wrapper.transit) must not fail");
+                }
+            }
+        });
+                
     }
 
 
