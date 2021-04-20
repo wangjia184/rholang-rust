@@ -136,7 +136,6 @@ async fn test<S>(storage : S) where S : Storage + std::marker::Send + std::marke
     });
 
     let context = std::sync::Arc::new(interpreter::InterpreterContext::from(storage));
-    let env = interpreter::Env::<Par>::default();
-    par.evaluate(&context, &env).await.expect("");
+    context.evaludate(par).await;
 
 }

@@ -58,23 +58,15 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluat
         //     }
         //   }
 
-        let mut handles = Vec::new();
+
 
         while let Some(s) = self.sends.pop() {
-            handles.push(context.spawn_evaluation(s, &env));
+            context.spawn_evaluation(s, &env);
         }
         while let Some(r) = self.receives.pop() {
-            handles.push(context.spawn_evaluation(r, &env));
+            context.spawn_evaluation(r, &env);
         }
 
-        for handle in handles {
-            let result = handle.await;
-            match result {
-                Ok(Err(err)) => return Err(err),
-                Err(err) => panic!("{}", err),
-                _ => (),
-            }
-        }
 
 
         Ok(())
