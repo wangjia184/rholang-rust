@@ -122,7 +122,12 @@ async fn test<S>(storage : S) where S : Storage + std::marker::Send + std::marke
             receive_bind            
         });
 
-        receive.body = Some(Par::default());
+        receive.body = Some(
+            {
+                let mut body_par = Par::default();
+                body_par
+            }
+        );
         receive.persistent = false;
         receive.peek = false;
         receive.bind_count = 3;

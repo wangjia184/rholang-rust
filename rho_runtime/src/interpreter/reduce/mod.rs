@@ -59,6 +59,8 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterC
     }
 
     
+
+    
     #[inline]
     pub fn may_raise_aborted_error(&self) -> Result<(), ExecutionError> {
         if self.aborted.load(Ordering::Relaxed) {
@@ -70,4 +72,39 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterC
             Ok(())
         }
     }
+
+
+    
+    #[inline]
+    async fn produce(self : &Arc<Self>, channel : Par, data : ListParWithRandom, persistent : bool) {
+        // TODO : we need avoid async on handle_comm_events to reduce stack depth
+        self.handle_comm_events(self.storage.produce(channel, data, persistent).await ).await;
+    }
+
+    #[inline]
+    async fn consume(self : &Arc<Self>, binds : Vec<(BindPattern, Par)>,body : ParWithRandom, persistent : bool, peek : bool) {
+        // TODO : we need avoid async on handle_comm_events to reduce stack depth
+        self.handle_comm_events(self.storage.consume(binds, body, persistent, peek).await).await;
+    }
+
+    async fn handle_comm_events(self : &Arc<Self>, reply : Reply) {
+        match reply {
+            Reply::ParWithBody(par_with_rand, data_list) => {
+                
+                let pars : Vec<_> = data_list.into_iter().flat_map( |x| x.pars.into_iter() ).collect();
+                let env = Env::<Par>::create(pars);
+                match par_with_rand.body {
+                    Some(par) => {
+                        self.spawn_evaluation(par, &env).await;
+                    },
+                    _ => {
+
+                    }
+                }
+            },
+            Reply::None => (),
+        }
+        
+    }
 }
+

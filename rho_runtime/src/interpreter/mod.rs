@@ -1,4 +1,4 @@
-use std::sync::atomic::{AtomicBool};
+use std::{sync::atomic::{AtomicBool}, thread::JoinHandle};
 use crossbeam::queue::SegQueue;
 
 
@@ -12,6 +12,7 @@ pub struct InterpreterContext<S> where S : Storage + std::marker::Send + std::ma
     storage : S,
     aborted : AtomicBool,
     errors : SegQueue<ExecutionError>,
+    join_handles : SegQueue<JoinHandle<()>>,
 }
 
 impl<S:Storage + std::marker::Send + std::marker::Sync> From<S> for InterpreterContext<S> {
@@ -20,6 +21,7 @@ impl<S:Storage + std::marker::Send + std::marker::Sync> From<S> for InterpreterC
             storage : storage,
             aborted : AtomicBool::default(),
             errors : SegQueue::default(),
+            join_handles : SegQueue::default(),
         }
     }
 }

@@ -1,5 +1,7 @@
 
 
+use std::vec;
+
 use super::*;
 
 
@@ -9,6 +11,7 @@ pub struct Env<T = Par> where T : Clone + std::marker::Send {
     level : usize,
     pub shift : usize,
 
+    // need be optimized
     // Arc is used here to avoid duplicated instance.
     // Be careful when we want to change the binding in a frame
     // Using Arc::make_mut() for Copy-on-Write
@@ -26,6 +29,14 @@ impl<T> Env<T> where T : Clone + std::marker::Send {
             shift : self.shift,
             bindings : new_bindings,
         }
+    }
+
+    pub fn create(vector : Vec<T>) -> Self{
+        Self {
+            level : vector.len(),
+            shift : 0,
+            bindings : Arc::new(vector.into_iter().map(|v| Arc::new(v) ).collect() ),
+        } 
     }
 
 

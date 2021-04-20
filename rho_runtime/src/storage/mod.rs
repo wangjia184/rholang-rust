@@ -14,6 +14,13 @@ pub  use coordinator::*;
 
 type ShortVector<T> = SmallVec<[T; 3]>;
 
+
+pub enum Reply {
+    None,
+    ParWithBody(ParWithRandom, ShortVector<ListParWithRandom>),
+}
+
+
 #[async_trait]
 pub trait Storage { 
     async fn produce(&self, channel : Par, data : ListParWithRandom, persistent : bool) -> Reply;

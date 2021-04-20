@@ -52,11 +52,6 @@ pub struct  AsyncStore {
     tx : ShardedLock<Sender<PendingTask>>,
 }
 
-pub enum Reply {
-    None,
-    ParWithBody(ParWithRandom, ShortVector<ListParWithRandom>),
-}
-
 #[async_trait]
 impl Storage for AsyncStore {
     
@@ -139,7 +134,7 @@ impl Coordinator {
         let (tx, rx) = oneshot::channel();
         
         // replace receiver which will be signaled when current coroutine completes
-        let mut prev_signal = match transit_port.borrow_mut().completed_signal.replace(rx) {
+        let prev_signal = match transit_port.borrow_mut().completed_signal.replace(rx) {
             Some(signal) => {
                 signal
             },

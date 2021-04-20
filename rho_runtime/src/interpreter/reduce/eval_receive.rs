@@ -71,15 +71,9 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluat
         let mut par_with_rand = ParWithRandom::default();
         par_with_rand.body = Some(body);
 
-        match context.storage.consume(binds, par_with_rand, self.persistent, self.peek).await {
-            Reply::ParWithBody(body, data) => {
-                println!("{:#?}", &body);
-            },
-            Reply::None => (),
-        };
 
-        //
-        //println!("{:#?}", &body);
+        context.consume(binds, par_with_rand, self.persistent, self.peek).await;
+
 
         Ok(())
     }
