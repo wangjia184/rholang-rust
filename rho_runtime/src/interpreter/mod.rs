@@ -15,7 +15,6 @@ use model::*;
 pub struct InterpreterContext<S> where S : Storage + std::marker::Send + std::marker::Sync {
     storage : S,
     aborted : AtomicBool,
-    errors : SegQueue<ExecutionError>,
     join_handles : SegQueue<JoinHandle<Result<(), ExecutionError>>>,
 }
 
@@ -24,7 +23,6 @@ impl<S:Storage + std::marker::Send + std::marker::Sync> From<S> for InterpreterC
         Self {
             storage : storage,
             aborted : AtomicBool::default(),
-            errors : SegQueue::default(),
             join_handles : SegQueue::default(),
         }
     }
@@ -35,8 +33,9 @@ impl<S:Storage + std::marker::Send + std::marker::Sync> From<S> for InterpreterC
 
 impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterContext<S> {
 
-    pub async fn evaludate(self : &Arc<Self>, mut par : Par) {
+    pub async fn evaludate(self : &Arc<Self>, mut par : Par) -> Vec<ExecutionError> {
         let env = Env::<Par>::default();
+        let mut errors : Vec<ExecutionError> = Vec::new();
         par.evaluate(&self, &env).await.expect("par.evaluate(&self, &env) failed"); // should never fail
         while let Some(handle) = self.join_handles.pop() {
             let result = handle.await;
@@ -44,13 +43,14 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterC
                 Ok(Err(err)) => {
                     if err.kind != ExecutionErrorKind::Aborted as i32 {
                         self.aborted.store(true, Ordering::Relaxed);
-                        self.errors.push(err.clone());
+                        errors.push(err.clone());
                     }
                 },
                 Err(err) => panic!("JoinError occured in InterpreterContext::evaludate. {}", err),
                 _ => (),
             }
         }
+        errors
     }
 
     fn spawn_evaluation<T>(self : &Arc<Self>, t : T, env : &Env)
@@ -62,14 +62,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterC
             task::spawn( async move {
                 let mut evaluator = t;
                 let reference = &mut evaluator;
-                if let Err(err) = reference.evaluate(&cloned_context, &cloned_env).await {
-                    if err.kind != ExecutionErrorKind::Aborted as i32 {
-                        cloned_context.aborted.store(true, Ordering::Relaxed);
-                        cloned_context.errors.push(err.clone());
-                    }
-                    return Err(err);
-                }
-                Ok(())
+                reference.evaluate(&cloned_context, &cloned_env).await
             })
         );
     }

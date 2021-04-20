@@ -2,7 +2,7 @@ extern crate pretty_env_logger;
 #[macro_use] extern crate log;
 
 
-use interpreter::AsyncEvaluator;
+use std::time::Instant;
 use storage::Storage;
 use tokio::runtime;
 
@@ -136,6 +136,12 @@ async fn test<S>(storage : S) where S : Storage + std::marker::Send + std::marke
     });
 
     let context = std::sync::Arc::new(interpreter::InterpreterContext::from(storage));
-    context.evaludate(par).await;
+
+    let now = Instant::now();
+    let errors = context.evaludate(par).await;
+    println!("Reduction took {} ms", now.elapsed().as_millis());
+    for err in errors {
+        error!("Error #{} : {}", err.kind, err.message);
+    }
 
 }
