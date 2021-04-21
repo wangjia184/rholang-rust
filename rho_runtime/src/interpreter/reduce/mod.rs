@@ -14,7 +14,7 @@ mod eval_receive;
 mod eval_expression;
 mod eval_new;
 mod environment;
-mod hash_rand; use hash_rand::HashRand;
+
 
 #[cfg(test)] mod eval_receive_test;
 

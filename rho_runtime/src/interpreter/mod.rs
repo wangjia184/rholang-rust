@@ -1,14 +1,17 @@
 use std::sync::atomic::AtomicBool;
-use crossbeam::{queue::SegQueue, sync::ShardedLock};
-use rustc_hash::FxHashMap;
-use tokio::task::JoinHandle;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
+use crossbeam::{queue::SegQueue, sync::ShardedLock};
+use rustc_hash::FxHashMap;
+use tokio::task::JoinHandle;
 use tokio::task;
 
 mod reduce;
 pub use reduce::*;
+mod system_contract;
+mod hash_rand; 
+use hash_rand::HashRand;
 
 use super::storage::*;
 use model::*;
@@ -26,7 +29,7 @@ impl<S:Storage + std::marker::Send + std::marker::Sync> From<S> for InterpreterC
             storage : storage,
             aborted : AtomicBool::default(),
             join_handles : SegQueue::default(),
-            urn_map : ShardedLock::new(FxHashMap::default()),
+            urn_map : ShardedLock::new(system_contract::get_map()),
         }
     }
 }
