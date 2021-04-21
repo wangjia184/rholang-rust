@@ -37,19 +37,19 @@ impl<S : Storage + std::marker::Send + std::marker::Sync> Substitutable<S> for P
     
 }
 
-enum VarOrPar {
+enum VarOrPar<'a> {
     Var(Var),
-    ArcPar(Arc<Par>)
+    ParRef(&'a Par)
 }
 
-fn may_substitute_var(var : Var, depth : i32, env : &Env) -> Result<VarOrPar, ExecutionError> {
+fn may_substitute_var<'a>(var : Var, depth : i32, env : &'a Env) -> Result<VarOrPar<'a>, ExecutionError> {
     if depth != 0{
         Ok(VarOrPar::Var(var))
     } else {
         match var.var_instance {
             Some(VarInstance::BoundVar(index)) => {
                 match env.get(index) {
-                    Some(par) => Ok(VarOrPar::ArcPar(par)),
+                    Some(par) => Ok(VarOrPar::ParRef(par)),
                     None => Ok(VarOrPar::Var(var)),
                 }
             },
@@ -93,8 +93,8 @@ fn substitute_expressions_in_par<S>(par : &mut Par, context : &InterpreterContex
                                     , depth 
                                 );
                             },
-                            VarOrPar::ArcPar(p) => {
-                                par.append(&*p);
+                            VarOrPar::ParRef(p) => {
+                                par.append(p);
                             }
                         };
                     },

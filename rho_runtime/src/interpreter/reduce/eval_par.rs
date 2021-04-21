@@ -66,6 +66,9 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluat
         while let Some(r) = self.receives.pop() {
             context.spawn_evaluation(r, &env);
         }
+        while let Some(n) = self.news.pop() {
+            context.spawn_evaluation(n, &env);
+        }
 
 
 

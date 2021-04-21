@@ -94,6 +94,7 @@ enum ExecutionErrorKind {
     NonWritableChannel = 9;
     NonReadableChannel = 10;
     IllegalSubstitution = 11;
+    SystemFailure = 999;
 }
 
 message ExecutionError {

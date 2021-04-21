@@ -1,5 +1,6 @@
 use std::sync::atomic::AtomicBool;
-use crossbeam::queue::SegQueue;
+use crossbeam::{queue::SegQueue, sync::ShardedLock};
+use rustc_hash::FxHashMap;
 use tokio::task::JoinHandle;
 use std::sync::Arc;
 use std::sync::atomic::Ordering;
@@ -16,6 +17,7 @@ pub struct InterpreterContext<S> where S : Storage + std::marker::Send + std::ma
     storage : S,
     aborted : AtomicBool,
     join_handles : SegQueue<JoinHandle<Result<(), ExecutionError>>>,
+    urn_map : ShardedLock<FxHashMap<String, Par>>,
 }
 
 impl<S:Storage + std::marker::Send + std::marker::Sync> From<S> for InterpreterContext<S> {
@@ -24,6 +26,7 @@ impl<S:Storage + std::marker::Send + std::marker::Sync> From<S> for InterpreterC
             storage : storage,
             aborted : AtomicBool::default(),
             join_handles : SegQueue::default(),
+            urn_map : ShardedLock::new(FxHashMap::default()),
         }
     }
 }
@@ -102,7 +105,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterC
         match reply {
             Reply::ParWithBody(par_with_rand, data_list) => {
                 
-                let pars : Vec<_> = data_list.into_iter().flat_map( |x| x.pars.into_iter() ).collect();
+                let pars = data_list.into_iter().flat_map( |x| x.pars.into_iter() ).collect();
                 let env = Env::<Par>::create(pars);
                 match par_with_rand.body {
                     Some(par) => {
