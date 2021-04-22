@@ -9,6 +9,7 @@ impl<'a> Scorable<'a> for &'a Par {
             receives_slice : &self.receives[..],
             exprs_slice : &self.exprs[..],
             news_slice : &self.news[..],
+            unforgeable_slice : &self.unforgeables[..],
         }.into()
     }
 }
@@ -28,6 +29,7 @@ pub(super) struct ParScoreTreeIter<'a> {
     receives_slice : &'a [Receive],
     exprs_slice : &'a [Expr],
     news_slice : &'a [New],
+    unforgeable_slice : &'a [GUnforgeable],
 }
 
 
@@ -159,8 +161,14 @@ impl<'a> ParScoreTreeIter<'a> {
     }
 
     fn unforgeables_score<'b>(&'b mut self) -> Option<Node<'a>> {
-        self.stage += 1;
-        self.connective_used_score()
+        if !self.unforgeable_slice.is_empty() {
+            let sub_iter = self.unforgeable_slice[0].score_tree_iter();
+            self.unforgeable_slice = &self.unforgeable_slice[1..];
+            Some(Node::Children(sub_iter.into()))
+        } else {
+            self.stage += 1;
+            self.connective_used_score()
+        }
     }
 
     #[inline]

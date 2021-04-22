@@ -31,9 +31,10 @@ impl Blake3Hashable for Par {
                         hasher.update(&text.len().to_le_bytes());
                         hasher.update(text.as_bytes());
                     },
-                    Some(Node::Leaf(ScoreAtom::BytesAtom)) => {
+                    Some(Node::Leaf(ScoreAtom::BytesAtom(buf))) => {
                         hasher.update(BYTES_ATOM);
-                        todo!("Followed length and content")
+                        hasher.update(&buf.len().to_le_bytes());
+                        hasher.update(buf);
                     },
                     Some(Node::Children(child_iter)) => {
                         hasher.update(CHILD_START);
