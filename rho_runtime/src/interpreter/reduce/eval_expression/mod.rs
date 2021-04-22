@@ -1,6 +1,7 @@
 
 use super::*;
 use model::expr::ExprInstance;
+use smallvec::SmallVec;
 
 mod expr_instance;
 mod eval_eplus;
@@ -22,7 +23,7 @@ pub trait AsyncParExpressionEvaluator<S> where  S : Storage + std::marker::Send 
 
 #[async_trait]
 impl<S : Storage + std::marker::Send + std::marker::Sync> AsyncParExpressionEvaluator<S> for Par {
-    /**
+   /**
     * evalExpr Evaluate any top level expressions in @param Par .
     */
     async fn evaluate_nested_expressions(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
@@ -37,12 +38,20 @@ impl<S : Storage + std::marker::Send + std::marker::Sync> AsyncParExpressionEval
         // substitution, it will resolve in that case. AlwaysEqual makes sure
         // that this isn't an issue in the rest of cases.
 
-        for expression in &mut self.exprs {
+        // avoid std::mem::replace to reduce heap allocation
+        let mut expressions = SmallVec::<[Expr; 5]>::with_capacity(self.exprs.len());
+        expressions.extend(self.exprs.drain(..));
 
-            match &mut expression.expr_instance {
-                Some(ExprInstance::EVarBody(_)) => {
-                    // evalExprToPar() is not implemented
-                    unimplemented!("ExprInstance::EVarBody(_) in evaluate_nested_expressions()");
+        for mut expression in expressions {
+
+            match expression.expr_instance {
+                Some(ExprInstance::EVarBody(mut evar)) => {
+                    let mut par = match evar.v {
+                        Some(ref mut var) => var.evaluate(context, env).await?,
+                        None => return Err((ExecutionErrorKind::InvalidExpression, "`expression.expr_instance` is None in evaluate_nested_expressions() ").into()),
+                    };
+                    par.evaluate_nested_expressions(context, env).await?;
+                    self.append_mut(&mut par);
                 },
                 Some(ExprInstance::EMethodBody(_)) => {
                     // evalExprToPar() is not implemented
@@ -51,21 +60,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync> AsyncParExpressionEval
                 Some(_) => {
                     // in-place evaluate
                     expression.evaluate(context, env).await?;
-
-                    if let Some(ref instance) = expression.expr_instance {
-                        // merge locally free
-                        if let Some(bitset) = ExprInstanceLocallyFree::locally_free(instance, 0) {
-                            if let Some( ref mut locally_free ) = self.locally_free {
-                                locally_free.union_with(&bitset)
-                            } else {
-                                self.locally_free = Some(bitset);
-                            }
-                        }
-
-                        if ExprInstanceLocallyFree::connective_used(instance) {
-                            self.connective_used = true;
-                        }
-                    }
+                    self.append_expr(expression, 0);
                 },
                 None => {
                     return Err((ExecutionErrorKind::InvalidExpression, "`expression.expr_instance` is None in evaluate_nested_expressions() ").into());

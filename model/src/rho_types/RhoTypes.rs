@@ -96,23 +96,17 @@ pub struct Par {
     #[prost(bool, tag="10")]
     pub connective_used: bool,
 }
-///*
-/// Either rholang code or code built in to the interpreter.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct TaggedContinuation {
-    #[prost(oneof="tagged_continuation::TaggedCont", tags="1, 2")]
-    pub tagged_cont: ::core::option::Option<tagged_continuation::TaggedCont>,
-}
-/// Nested message and enum types in `TaggedContinuation`.
-pub mod tagged_continuation {
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum TaggedCont {
-        #[prost(message, tag="1")]
-        ParBody(super::ParWithRandom),
-        #[prost(int64, tag="2")]
-        ScalaBodyRef(i64),
-    }
-}
+//*
+// Either rholang code or code built in to the interpreter.
+
+//
+//message TaggedContinuation {
+//oneof tagged_cont {
+//ParWithRandom par_body = 1;
+//int64 scala_body_ref = 2;
+//}
+//}
+
 ///*
 /// Rholang code along with the state of a split random number
 /// generator for generating new unforgeable names.
@@ -707,5 +701,6 @@ pub enum ExecutionErrorKind {
     NonWritableChannel = 9,
     NonReadableChannel = 10,
     IllegalSubstitution = 11,
+    UnboundVariable = 12,
     SystemFailure = 999,
 }

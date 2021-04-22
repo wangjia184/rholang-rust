@@ -13,6 +13,7 @@ mod eval_send;
 mod eval_receive;
 mod eval_expression;
 mod eval_new;
+mod eval_var;
 mod environment;
 
 
@@ -26,8 +27,10 @@ pub use environment::*;
 use crate::storage::Storage;
 
 #[async_trait]
-pub trait AsyncEvaluator<S> where S : Storage + std::marker::Send + std::marker::Sync {
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError>;
+pub trait AsyncEvaluator<S, T = ()> 
+    where S : Storage + std::marker::Send + std::marker::Sync, T : 'static
+{
+    async fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<T, ExecutionError>;
 }
 
 

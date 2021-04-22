@@ -4,9 +4,11 @@ use blake3::Hash;
 
 use super::*;
 
+// The following code is just for prototype test, they need be refactored for production!!!
+
 struct IndependentConsumer {
     pub(self) bind_pattern : BindPattern,
-    pub(self) body : ParWithRandom,
+    pub(self) continuation : TaggedContinuation,
     pub(self) persistent : bool,
     pub(self) peek : bool,
 }
@@ -15,7 +17,8 @@ pub(super) struct  Transit {
     id_base : u64,
     dataums : ShortVector<Dataum>,
 
-    independent_consumers : ShortVector<IndependentConsumer>,
+    consumers : ShortVector<IndependentConsumer>,
+    persistented_consumers : ShortVector<IndependentConsumer>,
 }
 
 #[derive(Debug)]
@@ -30,69 +33,105 @@ impl Default for Transit {
         Self {
             id_base : 0,
             dataums : ShortVector::default(),
-            independent_consumers : ShortVector::default(),
+            consumers : ShortVector::default(),
+            persistented_consumers : ShortVector::default(),
         }
     }
 }
 
 
 
-pub(super) type ProducingChannel = TransitWrapper;
 pub(super) type ConsumingChannel = (TransitWrapper, BindPattern, Hash);
 
 
-// we are only allowed to update the passed-in transit(s)
-// coordinator ensures there is no others are working on them when we are called here
+// only allow to update the passed-in transit(s)
+// coordinator ensured there is no others are working on them when we are called here
 impl Transit {
+
+    pub(super) fn install(mut wrapper : TransitWrapper, task : InstallTask) -> TransitWrapper{
+
+        let transit = &mut wrapper.transit;
+
+        let independent_consumer = IndependentConsumer {
+            bind_pattern : task.channel.1,
+            continuation : TaggedContinuation::Callback(task.callback),
+            persistent : true,
+            peek : false,
+        };
+        transit.persistented_consumers.push(independent_consumer);
+
+        wrapper
+    }
+
     // check all the existing consumers, if no match, save it
-    pub(super) fn produce( mut task : ProduceTask<ProducingChannel>) -> TransitWrapper {
-
-        let transit = &task.channel.transit;
-        
+    pub(super) fn produce(mut wrapper : TransitWrapper, mut task : ProduceTask) -> TransitWrapper {
 
         
+        let transit = &mut wrapper.transit;
 
-        // first try to search in independent consumers
-        match transit.independent_consumers.iter().position( |consumer| {
+        
+        //println!("Produce : data : {:?}, channel : {:?}", &task.data, &transit.dataums);
+        
+
+        // first try to search in temp consumers
+        match transit.consumers.iter().position( |consumer| {
             // only match length for now
             consumer.bind_pattern.patterns.len() == task.data.pars.len()
         }) 
         {
             Some(idx) => {
                 // a match is found
-                let transit = &mut task.channel.transit;
-                let consumer = transit.independent_consumers.remove(idx);
+                let consumer = transit.consumers.remove(idx);
 
-                if let Err(_) = task.replier.send(Reply::ParWithBody( consumer.body, smallvec![task.data])) {
-                    error!("task.replier.send(Reply::ParWithBody( consumer.body, smallvec![task.data])) failed");
+                let reply = Some((consumer.continuation, smallvec![task.data]));
+                if let Err(_) = task.replier.send(reply) {
+                    error!("task.replier.send(reply) failed");
                 }
             },
             None => {
-                let transit = &mut task.channel.transit;
-                // store it for later match
-                transit.id_base += 1;
-                let dataum = Dataum{
-                    id : transit.id_base,
-                    data : task.data,
-                    persistent : task.persistent,
-                };
-                transit.dataums.push(dataum);
 
-                // TODO : check joined consumers
+                match transit.persistented_consumers.iter().find( |persistented_consumer| {
+                    // only match length for now
+                    persistented_consumer.bind_pattern.patterns.len() == task.data.pars.len()
+                }) 
+                {
+                    Some(persistented_consumer) => {
+                        // a match is found
+                        let reply = Some((persistented_consumer.continuation.clone(), smallvec![task.data]));
+                        if let Err(_) = task.replier.send(reply) {
+                            error!("task.replier.send(reply) failed");
+                        }
+                    },
+                    None => {
+                        // store it for later match
+                        transit.id_base += 1;
+                        let dataum = Dataum{
+                            id : transit.id_base,
+                            data : task.data,
+                            persistent : task.persistent,
+                        };
+                        transit.dataums.push(dataum);
 
-                if let Err(_) = task.replier.send(Reply::None) {
-                    error!("task.replier.send(Reply::None) failed");
+                        // TODO : check joined consumers
+
+                        if let Err(_) = task.replier.send(Reply::None) {
+                            error!("task.replier.send(Reply::None) failed");
+                        }
+                    }
                 }
+                
+                
             }
         }
 
         
 
-        task.channel
+        wrapper
     }
 
     // check all the existing dataums, if no match, save it
     pub(super) fn consume( mut task : ConsumeTask<ConsumingChannel>) -> ShortVector<TransitWrapper>{
+
 
         // record the position of matched dataums in each channel
         let mut tuples = ShortVector::new();
@@ -130,8 +169,9 @@ impl Transit {
                 })
                 .collect();
 
-            if let Err(_) = task.replier.send(Reply::ParWithBody( task.body, data_list)) {
-                error!("task.replier.send(Reply::ParWithBody( task.body, data_list)) failed");
+            let reply = Some((task.continuation, data_list));
+            if let Err(_) = task.replier.send(reply) {
+                error!("task.replier.send(reply) failed");
             }
         } else {
             
@@ -139,11 +179,11 @@ impl Transit {
                 let (transit, _, bind_pattern, hash) = tuples.pop().unwrap();
                 let independent_consumer = IndependentConsumer {
                     bind_pattern : bind_pattern.clone(),
-                    body : task.body,
+                    continuation : task.continuation,
                     persistent : task.persistent,
                     peek : task.peek,
                 };
-                transit.independent_consumers.push(independent_consumer);
+                transit.consumers.push(independent_consumer);
             } else {
                 todo!("Store the joined consumer");
             }

@@ -11,15 +11,21 @@ use tokio::sync::mpsc::{ self, Sender, Receiver };
 use blake3::Hash;
 
 enum PendingTask{
-    Produce(ProduceTask<ProduceChannel>),
+    Install(InstallTask),
+    Produce(ProduceTask),
     Consume(ConsumeTask<ConsumeChannel>),
 }
 
-pub(super) type ProduceChannel = (Hash, Par);
 
-pub(super) struct ProduceTask<T> {
+pub(super) struct InstallTask {
+    pub(super) channel : ConsumeChannel,
+    pub(super) callback : RustCallbacFunction,
+}
+
+
+pub(super) struct ProduceTask {
     pub(super) replier : oneshot::Sender<Reply>,
-    pub(super) channel : T,
+    pub(super) channel : (Hash, Par),
     pub(super) data : ListParWithRandom,
     pub(super) persistent : bool,
 }
@@ -31,7 +37,7 @@ pub(super) type ConsumeChannel = (Hash, BindPattern, Par);
 pub(super) struct ConsumeTask<T> {
     pub(super) replier : oneshot::Sender<Reply>,
     pub(super) channels : ShortVector<T>,
-    pub(super) body : ParWithRandom,
+    pub(super) continuation : TaggedContinuation,
     pub(super) persistent : bool,
     pub(super) peek : bool,
 }
@@ -54,6 +60,18 @@ pub struct  AsyncStore {
 
 #[async_trait]
 impl Storage for AsyncStore {
+
+    async fn install(&self, channel : Par, bind_pattern : BindPattern, func : RustCallbacFunction) -> Reply {
+        let install_task = InstallTask{
+            channel : (channel.blake3_hash(), bind_pattern, channel),
+            callback : func,
+        };
+        let sender = self.tx.read().unwrap().clone();
+        if let Err(err) = sender.send(PendingTask::Install(install_task)).await {
+            panic!("sender.send(PendingTask::Install(install_task)) failed. {}", &err);
+        }
+        None
+    }
     
     async fn produce(&self, channel : Par, data : ListParWithRandom, persistent : bool) -> Reply {
         let (tx, rx) = oneshot::channel();
@@ -75,7 +93,7 @@ impl Storage for AsyncStore {
         let consume_task = ConsumeTask{
             replier : tx,
             channels : binds.into_iter().map(|tuple| (tuple.1.blake3_hash(), tuple.0, tuple.1)).collect(),
-            body : body,
+            continuation : TaggedContinuation::ParBody(body),
             persistent : persistent,
             peek : peek,
         };
@@ -105,6 +123,9 @@ impl Coordinator {
     pub async fn run(&mut self) {
         while let Some(pending_task) = self.rx.recv().await {
             match  pending_task {
+                PendingTask::Install(install) => {
+                    self.handle_install(install)
+                },
                 PendingTask::Produce(produce) => {
                     self.handle_produce(produce)
                 },
@@ -126,7 +147,49 @@ impl Coordinator {
     }
 
 
-    fn handle_produce(&mut self, produce : ProduceTask<ProduceChannel>) {
+    fn handle_install(&mut self, install : InstallTask) {
+
+        // get the transit port of this channel
+        let transit_port = self.get_or_create_transit_port(install.channel.0);
+        // create a pair of sender + receiver
+        let (tx, rx) = oneshot::channel();
+        
+        // replace receiver which will be signaled when current coroutine completes
+        let prev_signal = match transit_port.borrow_mut().completed_signal.replace(rx) {
+            Some(signal) => {
+                signal
+            },
+            None => {
+                // no previous Receiver, this is a fresh new channel
+                // simulate one
+                let (prev_tx, prev_rx) = oneshot::channel();
+                if let Err(_) = prev_tx.send(Transit::default()) {
+                    panic!("prev_tx.send(Transit::default()) must not fail");
+                }
+                prev_rx
+            }
+        };
+        
+        task::spawn( async move {
+            // first ensure previous coroutines are completed
+            let wrapper = TransitWrapper{
+                transit : prev_signal.await.unwrap(),  // must succeed
+                sender : tx,
+            };
+
+            // now handle it
+            let wrapper = Transit::install(wrapper, install);
+
+            // now send the signal
+            if let Err(_) = wrapper.sender.send(wrapper.transit) {
+                panic!("wrapper.sender.send(wrapper.transit) must not fail");
+            }
+        });
+
+    }
+
+
+    fn handle_produce(&mut self, produce : ProduceTask) {
 
         // get the transit port of this channel
         let transit_port = self.get_or_create_transit_port(produce.channel.0);
@@ -157,15 +220,7 @@ impl Coordinator {
             };
 
             // now handle it
-            let wrapper = {
-                let producing_task = ProduceTask::<ProducingChannel> {
-                    replier : produce.replier,
-                    data : produce.data,
-                    persistent: produce.persistent,
-                    channel : wrapper,
-                };
-                Transit::produce(producing_task)
-            };
+            let wrapper =  Transit::produce(wrapper, produce);
 
             // now send the signal
             if let Err(_) = wrapper.sender.send(wrapper.transit) {
@@ -225,7 +280,7 @@ impl Coordinator {
             let wrappers = {
                 let consuming_task = ConsumeTask::<ConsumingChannel> {
                     replier : consume.replier,
-                    body : consume.body,
+                    continuation : consume.continuation,
                     persistent: consume.persistent,
                     peek : consume.peek,
                     channels : channels,

@@ -26,10 +26,8 @@ fn main() {
     pretty_env_logger::init();
 
     let rholang_source = "
-    new x, y, stdout(`rho:stdout`) in {
-        x!(7) | 
-        y!(8) | 
-        r!(9)
+    new x, y, stdout(`rho:io:stdout`) in {
+        stdout!(7)
     }
     ";
 
@@ -65,7 +63,7 @@ fn main() {
 
 async fn run(par : Par) {
     let (store,mut coordinator) = storage::Coordinator::create();
-
+    interpreter::system_process::setup(&store).await;
     tokio::task::spawn(async move{
         test(store, par).await
     });

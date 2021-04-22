@@ -9,7 +9,7 @@ use tokio::task;
 
 mod reduce;
 pub use reduce::*;
-mod system_contract;
+pub mod system_process;
 mod hash_rand; 
 use hash_rand::HashRand;
 
@@ -29,7 +29,7 @@ impl<S:Storage + std::marker::Send + std::marker::Sync> From<S> for InterpreterC
             storage : storage,
             aborted : AtomicBool::default(),
             join_handles : SegQueue::default(),
-            urn_map : ShardedLock::new(system_contract::get_map()),
+            urn_map : ShardedLock::new(system_process::get_map()),
         }
     }
 }
@@ -106,8 +106,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterC
 
     fn handle_comm_events(self : &Arc<Self>, reply : Reply) {
         match reply {
-            Reply::ParWithBody(par_with_rand, data_list) => {
-                
+            Some((TaggedContinuation::ParBody(par_with_rand), data_list)) => {
                 let pars = data_list.into_iter().flat_map( |x| x.pars.into_iter() ).collect();
                 let env = Env::<Par>::create(pars);
                 match par_with_rand.body {
@@ -118,7 +117,10 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterC
 
                     }
                 }
-            },
+            }
+            Some((TaggedContinuation::Callback(func), data_list)) => {
+                task::spawn_blocking(move ||func(data_list));
+            }
             Reply::None => (),
         }
         
