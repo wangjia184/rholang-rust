@@ -1,5 +1,5 @@
 
-use std::cell::RefMut;
+
 use blake3::Hash;
 
 use super::*;
@@ -9,8 +9,6 @@ use super::*;
 struct IndependentConsumer {
     pub(self) bind_pattern : BindPattern,
     pub(self) continuation : TaggedContinuation,
-    pub(self) persistent : bool,
-    pub(self) peek : bool,
 }
 
 pub(super) struct  Transit {
@@ -41,35 +39,27 @@ impl Default for Transit {
 
 
 
-pub(super) type ConsumingChannel<'a> = (RefMut<'a, Transit>, BindPattern, Hash);
+pub(super) type ConsumingChannel<'a> = (Option<&'a mut Transit>, BindPattern, Hash);
 
 
 // only allow to update the passed-in transit(s)
 // coordinator ensured there is no others are working on them when we are called here
 impl Transit {
 
-    pub(super) fn install(mut wrapper : TransitWrapper, task : InstallTask) -> TransitWrapper{
-
-        let transit = &mut wrapper.transit;
+    pub(super) fn install(transit : &mut Transit, task : InstallTask) {
 
         let independent_consumer = IndependentConsumer {
             bind_pattern : task.channel.1,
             continuation : TaggedContinuation::Callback(task.callback),
-            persistent : true,
-            peek : false,
         };
         transit.persistented_consumers.push(independent_consumer);
 
-        wrapper
     }
 
     // check all the existing consumers, if no match, save it
-    pub(super) fn produce(mut wrapper : TransitWrapper, mut task : ProduceTask) -> TransitWrapper {
+    pub(super) fn produce(transit : &mut Transit, task : ProduceTask) {
 
-        
-        let transit = &mut wrapper.transit;
-
-        
+       
         //println!("Produce : data : {:?}, channel : {:?}", &task.data, &transit.dataums);
         
 
@@ -124,9 +114,6 @@ impl Transit {
             }
         }
 
-        
-
-        wrapper
     }
 
     // check all the existing dataums, if no match, save it
@@ -137,24 +124,27 @@ impl Transit {
         let mut tuples = ShortVector::new();
         let mut matched = true;
 
-        for (transit, ref bind_pattern, ref hash) in &mut task.channels {
+        for (option, ref bind_pattern, ref hash) in &mut task.channels {
 
-            let mut idx = 0;
-            if matched {
-                if let Some(i) = transit.dataums.iter()
-                    .position( |dataum| {
-                        // only match length for now
-                        bind_pattern.patterns.len() == dataum.data.pars.len()
-                    }) 
-                {
-                        idx = i;
+            if let Some(transit) = option {
+                let mut idx = 0;
+                if matched {
+                    if let Some(i) = transit.dataums.iter()
+                        .position( |dataum| {
+                            // only match length for now
+                            bind_pattern.patterns.len() == dataum.data.pars.len()
+                        }) 
+                    {
+                            idx = i;
+                    }
+                    else {
+                        matched = false;
+                    }
                 }
-                else {
-                    matched = false;
-                }
+                
+                tuples.push( (transit, idx, bind_pattern, hash) );
             }
             
-            tuples.push( (transit, idx, bind_pattern, hash) );
             
         }// for
 
@@ -179,8 +169,6 @@ impl Transit {
                 let independent_consumer = IndependentConsumer {
                     bind_pattern : bind_pattern.clone(),
                     continuation : task.continuation,
-                    persistent : task.persistent,
-                    peek : task.peek,
                 };
                 transit.consumers.push(independent_consumer);
             } else {

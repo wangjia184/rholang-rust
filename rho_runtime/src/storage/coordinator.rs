@@ -106,11 +106,6 @@ impl Storage for AsyncStore {
     }
 }
 
-pub(super) struct TransitWrapper {
-    pub(super) transit : Transit,
-    pub(self) sender : oneshot::Sender<Transit>,
-}
-
 
 impl Coordinator {
 
@@ -173,16 +168,19 @@ impl Coordinator {
         
         task::spawn( async move {
             // first ensure previous coroutines are completed
-            let wrapper = TransitWrapper{
-                transit : prev_signal.await.unwrap(),  // must succeed
-                sender : tx,
+            let mut transit = match prev_signal.await {
+                Err(e) => {
+                    error!("Error in oneshot::Receiver<Transit>. {} - {:?}", &e, &e);
+                    return;
+                },
+                Ok(t) => t
             };
 
             // now handle it
-            let wrapper = Transit::install(wrapper, install);
+            Transit::install(&mut transit, install);
 
             // now send the signal
-            if let Err(_) = wrapper.sender.send(wrapper.transit) {
+            if let Err(_) = tx.send(transit) {
                 panic!("wrapper.sender.send(wrapper.transit) must not fail");
             }
         });
@@ -207,7 +205,7 @@ impl Coordinator {
                 // simulate one
                 let (prev_tx, prev_rx) = oneshot::channel();
                 if let Err(_) = prev_tx.send(Transit::default()) {
-                    panic!("prev_tx.send(Transit::default()) must not fail");
+                    warn!("prev_tx.send(Transit::default()) failed but shouldn't!");
                 }
                 prev_rx
             }
@@ -215,17 +213,20 @@ impl Coordinator {
         
         task::spawn( async move {
             // first ensure previous coroutines are completed
-            let wrapper = TransitWrapper{
-                transit : prev_signal.await.unwrap(),  // must succeed
-                sender : tx,
+            let mut transit = match prev_signal.await {
+                Err(e) => {
+                    warn!("Error in oneshot::Receiver<Transit>. {} - {:?}", &e, &e);
+                    return;
+                },
+                Ok(t) => t
             };
 
             // now handle it
-            let wrapper =  Transit::produce(wrapper, produce);
+            Transit::produce(&mut transit, produce);
 
             // now send the signal
-            if let Err(_) = wrapper.sender.send(wrapper.transit) {
-                panic!("wrapper.sender.send(wrapper.transit) must not fail");
+            if let Err(_) = tx.send(transit) {
+                warn!("tx.send(transit) failed but shouldn't!");
             }
         });
 
@@ -254,7 +255,7 @@ impl Coordinator {
                         // simulate one
                         let (prev_tx, prev_rx) = oneshot::channel();
                         if let Err(_) = prev_tx.send(Transit::default()) {
-                            panic!("prev_tx.send(Transit::default()) must not fail");
+                            warn!("prev_tx.send(Transit::default()) must not fail");
                         }
                         (tuple.0, tuple.1, prev_rx, tx)
                     }
@@ -264,9 +265,10 @@ impl Coordinator {
 
         
         task::spawn( async move {
-            let mut channels = ShortVector::with_capacity(tuples.len());
-            let mut pairs : ShortVector<(RefCell<Transit>, oneshot::Sender<Transit>)> = ShortVector::with_capacity(tuples.len());
-
+            let mut pairs : ShortVector<(Transit, oneshot::Sender<Transit>)> = ShortVector::with_capacity(tuples.len());
+            let mut channels : ShortVector<(Option<&mut Transit>, BindPattern, Hash)> = ShortVector::with_capacity(tuples.len());
+            
+    
             for (hash, bind_pattern, rx, tx) in tuples {
                 match rx.await {
                     Err(e) => {
@@ -274,14 +276,18 @@ impl Coordinator {
                         return;
                     },
                     Ok(transit) => {
-                        pairs.push((RefCell::new(transit), tx));
-                        channels.push((pairs[pairs.len() - 1].0.borrow_mut(), bind_pattern, hash));
+                        pairs.push((transit, tx));
+                        channels.push((None, bind_pattern, hash));
                     }
                 }
             }
-
+    
+            for (pair, chan) in (&mut pairs).iter_mut().zip(&mut channels) {
+                chan.0 = Some(&mut pair.0);
+            }
+    
             // now handle it
-            let wrappers = {
+            {
                 let consuming_task = ConsumeTask::<ConsumingChannel> {
                     replier : consume.replier,
                     continuation : consume.continuation,
@@ -292,12 +298,14 @@ impl Coordinator {
                 Transit::consume(consuming_task)
             };
 
+    
             // now send the signals
             for (transit, sender) in pairs {
-                if let Err(_) = sender.send(transit.into_inner()) {
+                if let Err(_) = sender.send(transit) {
                     warn!("sender.send(transit) failed but it should not!");
                 }
             }
+
         });
                 
     }
