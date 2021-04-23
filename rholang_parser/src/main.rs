@@ -23,7 +23,15 @@ pub static VERSION: &str = "0.1.0";
 
 
 fn main() {
-    // let rholang_code = "for ( x, y <- @1 ) { x!(*y) }";
+    // let rholang_code = "
+    // new x, y, stdout(`rho:io:stdout`) in {
+    //     x!(333) |
+    //     for( a <= x ) {
+    //         stdout!(*a) |
+    //         x!(*a)
+    //     }
+    // }
+    // ";
     // let result = builder::build_ast_from_string(rholang_code);
     // println!("{:?}", result);
     // return;

@@ -3,6 +3,7 @@ use std::cell::{ RefCell };
 use std::rc::Rc;
 use tokio::task;
 
+
 use rustc_hash::{ FxHashMap };
 
 use super::*;
@@ -263,17 +264,20 @@ impl Coordinator {
 
         
         task::spawn( async move {
+            let mut channels = ShortVector::with_capacity(tuples.len());
+            let mut pairs : ShortVector<(RefCell<Transit>, oneshot::Sender<Transit>)> = ShortVector::with_capacity(tuples.len());
 
-            let mut channels = ShortVector::default();
-
-            // first ensure previous coroutines are completed
-            for (hash, bind_pattern, rx, tx) in tuples.into_iter() {
-                let wrapper = TransitWrapper{
-                    transit : rx.await.unwrap(),  // must succeed
-                    sender : tx,
-                };
-                channels.push((wrapper, bind_pattern, hash));
-                //signals.push((transit, tx));
+            for (hash, bind_pattern, rx, tx) in tuples {
+                match rx.await {
+                    Err(e) => {
+                        warn!("Error in oneshot::Receiver<Transit>. {} - {:?}", &e, &e);
+                        return;
+                    },
+                    Ok(transit) => {
+                        pairs.push((RefCell::new(transit), tx));
+                        channels.push((pairs[pairs.len() - 1].0.borrow_mut(), bind_pattern, hash));
+                    }
+                }
             }
 
             // now handle it
@@ -289,9 +293,9 @@ impl Coordinator {
             };
 
             // now send the signals
-            for wrapper in wrappers {
-                if let Err(_) = wrapper.sender.send(wrapper.transit) {
-                    panic!("wrapper.sender.send(wrapper.transit) must not fail");
+            for (transit, sender) in pairs {
+                if let Err(_) = sender.send(transit.into_inner()) {
+                    warn!("sender.send(transit) failed but it should not!");
                 }
             }
         });

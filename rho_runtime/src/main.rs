@@ -28,8 +28,9 @@ fn main() {
     let rholang_source = "
     new x, y, stdout(`rho:io:stdout`) in {
         x!(333) |
-        for( a <- x ) {
-            stdout!(*a)
+        for( a <= x ) {
+            stdout!(*a) |
+            x!(*a)
         }
     }
     ";

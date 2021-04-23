@@ -1,5 +1,5 @@
 
-
+use std::cell::RefMut;
 use blake3::Hash;
 
 use super::*;
@@ -41,7 +41,7 @@ impl Default for Transit {
 
 
 
-pub(super) type ConsumingChannel = (TransitWrapper, BindPattern, Hash);
+pub(super) type ConsumingChannel<'a> = (RefMut<'a, Transit>, BindPattern, Hash);
 
 
 // only allow to update the passed-in transit(s)
@@ -130,16 +130,14 @@ impl Transit {
     }
 
     // check all the existing dataums, if no match, save it
-    pub(super) fn consume( mut task : ConsumeTask<ConsumingChannel>) -> ShortVector<TransitWrapper>{
+    pub(super) fn consume( mut task : ConsumeTask<ConsumingChannel>){
 
 
         // record the position of matched dataums in each channel
         let mut tuples = ShortVector::new();
         let mut matched = true;
 
-        for (ref mut wrapper, bind_pattern, hash) in &mut task.channels {
-
-            let transit = &mut wrapper.transit;
+        for (transit, ref bind_pattern, ref hash) in &mut task.channels {
 
             let mut idx = 0;
             if matched {
@@ -157,6 +155,7 @@ impl Transit {
             }
             
             tuples.push( (transit, idx, bind_pattern, hash) );
+            
         }// for
 
         // all binds matched
@@ -194,7 +193,6 @@ impl Transit {
             drop(tuples);
         }
 
-        task.channels.into_iter().map( |c| c.0).collect()
     }
 }
 

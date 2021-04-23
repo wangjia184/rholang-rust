@@ -13,15 +13,15 @@ use super::context::*;
 use super::bnfc;
 
 
-mod rho_name;
-mod rho_new;
-mod rho_send;
-mod rho_ground;
-mod rho_par;
-mod rho_pvar;
-mod rho_input;
-mod rho_reminder;
-mod rho_eval;
+mod norm_name;
+mod norm_new;
+mod norm_send;
+mod norm_ground;
+mod norm_par;
+mod norm_pvar;
+mod norm_input;
+mod norm_reminder;
+mod norm_eval;
 
 
 //include!("rho_par_test.rs");
