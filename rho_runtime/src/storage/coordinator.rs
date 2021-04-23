@@ -69,7 +69,7 @@ impl Storage for AsyncStore {
         };
         let sender = self.tx.read().unwrap().clone();
         if let Err(err) = sender.send(PendingTask::Install(install_task)).await {
-            panic!("sender.send(PendingTask::Install(install_task)) failed. {}", &err);
+            error!("sender.send(PendingTask::Install(install_task)) failed. {}", &err);
         }
         None
     }
@@ -84,7 +84,7 @@ impl Storage for AsyncStore {
         };
         let sender = self.tx.read().unwrap().clone();
         if let Err(err) = sender.send(PendingTask::Produce(produce_task)).await {
-            panic!("sender.send(PendingTask::Produce(produce_task)) failed. {}", &err);
+            error!("sender.send(PendingTask::Produce(produce_task)) failed. {}", &err);
         }
         rx.await.unwrap()
     }
@@ -100,7 +100,7 @@ impl Storage for AsyncStore {
         };
         let sender = self.tx.read().unwrap().clone();
         if let Err(err) = sender.send(PendingTask::Consume(consume_task)).await {
-            panic!("sender.send(PendingTask::Consume(consume_task)) failed. {}", &err);
+            error!("sender.send(PendingTask::Consume(consume_task)) failed. {}", &err);
         }
         rx.await.unwrap()
     }
@@ -160,7 +160,7 @@ impl Coordinator {
                 // simulate one
                 let (prev_tx, prev_rx) = oneshot::channel();
                 if let Err(_) = prev_tx.send(Transit::default()) {
-                    panic!("prev_tx.send(Transit::default()) must not fail");
+                    warn!("prev_tx.send(Transit::default()) failed but shouldn't!");
                 }
                 prev_rx
             }
@@ -181,7 +181,7 @@ impl Coordinator {
 
             // now send the signal
             if let Err(_) = tx.send(transit) {
-                panic!("wrapper.sender.send(wrapper.transit) must not fail");
+                error!("tx.send(transit) failed but shouldn't!");
             }
         });
 
