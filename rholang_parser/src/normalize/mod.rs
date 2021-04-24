@@ -22,6 +22,7 @@ mod norm_pvar;
 mod norm_input;
 mod norm_reminder;
 mod norm_eval;
+mod norm_binary_expression;
 
 
 //include!("rho_par_test.rs");
@@ -62,10 +63,20 @@ struct ProcVisitInputs {
 
 impl Default for ProcVisitInputs {
     fn default() -> Self { 
-        ProcVisitInputs {
+        Self {
             par : Par::default(),
             env : Rc::new(IndexMapChain::empty()),
             known_free : Rc::new(DeBruijnLevelMap::empty()),
+        }
+    }
+}
+
+impl ProcVisitInputs {
+    pub fn clone_with_empty_par(&self) -> Self {
+        Self {
+            par : Par::default(),
+            env : self.env.clone(),
+            known_free : self.known_free.clone(),
         }
     }
 }
@@ -179,6 +190,18 @@ impl Normalizer {
             },
             bnfc::Proc__is_PEval => {
                 self.normalize_eval(&proc, input)
+            },
+            bnfc::Proc__is_PAdd => {
+                let proc_1 = unsafe { proc.u.padd_.proc_1 };
+                let proc_2 = unsafe { proc.u.padd_.proc_2 };
+                self.normalize_binary_expression(proc_1, proc_2, input, |left, right| {
+                    Expr {
+                        expr_instance : Some(expr::ExprInstance::EPlusBody(EPlus {
+                            p1 : Some(left),
+                            p2 : Some(right)
+                        }))
+                    }
+                })
             },
             bnfc::Proc__is_PNil => {
                 Ok(ProcVisitOutputs {
