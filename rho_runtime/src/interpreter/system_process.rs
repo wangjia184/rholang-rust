@@ -68,6 +68,31 @@ impl SystemProcess for StdoutProcess {
 
 
     fn execute(data_list : SmallVec<[ListParWithRandom; 3]>) -> () {
+        if data_list.len() == 1 {
+            let first_data = &data_list[0];
+            if first_data.pars.len() == 1 {
+                let first_par = &first_data.pars[0];
+                if first_par.exprs.len() == 1 {
+                    match &first_par.exprs[0] {
+                        
+                        Expr {  expr_instance: Some(expr::ExprInstance::GBool(b)) } => {
+                            println!("stdout : {}", b);
+                            return;
+                        },
+                        Expr {  expr_instance: Some(expr::ExprInstance::GInt(i)) } => {
+                            println!("stdout : {}", i);
+                            return;
+                        },
+                        Expr {  expr_instance: Some(expr::ExprInstance::GString(text)) } => {
+                            println!("stdout : \"{}\"", text);
+                            return;
+                        },
+                        _ => (),
+                    }
+                }
+            }
+            
+        }
         println!("stdout : {:?}", data_list);
     }
 }

@@ -192,16 +192,15 @@ impl Normalizer {
                 self.normalize_eval(&proc, input)
             },
             bnfc::Proc__is_PAdd => {
-                let proc_1 = unsafe { proc.u.padd_.proc_1 };
-                let proc_2 = unsafe { proc.u.padd_.proc_2 };
-                self.normalize_binary_expression(proc_1, proc_2, input, |left, right| {
+                self.normalize_binary_expression(unsafe { proc.u.padd_.proc_1 }, unsafe { proc.u.padd_.proc_2 }, input, 
+                    |left, right| 
                     Expr {
                         expr_instance : Some(expr::ExprInstance::EPlusBody(EPlus {
                             p1 : Some(left),
                             p2 : Some(right)
                         }))
                     }
-                })
+                )
             },
             bnfc::Proc__is_PNil => {
                 Ok(ProcVisitOutputs {

@@ -51,6 +51,16 @@ fn dispatch<F>(expression : &mut Expr,  func : F) -> Result<(), ExecutionError>
 {
 
     match expression.expr_instance {
+        Some(ExprInstance::GBool(_)) => {
+        },
+        Some(ExprInstance::GInt(_)) => {
+        },
+        Some(ExprInstance::GString(_)) => {
+        },
+        Some(ExprInstance::GUri(_)) => {
+        },
+        Some(ExprInstance::GByteArray(_)) => {
+        },
         Some(ExprInstance::ENotBody(ref mut instance)) => {
             unary_expr!(instance, func)
         },
@@ -181,7 +191,7 @@ fn dispatch<F>(expression : &mut Expr,  func : F) -> Result<(), ExecutionError>
         },
 
         _ => {
-            warn!("Uncaptrued expression in substitue. Usually this is a bug! {:#?}", &expression.expr_instance);
+            warn!("Uncaptured expression in substitue. Usually this is a bug! {:#?}", &expression.expr_instance);
         }
     }
     

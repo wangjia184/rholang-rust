@@ -16,8 +16,17 @@ impl<S : Storage + std::marker::Send + std::marker::Sync> AsyncEvaluator<S> for 
                 Ok(())
             },
 
+            Some(ExprInstance::EVarBody(evar)) => {
+                if let Some(ref mut var) = evar.v {
+                    let mut par = var.evaluate(context, env).await?;
+                    let expression = par.evaluate_single_expression(context, env).await?;
+                    self.expr_instance = expression.expr_instance;
+                }
+                Ok(())
+            },
+
             _ => {
-                panic!("ExprInstance::evaluate() : {:?}", &self)
+                panic!("Unhandled branch in ExprInstance::evaluate() : {:?}", self.expr_instance)
             }
         }
     }

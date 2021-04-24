@@ -27,10 +27,11 @@ fn main() {
 
     let rholang_source = "
     new x, y, stdout(`rho:io:stdout`) in {
-        x!(1+2) |
-        for( a <- x ) {
+        x!(1) |
+        for( a <= x ) {
             stdout!(*a) |
-            x!(*a)
+            x!(*a+1) |
+            x!(*a+100)
         }
     }
     ";
