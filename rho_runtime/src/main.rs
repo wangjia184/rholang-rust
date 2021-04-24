@@ -26,12 +26,13 @@ fn main() {
     pretty_env_logger::init();
 
     let rholang_source = "
-    new x, y, stdout(`rho:io:stdout`) in {
+    new x, y, z, stdout(`rho:io:stdout`) in {
         x!(1) |
         for( a <= x ) {
             stdout!(*a) |
-            x!(*a+1) |
-            x!(*a+100)
+            if(*a < 3) {
+                x!(*a+1)
+            }
         }
     }
     ";

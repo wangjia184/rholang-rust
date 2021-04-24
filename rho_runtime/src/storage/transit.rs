@@ -102,7 +102,7 @@ impl Transit {
 
                         // TODO : check joined consumers
 
-                        if let Err(_) = task.replier.send(Reply::None) {
+                        if let Err(_) = task.replier.send(None) {
                             error!("task.replier.send(Reply::None) failed");
                         }
                     }

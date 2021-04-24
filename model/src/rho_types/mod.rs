@@ -205,6 +205,28 @@ impl Par {
         cloned
     }
 
+    pub fn clone_then_prepend_match(&self, m : Match) -> Self {
+        let mut cloned = self.clone();
+
+        if let Some(new_bitset) = m.locally_free.as_ref() {
+            cloned.locally_free = match cloned.locally_free {
+                Some(mut bitset) => {
+                    bitset.union_with(new_bitset);
+                    Some(bitset)
+                },
+                None => {
+                    Some(new_bitset.clone())
+                }
+            };
+        }
+        if m.connective_used {
+            cloned.connective_used = true;
+        }
+        cloned.matches.insert(0, m);
+        
+        cloned
+    }
+
 
     pub fn append_expr(&mut self, e : Expr, depth : i32) {
         
