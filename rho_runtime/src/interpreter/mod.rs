@@ -106,22 +106,28 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterC
 
     fn handle_comm_events(self : &Arc<Self>, reply : Reply) {
         match reply {
-            Some((TaggedContinuation::ParBody(par_with_rand), data_list)) => {
-                let pars = data_list.into_iter().flat_map( |x| x.pars.into_iter() ).collect();
-                let env = Env::<Par>::create(pars);
-                match par_with_rand.body {
-                    Some(par) => {
-                        self.spawn_evaluation(par, &env);
-                    },
-                    _ => {
+            Some(vector) => {
+                for (continuation, data_list) in vector {
+                    match continuation {
+                        TaggedContinuation::ParBody(par_with_rand) => {
+                            let pars = data_list.into_iter().flat_map( |x| x.pars.into_iter() ).collect();
+                            let env = Env::<Par>::create(pars);
+                            match par_with_rand.body {
+                                Some(par) => {
+                                    self.spawn_evaluation(par, &env);
+                                },
+                                _ => {
 
+                                }
+                            }
+                        },
+                        TaggedContinuation::Callback(func) => {
+                            task::spawn_blocking(move ||func(data_list));
+                        }
                     }
                 }
-            }
-            Some((TaggedContinuation::Callback(func), data_list)) => {
-                task::spawn_blocking(move ||func(data_list));
-            }
-            Reply::None => (),
+            },
+            None => (),
         }
         
     }

@@ -17,7 +17,7 @@ pub type ShortVector<T> = SmallVec<[T; 3]>;
 
 
 
-pub type Reply = Option<(TaggedContinuation, ShortVector<ListParWithRandom>)>;
+pub type Reply = Option<ShortVector<(TaggedContinuation, ShortVector<ListParWithRandom>)>>;
 
 pub type RustCallbacFunction = fn(ShortVector<ListParWithRandom>) -> ();
 

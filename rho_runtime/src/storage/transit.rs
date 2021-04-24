@@ -39,8 +39,6 @@ impl Default for Transit {
 
 
 
-pub(super) type ConsumingChannel<'a> = (Option<&'a mut Transit>, BindPattern, Hash);
-
 
 // only allow to update the passed-in transit(s)
 // coordinator ensured there is no others are working on them when we are called here
@@ -73,7 +71,7 @@ impl Transit {
                 // a match is found
                 let consumer = transit.consumers.remove(idx);
 
-                let reply = Some((consumer.continuation, smallvec![task.data]));
+                let reply = Some(smallvec![(consumer.continuation, smallvec![task.data])]);
                 if let Err(_) = task.replier.send(reply) {
                     error!("task.replier.send(reply) failed");
                 }
@@ -87,7 +85,7 @@ impl Transit {
                 {
                     Some(persistented_consumer) => {
                         // a match is found
-                        let reply = Some((persistented_consumer.continuation.clone(), smallvec![task.data]));
+                        let reply = Some(smallvec![(persistented_consumer.continuation.clone(), smallvec![task.data])]);
                         if let Err(_) = task.replier.send(reply) {
                             error!("task.replier.send(reply) failed");
                         }
@@ -116,71 +114,142 @@ impl Transit {
 
     }
 
-    // check all the existing dataums, if no match, save it
-    pub(super) fn consume( mut task : ConsumeTask<ConsumingChannel>){
 
+    // A dedicated implementation for performance
+    #[inline]
+    pub(super) fn consume_single( transit : &mut Transit, task : ConsumeTask){
 
-        // record the position of matched dataums in each channel
-        let mut tuples = ShortVector::new();
-        let mut matched = true;
+        // TODO: implement a dedicated version
+        Transit::consume_multiple(smallvec![transit], task);
+    }
 
-        for (option, ref bind_pattern, ref hash) in &mut task.channels {
+    // temporary consumer -
+    //     1. try to match one dataum
+    //     2. if no match, store the consumer
+    // persistent consumer -
+    //     1. try to match all dataums
+    //     2. store the consumer
+    pub(super) fn consume_multiple( mut transits : ShortVector<&mut Transit>, task : ConsumeTask){
 
-            if let Some(transit) = option {
-                let mut idx = 0;
-                if matched {
-                    if let Some(i) = transit.dataums.iter()
-                        .position( |dataum| {
-                            // only match length for now
-                            bind_pattern.patterns.len() == dataum.data.pars.len()
-                        }) 
-                    {
-                            idx = i;
+        // Not only the count are the same, their order must be the same!
+        assert_eq!(transits.len(), task.channels.len());
+
+        // first we need find out the position of matched dataums in each channel
+        // indexes records the last matched positions
+        let mut dataum_indexes: SmallVec<[usize; 5]> = smallvec![0; transits.len()];
+
+        
+
+        if task.persistent {
+
+            let mut vector = ShortVector::new();
+
+            let mut matched = true;
+            while matched {
+                for ( (transit, (_, bind_pattern) ), dataum_index  ) 
+                    in transits.iter_mut().zip(&task.channels).zip(&mut dataum_indexes)
+                {
+                    matched = transit.find_first_match_position( bind_pattern, dataum_index);
+                    if !matched {
+                        break;
                     }
-                    else {
-                        matched = false;
-                    }
+                }// for
+
+                if !matched {
+                    break;
                 }
-                
-                tuples.push( (transit, idx, bind_pattern, hash) );
+
+                let data_list = transits
+                    .iter_mut()
+                    .zip(&dataum_indexes)
+                    .map( |(transit, idx) | {
+                        transit.dataums.remove(*idx).data
+                    })
+                    .collect();
+
+                 vector.push((task.continuation.clone(), data_list));
             }
-            
-            
-        }// for
 
-        // all binds matched
-        if matched {
-
-            let data_list = tuples
-                .into_iter()
-                .map( |(transit, idx, _, _)| {
-                    transit.dataums.remove(idx).data
-                })
-                .collect();
-
-            let reply = Some((task.continuation, data_list));
-            if let Err(_) = task.replier.send(reply) {
-                error!("task.replier.send(reply) failed");
+            // for prototype only, it is not a good idea to find all dataums and send at once since there might be a lot
+            if !vector.is_empty() {
+                if let Err(_) = task.replier.send(Some(vector)) {
+                    error!("task.replier.send(Some(vector)) failed");
+                }
             }
-        } else {
-            
-            if tuples.len() == 1 {
-                let (transit, _, bind_pattern, hash) = tuples.pop().unwrap();
-                let independent_consumer = IndependentConsumer {
-                    bind_pattern : bind_pattern.clone(),
+
+            if transits.len() == 1 {
+                assert_eq!(task.channels.len(), 1);
+                transits[0].persistented_consumers.push(IndependentConsumer {
+                    bind_pattern : task.channels.into_iter().next().unwrap().1,
                     continuation : task.continuation,
-                };
-                transit.consumers.push(independent_consumer);
+                });
             } else {
-                todo!("Store the joined consumer");
+                todo!("Store the joined consumer, be careful with the order of patterns");
             }
-            if let Err(_) = task.replier.send(Reply::None) {
-                error!("task.replier.send(Reply::None) failed");
-            }
-            
-            drop(tuples);
         }
+        else {
 
+            let mut matched = true;
+            for ( (transit, (_, bind_pattern) ), dataum_index  ) 
+                    in transits.iter_mut().zip(&task.channels).zip(&mut dataum_indexes)
+            {
+                matched = transit.find_first_match_position( bind_pattern, dataum_index);
+                if !matched {
+                    break;
+                }
+            }// for
+
+            // for temporary consumer, send the dataum immediately if matches; otherwise store the continuation
+            if matched {
+                let data_list = transits
+                    .iter_mut()
+                    .zip(&dataum_indexes)
+                    .map( |(transit, idx) | {
+                        transit.dataums.remove(*idx).data
+                    })
+                    .collect();
+
+                let reply = Some(smallvec![(task.continuation, data_list)]);
+                if let Err(_) = task.replier.send(reply) {
+                    error!("task.replier.send(reply) failed");
+                }
+            } else {
+
+                if transits.len() == 1 {
+                    assert_eq!(task.channels.len(), 1);
+                    transits[0].consumers.push(IndependentConsumer {
+                        bind_pattern : task.channels.into_iter().next().unwrap().1,
+                        continuation : task.continuation,
+                    });
+                } else {
+                    todo!("Store the joined consumer, be careful with the order");
+                }
+                if let Err(_) = task.replier.send(None) {
+                    error!("task.replier.send(Reply::None) failed");
+                }
+
+            }
+
+        }
+    }
+
+
+    // try to find the position of first match since start_index
+    #[inline]
+    fn find_first_match_position(&self, bind_pattern : &BindPattern, start_index : &mut usize) -> bool {
+        while *start_index < self.dataums.len() {
+            if self.is_matched(&self.dataums[*start_index], bind_pattern) {
+                return true;
+            }
+            *start_index = *start_index + 1;
+        }
+        false
+    }
+
+    #[inline]
+    fn is_matched(&self, dataum : &Dataum, bind_pattern : &BindPattern) -> bool {
+        // only match length for now
+        bind_pattern.patterns.len() == dataum.data.pars.len()
     }
 }
 

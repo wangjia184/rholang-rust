@@ -14,12 +14,12 @@ use blake3::Hash;
 enum PendingTask{
     Install(InstallTask),
     Produce(ProduceTask),
-    Consume(ConsumeTask<ConsumeChannel>),
+    Consume(ConsumeTask),
 }
 
 
 pub(super) struct InstallTask {
-    pub(super) channel : ConsumeChannel,
+    pub(super) channel : (Hash, BindPattern),
     pub(super) callback : RustCallbacFunction,
 }
 
@@ -31,13 +31,13 @@ pub(super) struct ProduceTask {
     pub(super) persistent : bool,
 }
 
-pub(super) type ConsumeChannel = (Hash, BindPattern, Par);
 
 
 
-pub(super) struct ConsumeTask<T> {
+
+pub(super) struct ConsumeTask {
     pub(super) replier : oneshot::Sender<Reply>,
-    pub(super) channels : ShortVector<T>,
+    pub(super) channels : ShortVector<(Hash, BindPattern)>,
     pub(super) continuation : TaggedContinuation,
     pub(super) persistent : bool,
     pub(super) peek : bool,
@@ -64,7 +64,7 @@ impl Storage for AsyncStore {
 
     async fn install(&self, channel : Par, bind_pattern : BindPattern, func : RustCallbacFunction) -> Reply {
         let install_task = InstallTask{
-            channel : (channel.blake3_hash(), bind_pattern, channel),
+            channel : (channel.blake3_hash(), bind_pattern),
             callback : func,
         };
         let sender = self.tx.read().unwrap().clone();
@@ -93,7 +93,7 @@ impl Storage for AsyncStore {
         let (tx, rx) = oneshot::channel();
         let consume_task = ConsumeTask{
             replier : tx,
-            channels : binds.into_iter().map(|tuple| (tuple.1.blake3_hash(), tuple.0, tuple.1)).collect(),
+            channels : binds.into_iter().map(|tuple| (tuple.1.blake3_hash(), tuple.0)).collect(),
             continuation : TaggedContinuation::ParBody(body),
             persistent : persistent,
             peek : peek,
@@ -232,23 +232,22 @@ impl Coordinator {
 
     }
 
-    fn handle_consume(&mut self, mut consume : ConsumeTask<ConsumeChannel>) {
+    fn handle_consume(&mut self, consume_task : ConsumeTask) {
 
-        let mut tuples = ShortVector::default();
-        let mut channels = ShortVector::with_capacity(consume.channels.len());
-        channels.append(&mut consume.channels);
+        let mut rx_tx_pairs = ShortVector::default();
+
         // get all signals
-        for tuple in channels {
+        for (hash, _) in &consume_task.channels {
             // get the transit port of this channel
-            let transit_port = self.get_or_create_transit_port(tuple.0);
+            let transit_port = self.get_or_create_transit_port(*hash);
             // create a pair of sender + receiver
             let (tx, rx) = oneshot::channel();
 
-            tuples.push(
+            rx_tx_pairs.push(
                 // replace receiver which will be signaled when current coroutine completes
                 match transit_port.borrow_mut().completed_signal.replace(rx) {
                     Some(signal) => {
-                        (tuple.0, tuple.1, signal, tx)
+                        (signal, tx)
                     },
                     None => {
                         // no previous Receiver, this is a fresh new channel
@@ -257,7 +256,7 @@ impl Coordinator {
                         if let Err(_) = prev_tx.send(Transit::default()) {
                             warn!("prev_tx.send(Transit::default()) must not fail");
                         }
-                        (tuple.0, tuple.1, prev_rx, tx)
+                        (prev_rx, tx)
                     }
                 }
             );
@@ -265,50 +264,73 @@ impl Coordinator {
 
         
         task::spawn( async move {
-            let mut pairs : ShortVector<(Transit, oneshot::Sender<Transit>)> = ShortVector::with_capacity(tuples.len());
-            let mut channels : ShortVector<(Option<&mut Transit>, BindPattern, Hash)> = ShortVector::with_capacity(tuples.len());
-            
-    
-            for (hash, bind_pattern, rx, tx) in tuples {
-                match rx.await {
+
+            if rx_tx_pairs.len() == 1 { // optimize for frequent execution path
+
+                let (rx, tx) = rx_tx_pairs.pop().unwrap();
+                let mut transit = match rx.await {
                     Err(e) => {
                         warn!("Error in oneshot::Receiver<Transit>. {} - {:?}", &e, &e);
                         return;
                     },
-                    Ok(transit) => {
-                        pairs.push((transit, tx));
-                        channels.push((None, bind_pattern, hash));
+                    Ok(t) => t
+                };
+
+                Transit::consume_single(&mut transit, consume_task);
+
+                
+                if let Err(_) = tx.send(transit) {
+                    warn!("tx.send(transit) failed but it should not!");
+                }
+
+            } 
+            else {
+                let mut pairs : ShortVector<(Transit, oneshot::Sender<Transit>)> = ShortVector::with_capacity(rx_tx_pairs.len());
+                
+        
+                for (rx, tx) in rx_tx_pairs {
+                    match rx.await {
+                        Err(e) => {
+                            warn!("Error in oneshot::Receiver<Transit>. {} - {:?}", &e, &e);
+                            return;
+                        },
+                        Ok(transit) => {
+                            pairs.push((transit, tx));
+                        }
                     }
                 }
-            }
-    
-            for (pair, chan) in (&mut pairs).iter_mut().zip(&mut channels) {
-                chan.0 = Some(&mut pair.0);
-            }
-    
-            // now handle it
-            {
-                let consuming_task = ConsumeTask::<ConsumingChannel> {
-                    replier : consume.replier,
-                    continuation : consume.continuation,
-                    persistent: consume.persistent,
-                    peek : consume.peek,
-                    channels : channels,
+
+                // we dont need sort the order of pairs/channels because they are the same
+                // but later when storing the consumer, they must be stored
+                /*
+                // sort pairs & channels to make them in the same order
+                pairs.sort_by( |(_,_,left), (_, _, right)| {
+                    left.as_bytes().cmp(right.as_bytes())
+                });
+                channels.sort_by( |(_,left), (_, right)| {
+                    left.as_bytes().cmp(right.as_bytes())
+                });
+                */
+
+                // now handle it
+                {
+                    let transits = pairs.iter_mut().map(|pair| &mut pair.0).collect();
+                    Transit::consume_multiple(transits, consume_task);
                 };
-                Transit::consume(consuming_task)
-            };
 
-    
-            // now send the signals
-            for (transit, sender) in pairs {
-                if let Err(_) = sender.send(transit) {
-                    warn!("sender.send(transit) failed but it should not!");
+        
+                // now send the signals
+                for (transit, tx) in pairs {
+                    if let Err(_) = tx.send(transit) {
+                        warn!("tx.send(transit) failed but it should not!");
+                    }
                 }
-            }
+            }// if_else
+            
 
-        });
+        });// task::spawn()
                 
-    }
+    }// handle_consume()
 
 
 }
