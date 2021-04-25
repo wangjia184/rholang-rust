@@ -68,8 +68,6 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluat
         list_par_with_random.pars.append(&mut self.data);
 
         context.produce(channel, list_par_with_random, self.persistent).await;
-        //println!("{:#?}", &self);
-
         Ok(())
     }
 }

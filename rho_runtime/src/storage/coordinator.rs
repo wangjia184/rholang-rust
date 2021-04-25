@@ -44,7 +44,6 @@ pub(super) struct ConsumeTask {
 }
 
 pub struct Coordinator {
-    _tx: Sender<PendingTask>, // keep an instance here so that it will not close if no other senders
     rx : Receiver<PendingTask>,
     transit_port_map : FxHashMap<Hash, Rc<RefCell<TransitPort>>>
 }
@@ -112,7 +111,7 @@ impl Coordinator {
     pub fn create() -> (AsyncStore, Self) {
         let (tx, rx) : (Sender<PendingTask>, Receiver<PendingTask>) = mpsc::channel(1000);
         let hot_store = AsyncStore { tx : ShardedLock::new(tx.clone()) };
-        let coordinator = Self { rx : rx, _tx : tx, transit_port_map : FxHashMap::default() };
+        let coordinator = Self { rx : rx, transit_port_map : FxHashMap::default() };
         (hot_store, coordinator)
     }
 
