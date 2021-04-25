@@ -70,6 +70,10 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluat
             context.spawn_evaluation(n, &env);
         }
 
+        while let Some(m) = self.matches.pop() {
+            context.spawn_evaluation(m, &env);
+        }
+
 
 
         Ok(())
