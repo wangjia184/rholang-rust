@@ -2,6 +2,13 @@ extern crate pretty_env_logger;
 #[macro_use] extern crate log;
 #[macro_use] extern crate lazy_static;
 
+#[cfg(not(target_env = "msvc"))]
+use jemallocator::Jemalloc;
+
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+
 use std::time::Instant;
 use std::path::PathBuf;
 use std::env;
