@@ -31,7 +31,9 @@ pub enum TaggedContinuation {
 
 #[async_trait]
 pub trait Storage { 
-    async fn install(&self, channel : Par, bind_pattern : BindPattern, func : RustCallbacFunction) -> Reply;
+    fn install(&self, channel : Par, bind_pattern : BindPattern, func : RustCallbacFunction) -> Reply;
+
+    fn uninstall(&self) -> Reply;
 
     async fn produce(&self, channel : Par, data : ListParWithRandom, persistent : bool) -> Reply;
 

@@ -38,7 +38,7 @@ pub async fn setup<S>(storage : &S) where S : Storage + std::marker::Send + std:
     storage.install(create_par(StdoutProcess::kind()),
         bind_pattern,
         StdoutProcess::execute
-    ).await;
+    );
 }
 
 fn create_par(kind : SystemProcessKind) -> Par {

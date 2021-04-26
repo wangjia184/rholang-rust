@@ -2,12 +2,12 @@ extern crate pretty_env_logger;
 #[macro_use] extern crate log;
 #[macro_use] extern crate lazy_static;
 
-// #[cfg(not(target_env = "msvc"))]
-// use jemallocator::Jemalloc;
+#[cfg(not(target_env = "msvc"))]
+use jemallocator::Jemalloc;
 
-// #[cfg(not(target_env = "msvc"))]
-// #[global_allocator]
-// static GLOBAL: Jemalloc = Jemalloc;
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
 
 use std::time::Instant;
 use std::path::PathBuf;
@@ -86,11 +86,9 @@ async fn run(par : Par) {
     coordinator.run().await;
 }
 
-async fn test<S>(storage : S, par : Par) where S : Storage + std::marker::Send + std::marker::Sync + 'static {
+async fn test<S>(storage : S, par : Par) where S : Storage + Clone + std::marker::Send + std::marker::Sync + 'static {
     
-    let context = std::sync::Arc::new(interpreter::InterpreterContext::from(storage));
-
-    let cloned_par = par.clone();
+    let context = std::sync::Arc::new(interpreter::InterpreterContext::from(storage.clone()));
 
     let now = Instant::now();
     let errors = context.evaludate(par).await;
@@ -98,16 +96,7 @@ async fn test<S>(storage : S, par : Par) where S : Storage + std::marker::Send +
     for err in errors {
         error!("Error #{} : {}", err.kind, err.message);
     }
-
-    let now = Instant::now();
-    let errors = context.evaludate(cloned_par).await;
-    info!("Reduction took {} ms", now.elapsed().as_millis());
-    for err in errors {
-        error!("Error #{} : {}", err.kind, err.message);
-    }
-    
-    
-
+    storage.uninstall(); // stop
 }
 
 

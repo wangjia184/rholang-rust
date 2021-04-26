@@ -1,18 +1,19 @@
 use std::collections::hash_map::Entry;
 use std::cell::{ RefCell };
 use std::rc::Rc;
+use std::sync::Arc;
 use tokio::task;
-
+use tokio::sync::Notify;
 
 use rustc_hash::{ FxHashMap };
 
 use super::*;
-use crossbeam::sync::ShardedLock;
-use tokio::sync::mpsc::{ self, Sender, Receiver };
+use crossbeam::queue::ArrayQueue;
 use blake3::Hash;
 
 enum PendingTask{
     Install(InstallTask),
+    Uninstall,
     Produce(ProduceTask),
     Consume(ConsumeTask),
 }
@@ -43,8 +44,13 @@ pub(super) struct ConsumeTask {
     pub(super) peek : bool,
 }
 
+struct ThreadSafeShare {
+    notify : Notify,
+    queue : ArrayQueue<PendingTask>,
+}
+
 pub struct Coordinator {
-    rx : Receiver<PendingTask>,
+    share : Arc<ThreadSafeShare>,
     transit_port_map : FxHashMap<Hash, Rc<RefCell<TransitPort>>>
 }
 
@@ -53,25 +59,36 @@ pub struct TransitPort {
     pub(super) completed_signal : Option<oneshot::Receiver<Transit>>,
 }
 
-
+#[derive(Clone)]
 pub struct  AsyncStore {
-    tx : ShardedLock<Sender<PendingTask>>,
+    share : Arc<ThreadSafeShare>,
 }
 
 #[async_trait]
 impl Storage for AsyncStore {
 
-    async fn install(&self, channel : Par, bind_pattern : BindPattern, func : RustCallbacFunction) -> Reply {
+    fn install(&self, channel : Par, bind_pattern : BindPattern, func : RustCallbacFunction) -> Reply {
         let install_task = InstallTask{
             channel : (channel.blake3_hash(), bind_pattern),
             callback : func,
         };
-        let sender = self.tx.read().unwrap().clone();
-        if let Err(err) = sender.send(PendingTask::Install(install_task)).await {
-            error!("sender.send(PendingTask::Install(install_task)) failed. {}", &err);
+
+        if let Err(_) = self.share.queue.push(PendingTask::Install(install_task)) {
+            panic!("Coordinator queue is full!");
         }
+        self.share.notify.notify_one();
         None
     }
+
+    fn uninstall(&self) -> Reply {
+        if let Err(_) = self.share.queue.push(PendingTask::Uninstall) {
+            panic!("Coordinator queue is full!");
+        }
+        self.share.notify.notify_one();
+        None
+    }
+
+
     
     async fn produce(&self, channel : Par, data : ListParWithRandom, persistent : bool) -> Reply {
         let (tx, rx) = oneshot::channel();
@@ -81,10 +98,10 @@ impl Storage for AsyncStore {
             data : data,
             persistent : persistent,
         };
-        let sender = self.tx.read().unwrap().clone();
-        if let Err(err) = sender.send(PendingTask::Produce(produce_task)).await {
-            error!("sender.send(PendingTask::Produce(produce_task)) failed. {}", &err);
+        if let Err(_) = self.share.queue.push(PendingTask::Produce(produce_task)) {
+            panic!("Coordinator queue is full!");
         }
+        self.share.notify.notify_one();
         match rx.await {
             Err(e) => {
                 warn!("Unable to send. {}.", e);
@@ -103,10 +120,10 @@ impl Storage for AsyncStore {
             persistent : persistent,
             peek : peek,
         };
-        let sender = self.tx.read().unwrap().clone();
-        if let Err(err) = sender.send(PendingTask::Consume(consume_task)).await {
-            error!("sender.send(PendingTask::Consume(consume_task)) failed. {}", &err);
+        if let Err(_) = self.share.queue.push(PendingTask::Consume(consume_task)) {
+            panic!("Coordinator queue is full!");
         }
+        self.share.notify.notify_one();
         match rx.await {
             Err(e) => {
                 warn!("Unable to receive. Reason {}.", e);
@@ -118,30 +135,43 @@ impl Storage for AsyncStore {
 }
 
 
-impl Coordinator {
+impl<'a> Coordinator {
 
     pub fn create() -> (AsyncStore, Self) {
-        let (tx, rx) : (Sender<PendingTask>, Receiver<PendingTask>) = mpsc::channel(1000);
-        let hot_store = AsyncStore { tx : ShardedLock::new(tx.clone()) };
-        let coordinator = Self { rx : rx, transit_port_map : FxHashMap::default() };
+        let share = Arc::new(ThreadSafeShare {
+            notify : Notify::new(),
+            queue : ArrayQueue::new(1000000), 
+        });
+        
+        let coordinator = Self { 
+            share : share.clone(),
+            transit_port_map : FxHashMap::with_capacity_and_hasher( 100000, Default::default()) 
+        };
+        let hot_store = AsyncStore { share : share };
         (hot_store, coordinator)
     }
 
     pub async fn run(&mut self) {
-        while let Some(pending_task) = self.rx.recv().await {
-            match  pending_task {
-                PendingTask::Install(install) => {
-                    self.handle_install(install)
-                },
-                PendingTask::Produce(produce) => {
-                    self.handle_produce(produce)
-                },
-                PendingTask::Consume(consume) => {
-                    self.handle_consume(consume);
-                },
-                _ => unreachable!("Bug, this branch must not reach"),
+        loop {
+            while let Some(pending_task) = self.share.queue.pop() {
+                match  pending_task {
+                    PendingTask::Install(install) => {
+                        self.handle_install(install)
+                    },
+                    PendingTask::Produce(produce) => {
+                        self.handle_produce(produce)
+                    },
+                    PendingTask::Consume(consume) => {
+                        self.handle_consume(consume);
+                    },
+                    PendingTask::Uninstall => {
+                        return;
+                    }
+                }
             }
+            self.share.notify.notified().await;
         }
+        
     }
 
     fn get_or_create_transit_port(&mut self, channel_hash : Hash) -> Rc<RefCell<TransitPort>> {

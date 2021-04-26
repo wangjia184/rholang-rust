@@ -58,20 +58,39 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluat
         //     }
         //   }
 
+        let count = self.sends.len() + self.receives.len() + self.news.len() + self.matches.len() +
+            self.bundles.len() + self.exprs.len();
 
+        if count == 1 {
+            while let Some(mut s) = self.sends.pop() {
+                s.evaluate(context, env).await?;
+            }
+            while let Some(mut r) = self.receives.pop() {
+                r.evaluate(context, env).await?
+            }
+            while let Some(mut n) = self.news.pop() {
+                n.evaluate(context, env).await?;
+            }
+            while let Some(mut m) = self.matches.pop() {
+                m.evaluate(context, env).await?;
+            }
+        }
+        else if count > 1 {
+            while let Some(s) = self.sends.pop() {
+                context.spawn_evaluation(s, &env);
+            }
+            while let Some(r) = self.receives.pop() {
+                context.spawn_evaluation(r, &env);
+            }
+            while let Some(n) = self.news.pop() {
+                context.spawn_evaluation(n, &env);
+            }
+            while let Some(m) = self.matches.pop() {
+                context.spawn_evaluation(m, &env);
+            }
+        }
 
-        while let Some(s) = self.sends.pop() {
-            context.spawn_evaluation(s, &env);
-        }
-        while let Some(r) = self.receives.pop() {
-            context.spawn_evaluation(r, &env);
-        }
-        while let Some(n) = self.news.pop() {
-            context.spawn_evaluation(n, &env);
-        }
-        while let Some(m) = self.matches.pop() {
-            context.spawn_evaluation(m, &env);
-        }
+        
 
 
 
