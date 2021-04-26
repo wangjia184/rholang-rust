@@ -36,7 +36,7 @@ fn main() {
     new x, y, z, stdout(`rho:io:stdout`) in {
         x!(1) |
         for( a <= x ) {
-            if( *a < 10000 ) {
+            if( *a < 100000 ) {
                 x!(*a+1)
             } else {
                 stdout!(*a)
@@ -90,8 +90,17 @@ async fn test<S>(storage : S, par : Par) where S : Storage + std::marker::Send +
     
     let context = std::sync::Arc::new(interpreter::InterpreterContext::from(storage));
 
+    let cloned_par = par.clone();
+
     let now = Instant::now();
     let errors = context.evaludate(par).await;
+    info!("Reduction took {} ms", now.elapsed().as_millis());
+    for err in errors {
+        error!("Error #{} : {}", err.kind, err.message);
+    }
+
+    let now = Instant::now();
+    let errors = context.evaludate(cloned_par).await;
     info!("Reduction took {} ms", now.elapsed().as_millis());
     for err in errors {
         error!("Error #{} : {}", err.kind, err.message);

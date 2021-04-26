@@ -85,7 +85,13 @@ impl Storage for AsyncStore {
         if let Err(err) = sender.send(PendingTask::Produce(produce_task)).await {
             error!("sender.send(PendingTask::Produce(produce_task)) failed. {}", &err);
         }
-        rx.await.unwrap()
+        match rx.await {
+            Err(e) => {
+                warn!("Unable to send. {}.", e);
+                None
+            },
+            Ok(reply) => reply,
+        }
     }
 
     async fn consume(&self, binds : Vec<(BindPattern, Par)>, body : ParWithRandom, persistent : bool, peek : bool) -> Reply {
@@ -101,7 +107,13 @@ impl Storage for AsyncStore {
         if let Err(err) = sender.send(PendingTask::Consume(consume_task)).await {
             error!("sender.send(PendingTask::Consume(consume_task)) failed. {}", &err);
         }
-        rx.await.unwrap()
+        match rx.await {
+            Err(e) => {
+                warn!("Unable to receive. Reason {}.", e);
+                None
+            },
+            Ok(reply) => reply,
+        }
     }
 }
 
