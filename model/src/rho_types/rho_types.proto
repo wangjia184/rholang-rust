@@ -95,7 +95,7 @@ enum ExecutionErrorKind {
     NonReadableChannel = 10;
     IllegalSubstitution = 11;
     UnboundVariable = 12;
-    InvalidMatch = 13;
+    IllegalComparison = 13;
     SystemFailure = 999;
 }
 

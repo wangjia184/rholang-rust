@@ -2,6 +2,7 @@ use super::*;
 
 
 impl<'a> Scorable<'a> for &'a Receive {
+    #[inline]
     fn score_tree_iter(self) -> ScoreTreeIter<'a> {
         ReceiveScoreTreeIter{
             term : self,
@@ -103,13 +104,14 @@ impl<'a> ReceiveScoreTreeIter<'a> {
 
     }
 
+    #[inline]
     fn body_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         if let Some(ref par) = self.term.body {
             let sub_iter = par.score_tree_iter();
             Some(Node::Children(sub_iter.into()))
         } else {
-            self.bind_count_score()
+            Some(Node::Leaf(ScoreAtom::IntAtom(Score::ABSENT as i64)))
         }
     }
 
@@ -132,6 +134,7 @@ impl<'a> ReceiveScoreTreeIter<'a> {
 
 
 impl Sortable for Receive {
+    #[inline]
     fn sort(&mut self) {
         for b in &mut self.binds {
             b.sort();

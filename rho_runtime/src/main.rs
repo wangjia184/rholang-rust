@@ -29,7 +29,7 @@ fn main() {
     new x, y, z, stdout(`rho:io:stdout`) in {
         x!(1) |
         for( a <= x ) {
-            if( *a < 100 ) {
+            if( *a < 10000 ) {
                 x!(*a+1)
             } else {
                 stdout!(*a)

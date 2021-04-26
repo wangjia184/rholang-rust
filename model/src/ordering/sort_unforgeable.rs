@@ -2,6 +2,7 @@ use super::*;
 use super::super::rho_types::g_unforgeable::UnfInstance;
 
 impl<'a> Scorable<'a> for &'a GUnforgeable {
+    #[inline]
     fn score_tree_iter(self) -> ScoreTreeIter<'a> {
         let next_func = match self.unf_instance {
             Some(UnfInstance::GPrivateBody(_)) => {
@@ -59,6 +60,7 @@ impl<'a> Iterator for UnforgeableScoreTreeIter<'a> {
 
 impl<'a> UnforgeableScoreTreeIter<'a> {
 
+    #[inline]
     fn private_body_next(&mut self) -> Option<Node<'a>> {
         match self.stage {
             0 => {
@@ -71,7 +73,7 @@ impl<'a> UnforgeableScoreTreeIter<'a> {
                 if let Some(UnfInstance::GPrivateBody(GPrivate { id })) = &self.term.unf_instance {
                     Some(Node::Leaf(ScoreAtom::BytesAtom(&id[..])))
                 } else {
-                    None
+                    Some(Node::Leaf(ScoreAtom::IntAtom(Score::ABSENT as i64)))
                 }
             },
 
@@ -79,7 +81,7 @@ impl<'a> UnforgeableScoreTreeIter<'a> {
         }
     }
 
-
+    #[inline]
     fn deployer_id_next(&mut self) -> Option<Node<'a>> {
         match self.stage {
             0 => {
@@ -92,7 +94,7 @@ impl<'a> UnforgeableScoreTreeIter<'a> {
                 if let Some(UnfInstance::GDeployerIdBody(GDeployerId { public_key })) = &self.term.unf_instance {
                     Some(Node::Leaf(ScoreAtom::BytesAtom(&public_key[..])))
                 } else {
-                    None
+                    Some(Node::Leaf(ScoreAtom::IntAtom(Score::ABSENT as i64)))
                 }
             },
 
@@ -100,6 +102,7 @@ impl<'a> UnforgeableScoreTreeIter<'a> {
         }
     }
 
+    #[inline]
     fn deploy_id_next(&mut self) -> Option<Node<'a>> {
         match self.stage {
             0 => {
@@ -112,7 +115,7 @@ impl<'a> UnforgeableScoreTreeIter<'a> {
                 if let Some(UnfInstance::GDeployIdBody(GDeployId { sig })) = &self.term.unf_instance {
                     Some(Node::Leaf(ScoreAtom::BytesAtom(&sig[..])))
                 } else {
-                    None
+                    Some(Node::Leaf(ScoreAtom::IntAtom(Score::ABSENT as i64)))
                 }
             },
 
@@ -121,6 +124,7 @@ impl<'a> UnforgeableScoreTreeIter<'a> {
     }
 
 
+    #[inline]
     fn sys_auth_token_next(&mut self) -> Option<Node<'a>> {
         match self.stage {
             0 => {
@@ -132,6 +136,7 @@ impl<'a> UnforgeableScoreTreeIter<'a> {
         }
     }
 
+    #[inline]
     fn absent_next(&mut self) -> Option<Node<'a>> {
         match self.stage {
             0 => {

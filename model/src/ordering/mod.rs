@@ -49,6 +49,8 @@ pub mod sort_var;
 pub mod sort_new;
 pub mod sort_unforgeable;
 pub mod sort_expression;
+pub mod sort_match;
+pub mod sort_match_case;
 mod hash;
 pub use hash::*;
 
@@ -70,6 +72,8 @@ enum ScoreTreeIter<'a>{
     Send(sort_send::SendScoreTreeIter<'a>),
     Receive(sort_receive::ReceiveScoreTreeIter<'a>),
     ReceiveBind(sort_receive_bind::ReceiveBindScoreTreeIter<'a>),
+    Match(sort_match::MatchScoreTreeIter<'a>),
+    MatchCase(sort_match_case::MatchCaseScoreTreeIter<'a>),
     Var(sort_var::VarScoreTreeIter<'a>),
     Unforgeable(sort_unforgeable::UnforgeableScoreTreeIter<'a>),
     Expr(sort_expression::ExprScoreTreeIter<'a>),
@@ -88,6 +92,8 @@ impl<'a> Iterator for ScoreTreeIter<'a> {
             ScoreTreeIter::Send(iter) => iter.next(),
             ScoreTreeIter::Receive(iter) => iter.next(),
             ScoreTreeIter::ReceiveBind(iter) => iter.next(),
+            ScoreTreeIter::Match(iter) => iter.next(),
+            ScoreTreeIter::MatchCase(iter) => iter.next(),
             ScoreTreeIter::Var(iter) => iter.next(),
             ScoreTreeIter::Unforgeable(iter) => iter.next(),
             ScoreTreeIter::Expr(iter) => iter.next(),

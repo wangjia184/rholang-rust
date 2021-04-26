@@ -702,5 +702,6 @@ pub enum ExecutionErrorKind {
     NonReadableChannel = 10,
     IllegalSubstitution = 11,
     UnboundVariable = 12,
+    IllegalComparison = 13,
     SystemFailure = 999,
 }

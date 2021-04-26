@@ -2,6 +2,7 @@ use super::*;
 
 
 impl<'a> Scorable<'a> for &'a ReceiveBind {
+    #[inline]
     fn score_tree_iter(self) -> ScoreTreeIter<'a> {
         ReceiveBindScoreTreeIter{
             term : self,
@@ -55,13 +56,14 @@ impl<'a> Iterator for ReceiveBindScoreTreeIter<'a> {
 // Node(Seq(sortedChannel.score) ++ sortedPatterns.map(_.score) ++ Seq(sortedRemainder.score))
 impl<'a> ReceiveBindScoreTreeIter<'a> {
 
+    #[inline]
     fn source_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         if let Some(ref par) = self.term.source {
             let sub_iter = par.score_tree_iter();
             Some(Node::Children(sub_iter.into()))
         } else {
-            self.patterns_score()
+            Some(Node::Leaf(ScoreAtom::IntAtom(Score::ABSENT as i64)))
         }
     }
 
@@ -76,6 +78,7 @@ impl<'a> ReceiveBindScoreTreeIter<'a> {
         }
     }
 
+    #[inline]
     fn reminder_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         if let Some(ref remainder) = self.term.remainder {
@@ -91,6 +94,7 @@ impl<'a> ReceiveBindScoreTreeIter<'a> {
 
 
 impl Sortable for ReceiveBind {
+    #[inline]
     fn sort(&mut self) {
         for p in &mut self.patterns {
             p.sort();

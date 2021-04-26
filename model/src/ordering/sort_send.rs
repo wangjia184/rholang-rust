@@ -2,6 +2,7 @@ use super::*;
 
 
 impl<'a> Scorable<'a> for &'a Send {
+    #[inline]
     fn score_tree_iter(self) -> ScoreTreeIter<'a> {
         SendScoreTreeIter{
             term : self,
@@ -77,14 +78,14 @@ impl<'a> SendScoreTreeIter<'a> {
         Some(Node::Leaf(ScoreAtom::IntAtom(persistent_score)))
     }
 
+    #[inline]
     fn channel_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         if let Some(ref par) = self.term.chan {
             let sub_iter = par.score_tree_iter();
             Some(Node::Children(sub_iter.into()))
         } else {
-            warn!("SendScoreTreeIter::channel_score() returns None.");
-            self.data_score()
+            Some(Node::Leaf(ScoreAtom::IntAtom(Score::ABSENT as i64)))
         }
     }
 
@@ -110,6 +111,7 @@ impl<'a> SendScoreTreeIter<'a> {
 
 
 impl Sortable for Send {
+    #[inline]
     fn sort(&mut self) {
         if let Some(ref mut chan) = self.chan {
             chan.sort();

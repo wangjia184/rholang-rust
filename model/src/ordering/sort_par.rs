@@ -1,6 +1,7 @@
 use super::*;
 
 impl<'a> Scorable<'a> for &'a Par {
+    #[inline]
     fn score_tree_iter(self) -> ScoreTreeIter<'a> {
         ParScoreTreeIter{
             term : self,
@@ -190,7 +191,7 @@ impl Sortable for Par {
         for r in &mut self.receives { r.sort(); }
         for e in &mut self.exprs { e.sort(); }
         for n in &mut self.news { n.sort(); }
-        // for m in &mut self.matches { m.sort(); }
+        for m in &mut self.matches { m.sort(); }
         // for b in &mut self.bundles { b.sort(); }
         // for c in &mut self.connectives { c.sort(); }
         // for u in &mut self.unforgeables { u.sort(); }
@@ -208,9 +209,9 @@ impl Sortable for Par {
         self.news.sort_by( |left, right| {
             comparer(left.score_tree_iter(), right.score_tree_iter() )
         });
-        // self.matches.sort_by( |left, right| {
-        //     comparer(left.score_tree_iter(), right.score_tree_iter() )
-        // });
+        self.matches.sort_by( |left, right| {
+            comparer(left.score_tree_iter(), right.score_tree_iter() )
+        });
         // self.bundles.sort_by( |left, right| {
         //     comparer(left.score_tree_iter(), right.score_tree_iter() )
         // });
@@ -226,6 +227,7 @@ impl Sortable for Par {
 
 
 impl Sortable for Vec<Par> {
+    #[inline]
     fn sort(&mut self) {
         for p in &mut *self {
             p.sort();
