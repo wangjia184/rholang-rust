@@ -21,17 +21,16 @@ mod environment;
 #[cfg(test)] mod eval_receive_test;
 
 
-use eval_expression::AsyncParExpressionEvaluator;
+use eval_expression::ParExpressionEvaluator;
 use substitute::*;
 pub use environment::*;
 
 use crate::storage::Storage;
 
-#[async_trait]
-pub trait AsyncEvaluator<S, T = ()> 
+pub trait Evaluator<S, T = ()> 
     where S : Storage + std::marker::Send + std::marker::Sync, T : 'static
 {
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<T, ExecutionError>;
+    fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<T, ExecutionError>;
 }
 
 

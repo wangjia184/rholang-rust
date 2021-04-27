@@ -4,8 +4,8 @@ use super::*;
 
 
 
-#[async_trait]
-impl<S> AsyncEvaluator<S, Par> for Var 
+
+impl<S> Evaluator<S, Par> for Var 
     where S : Storage + std::marker::Send + std::marker::Sync 
 {
 
@@ -20,7 +20,7 @@ impl<S> AsyncEvaluator<S, Par> for Var
     *                  an exception.
     *
     */
-    async fn evaluate(&mut self, _context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<Par, ExecutionError> {
+    fn evaluate(&mut self, _context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<Par, ExecutionError> {
  
         match self.var_instance {
             Some(var::VarInstance::BoundVar(level)) => {

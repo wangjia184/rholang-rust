@@ -1,14 +1,14 @@
 
 
 use model::g_unforgeable::UnfInstance;
-use smallvec::SmallVec;
+
 
 use super::*;
 
 
 
-#[async_trait]
-impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluator<S> for New {
+
+impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> Evaluator<S> for New {
 
    /** Algorithm as follows:
     *
@@ -23,7 +23,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluat
     * @param env An execution context
     *
     */
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
+    fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
  
         context.may_raise_aborted_error()?;
 
@@ -87,7 +87,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluat
         }// for urn in &self.uri
 
         if let Some(mut par) = self.p.take() {
-            par.evaluate(context, &new_env).await
+            par.evaluate(context, &new_env)
         } 
         else {
             // no body for this new

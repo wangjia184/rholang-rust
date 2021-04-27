@@ -66,11 +66,11 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterC
     // this is the entrypoint, it must not be called by interpretered pars
     pub async fn evaludate(self : &Arc<Self>, mut par : Par) {
         let env = Env::<Par>::default();
-        if let Err(e) = par.evaluate(&self, &env).await
+        if let Err(e) = par.evaluate(&self, &env)
         {
             self.push_error(e);
         }
-        self.wait_group.notify.notified().await
+        self.wait_group.notify.notified();
     }
 
     #[inline]
@@ -83,7 +83,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterC
 
     #[inline]
     fn spawn_evaluation<T>(self : &Arc<Self>, t : T, env : &Env)
-        where T : AsyncEvaluator<S> + std::marker::Send + 'static
+        where T : Evaluator<S> + std::marker::Send + 'static
     {
         let cloned_context = self.clone();
         let cloned_env = env.clone();
@@ -91,7 +91,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterC
         task::spawn( async move {
             let mut evaluator = t;
             let reference = &mut evaluator;
-            if let Err(e) = reference.evaluate(&cloned_context, &cloned_env).await {
+            if let Err(e) = reference.evaluate(&cloned_context, &cloned_env) {
                 cloned_context.push_error(e);
             }
             cloned_context.wait_group.release();
@@ -121,7 +121,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterC
         self.wait_group.acquire();
         task::spawn( async move {
             let reply = cloned_self.storage.produce(channel, data, persistent).await;
-            cloned_self.handle_comm_events(reply).await;
+            cloned_self.handle_comm_events(reply);
             cloned_self.wait_group.release();
         });
     }
@@ -132,12 +132,12 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterC
         self.wait_group.acquire();
         task::spawn( async move {
             let reply = cloned_self.storage.consume(binds, body, persistent, peek).await;
-            cloned_self.handle_comm_events(reply).await;
+            cloned_self.handle_comm_events(reply);
             cloned_self.wait_group.release();
         });
     }
 
-    async fn handle_comm_events(self : &Arc<Self>, reply : Reply) {
+    fn handle_comm_events(self : &Arc<Self>, reply : Reply) {
         match reply {
             Some(vector) => {
                 for (continuation, data_list) in vector {
@@ -147,11 +147,8 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterC
                             let env = Env::<Par>::create(pars);
                             match par_with_rand.body {
                                 Some(mut par) => {
-                                    match par.evaluate(self, &env).await {
-                                        Err(e) => {
-                                            self.push_error(e);
-                                        },
-                                        _ => {},
+                                    if let Err(e) = par.evaluate(self, &env) {
+                                        self.push_error(e);
                                     }
                                 },
                                 _ => {

@@ -4,19 +4,19 @@ use super::*;
 
 
 
-#[async_trait]
-impl<S> AsyncEvaluator<S, ()> for Match 
+
+impl<S> Evaluator<S, ()> for Match 
     where S : Storage + std::marker::Send + std::marker::Sync + 'static
 {
 
 
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
+    fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
  
 
         // charge[M](MATCH_EVAL_COST)
 
         if let Some(target) = &mut self.target {
-            target.evaluate_nested_expressions(context, env).await?;
+            target.evaluate_nested_expressions(context, env)?;
 
             // substituteAndCharge[Par, M](evaledTarget, 0, env)
             target.substitute(context, 0, env)?;
@@ -56,7 +56,7 @@ impl<S> AsyncEvaluator<S, ()> for Match
                                         } => {
                                             if target_value == pattern_value {
                                                 if let Some(mut source) = case.source.take() {
-                                                    source.evaluate(context, env).await?;
+                                                    source.evaluate(context, env)?;
                                                 }
                                                 return Ok(())
                                             }

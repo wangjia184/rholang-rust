@@ -1,12 +1,12 @@
 use super::*;
 
-#[async_trait]
-impl<S : Storage + std::marker::Send + std::marker::Sync> AsyncExprInstanceEvaluator<S> for EPlus {
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<ExprInstance, ExecutionError> {
+
+impl<S : Storage + std::marker::Send + std::marker::Sync> ExprInstanceEvaluator<S> for EPlus {
+    fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<ExprInstance, ExecutionError> {
 
         let v1 = match self.p1 {
             Some(ref mut par) => {
-                par.evaluate_single_expression(context, env).await?
+                par.evaluate_single_expression(context, env)?
             },
             None => {
                 return Err((ExecutionErrorKind::InvalidExpression, "EPlus::p1 is None").into());
@@ -15,7 +15,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync> AsyncExprInstanceEvalu
 
         let v2 = match self.p2 {
             Some(ref mut par) => {
-                par.evaluate_single_expression(context, env).await?
+                par.evaluate_single_expression(context, env)?
             },
             None => {
                 return Err((ExecutionErrorKind::InvalidExpression, "EPlus::p2 is None").into());

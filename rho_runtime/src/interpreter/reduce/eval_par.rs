@@ -2,8 +2,8 @@ use super::*;
 
 
 
-#[async_trait]
-impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluator<S> for Par {
+
+impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> Evaluator<S> for Par {
 
    /** Algorithm as follows:
     *
@@ -18,7 +18,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluat
     * @param env An execution context
     *
     */
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
+    fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
  
         context.may_raise_aborted_error()?;
 
@@ -62,17 +62,17 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluat
             self.bundles.len() + self.exprs.len();
 
         if count == 1 {
-            while let Some(mut s) = self.sends.pop() {
-                s.evaluate(context, env).await?;
+            if let Some(mut s) = self.sends.pop() {
+                s.evaluate(context, env)?;
             }
-            while let Some(mut r) = self.receives.pop() {
-                r.evaluate(context, env).await?
+            else if let Some(mut r) = self.receives.pop() {
+                r.evaluate(context, env)?
             }
-            while let Some(mut n) = self.news.pop() {
-                n.evaluate(context, env).await?;
+            else if let Some(mut n) = self.news.pop() {
+                n.evaluate(context, env)?;
             }
-            while let Some(mut m) = self.matches.pop() {
-                m.evaluate(context, env).await?;
+            else if let Some(mut m) = self.matches.pop() {
+                m.evaluate(context, env)?;
             }
         }
         else if count > 1 {

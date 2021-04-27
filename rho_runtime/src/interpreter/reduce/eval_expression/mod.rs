@@ -7,26 +7,26 @@ mod expr_instance;
 mod eval_eplus;
 #[cfg(test)] mod eval_eplus_test;
 
-#[async_trait]
-pub trait AsyncExprInstanceEvaluator<S> where  S : Storage + std::marker::Send + std::marker::Sync {
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<ExprInstance, ExecutionError> ;
+
+pub trait ExprInstanceEvaluator<S> where  S : Storage + std::marker::Send + std::marker::Sync {
+    fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<ExprInstance, ExecutionError> ;
 
 }
 
 // AsyncExpressionEvaluator is implemented by Par
-#[async_trait]
-pub trait AsyncParExpressionEvaluator<S> where  S : Storage + std::marker::Send + std::marker::Sync {
-    async fn evaluate_nested_expressions(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError>;
 
-    async fn evaluate_single_expression(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<Expr, ExecutionError>;
+pub trait ParExpressionEvaluator<S> where  S : Storage + std::marker::Send + std::marker::Sync {
+    fn evaluate_nested_expressions(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError>;
+
+    fn evaluate_single_expression(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<Expr, ExecutionError>;
 }
 
-#[async_trait]
-impl<S : Storage + std::marker::Send + std::marker::Sync> AsyncParExpressionEvaluator<S> for Par {
+
+impl<S : Storage + std::marker::Send + std::marker::Sync> ParExpressionEvaluator<S> for Par {
    /**
     * evalExpr Evaluate any top level expressions in @param Par .
     */
-    async fn evaluate_nested_expressions(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
+    fn evaluate_nested_expressions(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
 
         //for {
         //      evaledExprs <- par.exprs.toList.traverse(evalExprToPar)
@@ -47,10 +47,10 @@ impl<S : Storage + std::marker::Send + std::marker::Sync> AsyncParExpressionEval
             match expression.expr_instance {
                 Some(ExprInstance::EVarBody(mut evar)) => {
                     let mut par = match evar.v {
-                        Some(ref mut var) => var.evaluate(context, env).await?,
+                        Some(ref mut var) => var.evaluate(context, env)?,
                         None => return Err((ExecutionErrorKind::InvalidExpression, "`expression.expr_instance` is None in evaluate_nested_expressions() ").into()),
                     };
-                    par.evaluate_nested_expressions(context, env).await?;
+                    par.evaluate_nested_expressions(context, env)?;
                     self.append_mut(&mut par);
                 },
                 Some(ExprInstance::EMethodBody(_)) => {
@@ -59,7 +59,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync> AsyncParExpressionEval
                 },
                 Some(_) => {
                     // in-place evaluate
-                    expression.evaluate(context, env).await?;
+                    expression.evaluate(context, env)?;
                     self.append_expr(expression, 0);
                 },
                 None => {
@@ -74,7 +74,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync> AsyncParExpressionEval
     }
 
 
-    async fn evaluate_single_expression(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<Expr, ExecutionError>
+    fn evaluate_single_expression(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<Expr, ExecutionError>
     {
         if !self.sends.is_empty() || !self.receives.is_empty() || !self.news.is_empty() || 
            !self.matches.is_empty() || !self.unforgeables.is_empty() || !self.bundles.is_empty() {
@@ -82,7 +82,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync> AsyncParExpressionEval
         }
         
         if let Some(mut expression) = self.exprs.pop() {
-            expression.evaluate(context, env).await?;
+            expression.evaluate(context, env)?;
             Ok(expression)
         } else {
             Err((ExecutionErrorKind::InvalidExpression, "Single expression is expected.").into())

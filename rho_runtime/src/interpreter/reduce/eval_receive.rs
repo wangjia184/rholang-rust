@@ -1,9 +1,9 @@
 use super::*;
 
 
-#[async_trait]
-impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluator<S> for Receive {
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
+
+impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> Evaluator<S> for Receive {
+    fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
         context.may_raise_aborted_error()?;
 
         
@@ -13,7 +13,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluat
         for receive_bind in &mut self.binds {
             let unbundled_source = match receive_bind.source.take() {
                 Some(mut source) => {
-                    source.evaluate_nested_expressions(context, env).await?;
+                    source.evaluate_nested_expressions(context, env)?;
 
                     // substituteAndCharge
                     source.substitute(context, 0, env)?;

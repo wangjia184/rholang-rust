@@ -4,8 +4,8 @@ use super::*;
 
 
 
-#[async_trait]
-impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluator<S> for Send {
+
+impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> Evaluator<S> for Send {
 
    /** Algorithm as follows:
     *
@@ -20,7 +20,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluat
     * @param env An execution context
     *
     */
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
+    fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
  
         context.may_raise_aborted_error()?;
 
@@ -33,7 +33,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluat
         let channel = match self.chan.take() {
             Some(mut chan) => {
                 // evalChan <- evalExpr(send.chan)
-                chan.evaluate_nested_expressions(context, env).await?;
+                chan.evaluate_nested_expressions(context, env)?;
 
                 // subChan  <- substituteAndCharge[Par, M](evalChan, 0, env)
                 chan.substitute(&context, 0, &env)?;
@@ -56,7 +56,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluat
 
 
         for dataum in &mut self.data {
-            dataum.evaluate_nested_expressions(context, env).await?;
+            dataum.evaluate_nested_expressions(context, env)?;
             // substituteAndCharge
             dataum.substitute(context, 0, env)?;
         }
