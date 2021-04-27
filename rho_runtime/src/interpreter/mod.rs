@@ -116,20 +116,28 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterC
 
     
     #[inline]
-    async fn produce(self : &Arc<Self>, channel : Par, data : ListParWithRandom, persistent : bool) {
-        self.handle_comm_events(
-            self.storage.produce(channel, data, persistent).await
-        );
+    fn produce(self : &Arc<Self>, channel : Par, data : ListParWithRandom, persistent : bool) {
+        let cloned_self = self.clone();
+        self.wait_group.acquire();
+        task::spawn( async move {
+            let reply = cloned_self.storage.produce(channel, data, persistent).await;
+            cloned_self.handle_comm_events(reply).await;
+            cloned_self.wait_group.release();
+        });
     }
 
     #[inline]
-    async fn consume(self : &Arc<Self>, binds : Vec<(BindPattern, Par)>,body : ParWithRandom, persistent : bool, peek : bool) {
-        self.handle_comm_events(
-            self.storage.consume(binds, body, persistent, peek).await
-        );
+    fn consume(self : &Arc<Self>, binds : Vec<(BindPattern, Par)>,body : ParWithRandom, persistent : bool, peek : bool) {
+        let cloned_self = self.clone();
+        self.wait_group.acquire();
+        task::spawn( async move {
+            let reply = cloned_self.storage.consume(binds, body, persistent, peek).await;
+            cloned_self.handle_comm_events(reply).await;
+            cloned_self.wait_group.release();
+        });
     }
 
-    fn handle_comm_events(self : &Arc<Self>, reply : Reply) {
+    async fn handle_comm_events(self : &Arc<Self>, reply : Reply) {
         match reply {
             Some(vector) => {
                 for (continuation, data_list) in vector {
@@ -138,8 +146,13 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterC
                             let pars = data_list.into_iter().flat_map( |x| x.pars.into_iter() ).collect();
                             let env = Env::<Par>::create(pars);
                             match par_with_rand.body {
-                                Some(par) => {
-                                    self.spawn_evaluation(par, &env);
+                                Some(mut par) => {
+                                    match par.evaluate(self, &env).await {
+                                        Err(e) => {
+                                            self.push_error(e);
+                                        },
+                                        _ => {},
+                                    }
                                 },
                                 _ => {
 

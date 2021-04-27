@@ -72,7 +72,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> AsyncEvaluat
         par_with_rand.body = Some(body);
 
 
-        context.consume(binds, par_with_rand, self.persistent, self.peek).await;
+        context.consume(binds, par_with_rand, self.persistent, self.peek);
 
 
         Ok(())
