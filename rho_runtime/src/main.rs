@@ -2,12 +2,12 @@ extern crate pretty_env_logger;
 #[macro_use] extern crate log;
 #[macro_use] extern crate lazy_static;
 
-#[cfg(not(target_env = "msvc"))]
-use jemallocator::Jemalloc;
-
-#[cfg(not(target_env = "msvc"))]
+#[cfg(not(any(
+    target_env = "msvc", 
+    target_vendor="apple"
+)))]
 #[global_allocator]
-static GLOBAL: Jemalloc = Jemalloc;
+static GLOBAL: Jemalloc = jemallocator::Jemalloc;
 
 use std::time::Instant;
 use std::path::PathBuf;
@@ -36,7 +36,7 @@ fn main() {
     new x, y, z, stdout(`rho:io:stdout`) in {
         x!(1) |
         for( a <= x ) {
-            if( *a < 100000 ) {
+            if( *a < 10000 ) {
                 x!(*a+1)
             } else {
                 stdout!(*a)
@@ -69,7 +69,10 @@ fn main() {
         _ => panic!("Par is missing!"),
     };
     
-    let rt = runtime::Runtime::new().expect("Unable to setup tokio runtime");
+    let rt = runtime::Builder::new_multi_thread()
+                    .thread_stack_size(1024*1024*20)
+                    .build()
+                    .expect("Unable to setup runtime");
     let future = run(par);
     rt.block_on(future);
 }
@@ -86,16 +89,19 @@ async fn run(par : Par) {
     coordinator.run().await;
 }
 
-async fn test<S>(storage : S, par : Par) where S : Storage + Clone + std::marker::Send + std::marker::Sync + 'static {
+async fn test<S>(storage : S, par : Par) 
+    where S : Storage + Clone + std::marker::Send + std::marker::Sync + 'static {
     
     let context = std::sync::Arc::new(interpreter::InterpreterContext::from(storage.clone()));
 
     let now = Instant::now();
-    let errors = context.evaludate(par).await;
+    context.evaludate(par).await;
     info!("Reduction took {} ms", now.elapsed().as_millis());
+    /*
     for err in errors {
         error!("Error #{} : {}", err.kind, err.message);
     }
+    */
     storage.uninstall(); // stop
 }
 
