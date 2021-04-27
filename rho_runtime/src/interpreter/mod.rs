@@ -5,7 +5,7 @@ use std::sync::atomic::{ AtomicI32, Ordering };
 
 use crossbeam::{queue::SegQueue, sync::ShardedLock};
 use rustc_hash::FxHashMap;
-use tokio::task;
+use async_std::task;
 use tokio::sync::Notify;
 
 
@@ -147,7 +147,8 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterC
                             }
                         },
                         TaggedContinuation::Callback(func) => {
-                            task::spawn_blocking(move ||func(data_list));
+                            func(data_list);
+                            //task::spawn(move ||func(data_list));
                         }
                     }
                 }

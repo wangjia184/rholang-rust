@@ -20,8 +20,10 @@ use std::io::Cursor;
 use prost::Message;
 use tempfile::tempdir;
 
+use async_std::task;
+
 use storage::Storage;
-use tokio::runtime;
+//use tokio::runtime;
 use model::*;
 
 mod interpreter;
@@ -69,19 +71,14 @@ fn main() {
         _ => panic!("Par is missing!"),
     };
     
-    let rt = runtime::Builder::new_multi_thread()
-                    .thread_stack_size(1024*1024*20)
-                    .build()
-                    .expect("Unable to setup runtime");
-    let future = run(par);
-    rt.block_on(future);
+    task::block_on(run(par));
 }
 
 
 async fn run(par : Par) {
     let (store,mut coordinator) = storage::Coordinator::create();
     interpreter::system_process::setup(&store).await;
-    tokio::task::spawn(async move{
+    task::spawn(async move{
         test(store, par).await
     });
 

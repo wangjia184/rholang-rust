@@ -25,7 +25,8 @@ rustc-hash = "1.1"
 rand = "0.8"
 tempfile = "3.2"
 lazy_static = "1.4"
-
+futures = "0.3"
+async-std="1.9"
 
 [build-dependencies]
 bindgen = "0.57"

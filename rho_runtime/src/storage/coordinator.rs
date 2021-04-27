@@ -2,7 +2,7 @@ use std::collections::hash_map::Entry;
 use std::cell::{ RefCell };
 use std::rc::Rc;
 use std::sync::Arc;
-use tokio::task;
+use async_std::task;
 use tokio::sync::Notify;
 
 use rustc_hash::{ FxHashMap };
