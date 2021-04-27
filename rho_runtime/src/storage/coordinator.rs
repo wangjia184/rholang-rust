@@ -275,7 +275,7 @@ impl<'a> Coordinator {
 
     fn handle_consume(&mut self, consume_task : ConsumeTask) {
 
-        let mut rx_tx_pairs = ShortVector::default();
+        let mut rx_tx_pairs = ShortVector::with_capacity(consume_task.channels.len());
 
         // get all signals
         for (hash, _) in &consume_task.channels {

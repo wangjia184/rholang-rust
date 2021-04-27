@@ -1,7 +1,5 @@
 
 
-use blake3::Hash;
-
 use super::*;
 
 // The following code is just for prototype test, they need be refactored for production!!!
@@ -54,17 +52,15 @@ impl Transit {
 
     }
 
-    // check all the existing consumers, if no match, save it
+    // first check single consumers, if no match, then check joined consumers
     pub(super) fn produce(transit : &mut Transit, task : ProduceTask) {
 
        
         //println!("Produce : data : {:?}, channel : {:?}", &task.data, &transit.dataums);
-        
 
         // first try to search in temp consumers
         match transit.consumers.iter().position( |consumer| {
-            // only match length for now
-            consumer.bind_pattern.patterns.len() == task.data.pars.len()
+            transit.is_matched(&task.data, &consumer.bind_pattern)
         }) 
         {
             Some(idx) => {
@@ -77,10 +73,9 @@ impl Transit {
                 }
             },
             None => {
-
+                // then search in persistented consumers
                 match transit.persistented_consumers.iter().find( |persistented_consumer| {
-                    // only match length for now
-                    persistented_consumer.bind_pattern.patterns.len() == task.data.pars.len()
+                    transit.is_matched(&task.data, &persistented_consumer.bind_pattern)
                 }) 
                 {
                     Some(persistented_consumer) => {
@@ -149,7 +144,7 @@ impl Transit {
                 for ( (transit, (_, bind_pattern) ), dataum_index  ) 
                     in transits.iter_mut().zip(&task.channels).zip(&mut dataum_indexes)
                 {
-                    matched = transit.find_first_match_position( bind_pattern, dataum_index);
+                    matched = transit.find_first_dataum_position( bind_pattern, dataum_index);
                     if !matched {
                         break;
                     }
@@ -193,7 +188,7 @@ impl Transit {
             for ( (transit, (_, bind_pattern) ), dataum_index  ) 
                     in transits.iter_mut().zip(&task.channels).zip(&mut dataum_indexes)
             {
-                matched = transit.find_first_match_position( bind_pattern, dataum_index);
+                matched = transit.find_first_dataum_position( bind_pattern, dataum_index);
                 if !matched {
                     break;
                 }
@@ -234,11 +229,11 @@ impl Transit {
     }
 
 
-    // try to find the position of first match since start_index
+    // try to find the position of first match dataum since start_index
     #[inline]
-    fn find_first_match_position(&self, bind_pattern : &BindPattern, start_index : &mut usize) -> bool {
+    fn find_first_dataum_position(&self, bind_pattern : &BindPattern, start_index : &mut usize) -> bool {
         while *start_index < self.dataums.len() {
-            if self.is_matched(&self.dataums[*start_index], bind_pattern) {
+            if self.is_matched(&self.dataums[*start_index].data, bind_pattern) {
                 return true;
             }
             *start_index = *start_index + 1;
@@ -247,9 +242,9 @@ impl Transit {
     }
 
     #[inline]
-    fn is_matched(&self, dataum : &Dataum, bind_pattern : &BindPattern) -> bool {
+    fn is_matched(&self, list_par_with_random : &ListParWithRandom, bind_pattern : &BindPattern) -> bool {
         // only match length for now
-        bind_pattern.patterns.len() == dataum.data.pars.len()
+        bind_pattern.patterns.len() == list_par_with_random.pars.len()
     }
 }
 

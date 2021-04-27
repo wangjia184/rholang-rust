@@ -28,6 +28,8 @@ mod interpreter;
 mod storage;
 
 
+
+
 fn main() {
 
     pretty_env_logger::init();
@@ -35,12 +37,10 @@ fn main() {
     let rholang_source = "
     new x, y, z, stdout(`rho:io:stdout`) in {
         x!(1) |
-        for( a <= x ) {
-            if( *a < 100000 ) {
-                x!(*a+1)
-            } else {
-                stdout!(*a)
-            }
+        y!(2) |
+        for( a <- x; b <- y ) {
+            stdout!(*a) |
+            stdout!(*b)
         }
     }
     ";

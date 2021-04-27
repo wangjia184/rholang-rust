@@ -115,7 +115,7 @@ fn substitute_expressions_in_par<S>(par : &mut Par, context : &InterpreterContex
 }
 
 
-fn substitute_connectives_in_par<S>(par : &mut Par, context : &InterpreterContext<S>, depth : i32, env : &Env) -> Result<(), ExecutionError>
+fn substitute_connectives_in_par<S>(par : &mut Par, _context : &InterpreterContext<S>, _depth : i32, _env : &Env) -> Result<(), ExecutionError>
     where S : Storage  + std::marker::Send + std::marker::Sync
 {
 

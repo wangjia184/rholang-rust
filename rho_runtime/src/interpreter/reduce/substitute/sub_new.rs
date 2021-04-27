@@ -11,7 +11,7 @@ impl<S : Storage + std::marker::Send + std::marker::Sync> Substitutable<S> for N
     }
 
 
-    fn substitute_no_sort(&mut self, context : &InterpreterContext<S>, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute_no_sort(&mut self, _context : &InterpreterContext<S>, _depth : i32, _env : &Env) -> Result<(), ExecutionError> {
 
 
         // substitutePar[M]
