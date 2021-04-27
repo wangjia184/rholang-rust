@@ -7,7 +7,7 @@ extern crate pretty_env_logger;
     target_vendor="apple"
 )))]
 #[global_allocator]
-static GLOBAL: Jemalloc = jemallocator::Jemalloc;
+static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
 
 use std::time::Instant;
 use std::path::PathBuf;
