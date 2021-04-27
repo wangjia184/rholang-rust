@@ -64,13 +64,13 @@ impl<S:Storage + std::marker::Send + std::marker::Sync> From<S> for InterpreterC
 impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterContext<S> {
 
     // this is the entrypoint, it must not be called by interpretered pars
-    pub async fn evaludate(self : &Arc<Self>, mut par : Par) {
+    pub async fn evaludate_par(self : &Arc<Self>, mut par : Par) {
         let env = Env::<Par>::default();
         if let Err(e) = par.evaluate(&self, &env)
         {
             self.push_error(e);
         }
-        self.wait_group.notify.notified();
+        self.wait_group.notify.notified().await;
     }
 
     #[inline]

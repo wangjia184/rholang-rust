@@ -95,7 +95,7 @@ async fn test<S>(storage : S, par : Par)
     let context = std::sync::Arc::new(interpreter::InterpreterContext::from(storage.clone()));
 
     let now = Instant::now();
-    context.evaludate(par).await;
+    context.evaludate_par(par).await;
     info!("Reduction took {} ms", now.elapsed().as_millis());
     /*
     for err in errors {
