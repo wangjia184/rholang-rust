@@ -43,3 +43,9 @@ cargo test --all
 ```
 CARGO_PROFILE_RELEASE_LTO=true cargo build --release
 ```
+
+## Profile
+
+```
+CARGO_PROFILE_RELEASE_DEBUG=true cargo flamegraph --bin=rho_runtime
+```
