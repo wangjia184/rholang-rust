@@ -35,15 +35,15 @@ fn main() {
     pretty_env_logger::init();
 
     let rholang_source = "
-    new x, y, z, stdout(`rho:io:stdout`) in {
-        x!(1) |
-        y!(2) |
-        for( a <= x; b <= y ) {
-            if(*a < 2) {
-                x!(*a + 1) |
-                y!(*b + 1)
+    new countCh, sumCh, stdout(`rho:io:stdout`) in {
+        countCh!(0) |
+        sumCh!(0) |
+        for( count <= countCh; sum <= sumCh ) {
+            if(*count < 101) {
+                countCh!(*count + 1) |
+                sumCh!(*sum + *count)
             } else {
-                stdout!(*a)
+                stdout!(*sum)
             }
         }
     }

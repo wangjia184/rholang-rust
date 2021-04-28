@@ -25,8 +25,12 @@ impl<S : Storage + std::marker::Send + std::marker::Sync> ExprInstanceEvaluator<
         match (v1.expr_instance, v2.expr_instance) {
             (Some(ExprInstance::GInt(left)), Some(ExprInstance::GInt(right))) => {
                 // charge[M](SUM_COST)
-                let (sum, _) = left.overflowing_add(right);
-                Ok(ExprInstance::GInt(sum))
+                if cfg!(overflow_checks) {
+                    let (sum, _) = left.overflowing_add(right);
+                    Ok(ExprInstance::GInt(sum))
+                } else {
+                    Ok(ExprInstance::GInt(left + right))
+                }
             },
             (Some(ExprInstance::GInt(_)), Some(right)) => {
                 let msg = format!("Unexpected operand {} for `+` operator", print_type_of(&right));

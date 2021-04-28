@@ -135,7 +135,7 @@ impl Storage for AsyncStore {
         self.share.notify.notify_one();
         match rx.await {
             Err(e) => {
-                warn!("Unable to receive. Reason {}.", e);
+                debug!("Unable to receive. Reason {}.", e);
                 None
             },
             Ok(reply) => reply,
@@ -279,9 +279,11 @@ impl<'a> Coordinator {
             // now handle it
             if let Some(joined_consumer) = Transit::produce(&mut transit, produce) {
                 // join is required
+                
                 if let Err(_) = cloned_share.queue.push(PendingTask::Join(joined_consumer)) {
-                    panic!("Coordinator queue is full!");
+                    error!("Coordinator queue is full!");
                 }
+                cloned_share.notify.notify_one();
             }
 
             // now send the signal
