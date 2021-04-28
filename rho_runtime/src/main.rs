@@ -38,9 +38,13 @@ fn main() {
     new x, y, z, stdout(`rho:io:stdout`) in {
         x!(1) |
         y!(2) |
-        for( a <- x; b <- y ) {
-            stdout!(*a) |
-            stdout!(*b)
+        for( a <= x; b <= y ) {
+            if(*a < 2) {
+                x!(*a + 1) |
+                y!(*b + 1)
+            } else {
+                stdout!(*a)
+            }
         }
     }
     ";

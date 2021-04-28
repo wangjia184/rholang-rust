@@ -16,7 +16,11 @@ enum PendingTask{
     Uninstall,
     Produce(ProduceTask),
     Consume(ConsumeTask),
+    Join(JoinChannelTask),
 }
+
+
+
 
 
 pub(super) struct InstallTask {
@@ -42,6 +46,11 @@ pub(super) struct ConsumeTask {
     pub(super) continuation : TaggedContinuation,
     pub(super) persistent : bool,
     pub(super) peek : bool,
+}
+
+pub(super) struct JoinChannelTask {
+    pub(super) replier : oneshot::Sender<Reply>,
+    pub(super) consumer : Arc<super::transit::SharedJoinedConsumer>,
 }
 
 struct ThreadSafeShare {
@@ -164,6 +173,9 @@ impl<'a> Coordinator {
                     PendingTask::Consume(consume) => {
                         self.handle_consume(consume);
                     },
+                    PendingTask::Join(join_task) => {
+                        self.handle_join(join_task);
+                    }
                     PendingTask::Uninstall => {
                         return;
                     }
@@ -251,6 +263,8 @@ impl<'a> Coordinator {
                 prev_rx
             }
         };
+
+        let cloned_share = self.share.clone();
         
         task::spawn( async move {
             // first ensure previous coroutines are completed
@@ -263,7 +277,12 @@ impl<'a> Coordinator {
             };
 
             // now handle it
-            Transit::produce(&mut transit, produce);
+            if let Some(joined_consumer) = Transit::produce(&mut transit, produce) {
+                // join is required
+                if let Err(_) = cloned_share.queue.push(PendingTask::Join(joined_consumer)) {
+                    panic!("Coordinator queue is full!");
+                }
+            }
 
             // now send the signal
             if let Err(_) = tx.send(transit) {
@@ -341,18 +360,6 @@ impl<'a> Coordinator {
                     }
                 }
 
-                // we dont need sort the order of pairs/channels because they are the same
-                // but later when storing the consumer, they must be stored
-                /*
-                // sort pairs & channels to make them in the same order
-                pairs.sort_by( |(_,_,left), (_, _, right)| {
-                    left.as_bytes().cmp(right.as_bytes())
-                });
-                channels.sort_by( |(_,left), (_, right)| {
-                    left.as_bytes().cmp(right.as_bytes())
-                });
-                */
-
                 // now handle it
                 {
                     let transits = pairs.iter_mut().map(|pair| &mut pair.0).collect();
@@ -373,6 +380,84 @@ impl<'a> Coordinator {
                 
     }// handle_consume()
 
+    fn handle_join(&mut self, join_task : JoinChannelTask) {
+
+        let mut tuples = ShortVector::with_capacity(join_task.consumer.channels.len());
+
+        // get all signals
+        for hash in &join_task.consumer.channels {
+            // get the transit port of this channel
+            let transit_port = self.get_or_create_transit_port(*hash);
+            // create a pair of sender + receiver
+            let (tx, rx) = oneshot::channel();
+
+            tuples.push(
+                // replace receiver which will be signaled when current coroutine completes
+                match transit_port.borrow_mut().completed_signal.replace(rx) {
+                    Some(signal) => {
+                        (*hash, signal, tx)
+                    },
+                    None => {
+                        // no previous Receiver, this is a fresh new channel
+                        // simulate one
+                        let (prev_tx, prev_rx) = oneshot::channel();
+                        if let Err(_) = prev_tx.send(Transit::default()) {
+                            warn!("prev_tx.send(Transit::default()) must not fail");
+                        }
+                        (*hash, prev_rx, tx)
+                    }
+                }
+            );
+        }
+
+
+        task::spawn( async move {
+
+            let mut vector : ShortVector<(Hash, Transit, oneshot::Sender<Transit>)> = ShortVector::with_capacity(tuples.len());
+                
+        
+            for (hash, rx, tx) in tuples {
+                match rx.await {
+                    Err(e) => {
+                        warn!("Error in oneshot::Receiver<Transit>. {} - {:?}", &e, &e);
+                        return;
+                    },
+                    Ok(transit) => {
+                        vector.push((hash, transit, tx));
+                    }
+                }
+            }
+
+            // we dont need sort the order of pairs/channels because they are the same
+            // but later when storing the consumer, they must be stored
+            /*
+            // sort pairs & channels to make them in the same order
+            pairs.sort_by( |(_,_,left), (_, _, right)| {
+                left.as_bytes().cmp(right.as_bytes())
+            });
+            channels.sort_by( |(_,left), (_, right)| {
+                left.as_bytes().cmp(right.as_bytes())
+            });
+            */
+
+            // now handle it
+            {
+                let transits : ShortVector<_> = vector.iter_mut().map(|pair| (pair.0, &mut pair.1)).collect();
+                Transit::join(transits, join_task);
+            };
+
+    
+            // now send the signals
+            for (_, transit, tx) in vector {
+                if let Err(_) = tx.send(transit) {
+                    warn!("tx.send(transit) failed but it should not!");
+                }
+            }
+            
+
+        });// task::spawn()
+
+    }
 
 }
 

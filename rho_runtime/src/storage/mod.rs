@@ -10,7 +10,7 @@ mod coordinator;
 mod transit;
 
 use transit::*;
-pub  use coordinator::*;
+pub use coordinator::*;
 
 pub type ShortVector<T> = SmallVec<[T; 3]>;
 
