@@ -1,4 +1,5 @@
 extern crate pretty_env_logger;
+extern crate clap;
 #[macro_use] extern crate log;
 #[macro_use] extern crate lazy_static;
 
@@ -17,6 +18,8 @@ use std::fs::{ File };
 use std::io::{Write};
 use std::process::{ self, Command };
 use std::io::Cursor;
+use std::fs;
+use num_cpus;
 use prost::Message;
 use tempfile::tempdir;
 
@@ -34,23 +37,33 @@ fn main() {
 
     pretty_env_logger::init();
 
-    let rholang_source = "
-    new countCh, sumCh, stdout(`rho:io:stdout`) in {
-        countCh!(0) |
-        sumCh!(0) |
-        for( count <= countCh; sum <= sumCh ) {
-            if(*count < 101) {
-                countCh!(*count + 1) |
-                sumCh!(*sum + *count)
-            } else {
-                stdout!(*sum)
+    let matches = clap::App::new("Rholang Runtime")
+        .version("0.0.1")
+        .author("++ vcer@qq.com")
+        .about("Rholang runtime")
+        .arg(clap::Arg::with_name("INPUT")
+            .help("File path of rholang source to execute")
+            .required(true)
+            .index(1))
+        .get_matches();
+
+    let filepath = matches.value_of("INPUT").unwrap_or("");
+    match fs::metadata(filepath) {
+        Ok(metadata) => {
+            if !metadata.is_file() {
+                error!("The specified path {} is not a file", filepath);
+                return;
             }
+        },
+        Err(_) => {
+            error!("Canno1t find the specified file {}", filepath);
+            return;
         }
     }
-    ";
+
 
     let now = Instant::now();
-    let mut normalized_result = run_normalizer(rholang_source);
+    let mut normalized_result = run_normalizer(filepath);
     info!("Normalizatin took {} ms", now.elapsed().as_millis());
 
     if let Some(err) = normalized_result.compiliation_error {
@@ -74,9 +87,11 @@ fn main() {
     };
     
     let rt = runtime::Builder::new_multi_thread()
+                    .worker_threads(num_cpus::get())
                     .thread_stack_size(1024*1024*20)
                     .build()
                     .expect("Unable to setup runtime");
+    info!("Tokio is initialized with {} worker threads", num_cpus::get());
     let future = run(par);
     rt.block_on(future);
 }
@@ -111,7 +126,7 @@ async fn test<S>(storage : S, par : Par)
 
 
 
-pub fn run_normalizer(source : &str) -> NormalizeResult {
+pub fn run_normalizer(source_file : &str) -> NormalizeResult {
 
     let parser_filepath = if cfg!(target_os = "windows") {
         get_file_path("rholang_parser.exe")
@@ -120,17 +135,12 @@ pub fn run_normalizer(source : &str) -> NormalizeResult {
     };
 
     let dir = tempdir().unwrap();
-    let input_path = dir.path().join("input.rho");
     let output_path = dir.path().join("output.bin");
-    {
-        let mut file = File::create(&input_path).unwrap();
-        file.write_all(source.as_bytes()).unwrap();
-    }
 
     
     let output = Command::new(&parser_filepath)
         .arg("--input")
-        .arg(&input_path.to_str().unwrap())
+        .arg(source_file)
         .arg("--output")
         .arg(&output_path.to_str().unwrap())
         .arg("--pid")

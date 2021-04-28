@@ -387,7 +387,7 @@ impl<'a> Coordinator {
         let mut tuples = ShortVector::with_capacity(join_task.consumer.channels.len());
 
         // get all signals
-        for hash in &join_task.consumer.channels {
+        for (hash, _) in &join_task.consumer.channels {
             // get the transit port of this channel
             let transit_port = self.get_or_create_transit_port(*hash);
             // create a pair of sender + receiver

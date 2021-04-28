@@ -4,9 +4,18 @@ use super::*;
 use std::sync::Arc;
 use std::collections::hash_map::Entry;
 use blake3::Hash;
-use rustc_hash::{ FxHashMap, FxHashSet };
+use rustc_hash::{ FxHashMap };
 
-// The following code is just for prototype test, they need be refactored for production!!!
+// The following code is just for prototype, they need be refactored for production!!!
+// The following code is just for prototype, they need be refactored for production!!!
+// The following code is just for prototype, they need be refactored for production!!!
+// The following code is just for prototype, they need be refactored for production!!!
+// The following code is just for prototype, they need be refactored for production!!!
+// The following code is just for prototype, they need be refactored for production!!!
+// The following code is just for prototype, they need be refactored for production!!!
+// The following code is just for prototype, they need be refactored for production!!!
+// The following code is just for prototype, they need be refactored for production!!!
+// The following code is just for prototype, they need be refactored for production!!!
 
 struct IndependentConsumer {
     pub(self) bind_pattern : BindPattern,
@@ -20,7 +29,7 @@ struct  JoinedConsumer {
 }
 
 pub(super) struct  SharedJoinedConsumer {
-    pub(super) channels : FxHashSet<Hash>,
+    pub(super) channels : FxHashMap<Hash, usize>, // the value is the order : 0/1/2...
     continuation : TaggedContinuation,
     persistent : bool,
 }
@@ -72,6 +81,7 @@ impl Transit {
     // first check single consumers, if no match, then check joined consumers
     pub(super) fn produce(transit : &mut Transit, task : ProduceTask) -> Option<JoinChannelTask> {
 
+        //println!("produce {:?} ==> {:?}", &task.data.pars[0].exprs[0], &task.channel.0);
 
         // first try to search in temp consumers
         match transit.consumers.iter().position( |consumer| {
@@ -213,7 +223,7 @@ impl Transit {
             } else {
                 // Store the joined consumer
                 let share = Arc::new(SharedJoinedConsumer{
-                    channels : task.channels.iter().map(|(hash,_)| *hash).collect(),
+                    channels : task.channels.iter().enumerate().map(|(idx, (hash,_))| (*hash, idx)).collect(),
                     continuation : task.continuation,
                     persistent : true,
                 } );
@@ -266,7 +276,7 @@ impl Transit {
                 } else {
                     // store the joined consumer
                     let share = Arc::new(SharedJoinedConsumer{
-                        channels : task.channels.iter().map(|(hash,_)| *hash).collect(),
+                        channels : task.channels.iter().enumerate().map(|(idx, (hash,_))| (*hash, idx)).collect(),
                         continuation : task.continuation,
                         persistent : false,
                     } );
@@ -331,17 +341,27 @@ impl Transit {
                 }
             },
             MatchResult::Matched(shared_consumer,index_pairs) => {
-                let data_list = transits
+                // the returned order of elements in index_pairs is the same as the order of transits
+                // but it might be different from the order of the continuation
+                // hence need resort it.
+                let mut data_list: ShortVector<(usize, ListParWithRandom)> = transits
                     .iter_mut()
                     .zip(&index_pairs)
                     .map( |(transit, [ consumer_idx, dataum_idx]) | { 
                         if !shared_consumer.persistent {
                             transit.1.joined_consumers.remove(*consumer_idx);
                         }
-                        transit.1.dataums.remove(*dataum_idx).data
+                        (
+                            *shared_consumer.channels.get(&transit.0).unwrap(),
+                            transit.1.dataums.remove(*dataum_idx).data
+                        )
                     })
                     .collect();
-                let reply = Some(smallvec![(shared_consumer.continuation.clone(), data_list)]);
+
+                data_list.sort_by(|x, y| x.0.cmp(&y.0));
+
+                let sorted_data_list = data_list.into_iter().map(|(_,p)| p).collect();
+                let reply = Some(smallvec![(shared_consumer.continuation.clone(), sorted_data_list)]);
                 if let Err(_) = join_task.replier.send(reply) {
                     error!("task.replier.send(reply) failed");
                 }
@@ -356,7 +376,6 @@ impl Transit {
     fn match_one( transits : &mut ShortVector<(Hash, &mut Transit)>, join_task : &JoinChannelTask) -> MatchResult {
         // the value records the index of joined_consumer and dataum
         let mut full_joined_consumers : FxHashMap<*const SharedJoinedConsumer, ShortVector<[usize;2]>> = FxHashMap::default();
-
         for (_, transit) in transits 
         {
             if transit.dataums.is_empty() {
@@ -369,13 +388,15 @@ impl Transit {
             {
                 let mut dataum_idx = 0; // TODO : should be more smart to determine the start index by id
                 if Transit::find_first_dataum_position(&transit.dataums, bind_pattern, &mut dataum_idx, last_dataum_id) {
-                    if share.channels.iter().all(|h| join_task.consumer.channels.contains(h) ) {
+                    if share.channels.len() == join_task.consumer.channels.len() &&
+                       share.channels.iter().all(|(h, _)| join_task.consumer.channels.contains_key(h) ) {
                         // all transits are joined
                         match full_joined_consumers.entry(Arc::as_ptr(share) ) {
                             Entry::Occupied(o) => {
                                 let borrow = o.into_mut();
                                 borrow.push([consumer_idx, dataum_idx]); // record the indexes
                                 if borrow.len() >= join_task.consumer.channels.len() {
+
                                     // all channels are ready
                                     return MatchResult::Matched(
                                         share.clone(),
@@ -388,9 +409,11 @@ impl Transit {
                             },
                         };
                     } else {
-                        // not all transit are joined
-                        unimplemented!()
+                        // not all transit are joined, but current one is qualified
+                        unimplemented!("partial join are not implemented yet");
                     }
+                } else {
+                    println!("No match");
                 }
             }
 
