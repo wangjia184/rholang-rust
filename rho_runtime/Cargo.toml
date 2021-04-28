@@ -16,10 +16,17 @@ thiserror = "1.0"
 libc = "0.2"
 bit-vec = "0.6"
 prost = "0.7"
-tokio = {version = "1.4", features = ["full"] }
+tokio = {version = "1.5", features = ["full"] }
 async-trait = "0.1"
 crossbeam = "0.8"
 blake3 = "0.3"
+smallvec = "1.6"
+rustc-hash = "1.1"
+rand = "0.8"
+tempfile = "3.2"
+lazy_static = "1.4"
+clap = "2.33"
+num_cpus = "1.13"
 
 [build-dependencies]
 bindgen = "0.57"
@@ -30,3 +37,8 @@ prost-types = "0.7" # Only necessary if using Protobuf well-known types
 
 [dev-dependencies]
 tokio-test = "0.4"
+
+[target.'cfg(not(target_env = "msvc"))'.dependencies]
+jemallocator = "0.3"
+
+

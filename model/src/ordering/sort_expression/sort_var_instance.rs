@@ -63,10 +63,10 @@ impl<'a> VarInstanceScoreTreeIter<'a> {
     fn type_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         match self.term {
-            &var::VarInstance::BoundVar(i) => {
+            &var::VarInstance::BoundVar(_) => {
                 Some(Node::Leaf(ScoreAtom::IntAtom(Score::BOUND_VAR as i64)))
             },
-            &var::VarInstance::FreeVar(i) => {
+            &var::VarInstance::FreeVar(_) => {
                 Some(Node::Leaf(ScoreAtom::IntAtom(Score::FREE_VAR as i64)))
             },
             &var::VarInstance::Wildcard(_) => {

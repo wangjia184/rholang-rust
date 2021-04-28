@@ -1,7 +1,8 @@
-
+use smallvec::SmallVec;
 
 use super::*;
 
+pub type EnvVector<T> = SmallVec<[T; 6]>;
 
 // Environment Model of Evaluation
 #[derive(Default, Debug, Clone)]
@@ -9,30 +10,34 @@ pub struct Env<T = Par> where T : Clone + std::marker::Send {
     level : usize,
     pub shift : usize,
 
+    // need be optimized
     // Arc is used here to avoid duplicated instance.
     // Be careful when we want to change the binding in a frame
     // Using Arc::make_mut() for Copy-on-Write
-    bindings : Arc<Vec<Arc<T>>>
+    bindings : EnvVector<T>
 }
 
 impl<T> Env<T> where T : Clone + std::marker::Send {
-    // create a new frame by adding a new binding
-    pub fn clone_then_put(&self, t : T) -> Self {
-        let mut new_bindings = self.bindings.clone();
-        let vector = Arc::make_mut(&mut new_bindings);
-        vector.push(Arc::new(t));
+
+
+    pub fn put(&mut self, t : T) {
+        self.bindings.push(t);
+        self.level += 1;
+    }
+
+    pub fn create(vector : EnvVector<T>) -> Self{
         Self {
-            level : self.level + 1,
-            shift : self.shift,
-            bindings : new_bindings,
-        }
+            level : vector.len(),
+            shift : 0,
+            bindings : vector,
+        } 
     }
 
 
-    pub fn get(&self, k : i32) -> Option<Arc<T>> {
+    pub fn get<'a>(&'a self, k : i32) -> Option<&'a T> {
         let index = self.level + self.shift - k as usize - 1;
         if index < self.bindings.len() {
-            return Some(self.bindings[index as usize].clone());
+            return Some(&self.bindings[index as usize]);
         }
         None
     }
@@ -66,7 +71,10 @@ fn env_frame_should_always_be_inserted_at_the_next_available_level_index() {
         expr_instance : Some(expr::ExprInstance::GInt(3))
     });
 
-    let env = Env::<Par>::default().clone_then_put(par1).clone_then_put(par2).clone_then_put(par3);
+    let mut env = Env::<Par>::default();
+    env.put(par1);
+    env.put(par2);
+    env.put(par3);
 
     match env {
         Env { level : 3, shift: 0, bindings } => {

@@ -1,13 +1,13 @@
 use super::*;
 
-impl Substitutable for Par {
-    fn substitute(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+impl<S : Storage + std::marker::Send + std::marker::Sync> Substitutable<S> for Par {
+    fn substitute(&mut self, context : &InterpreterContext<S>, depth : i32, env : &Env) -> Result<(), ExecutionError> {
         // substituteNoSort(term).flatMap(par => Sortable.sortMatch(par)).map(_.term)
         self.substitute_no_sort(context, depth, env)?;
         self.sort();
         Ok(())
     }
-    fn substitute_no_sort(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute_no_sort(&mut self, context : &InterpreterContext<S>, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
         for s in &mut self.sends {
             s.substitute_no_sort(context, depth, env)?;
@@ -37,19 +37,19 @@ impl Substitutable for Par {
     
 }
 
-enum VarOrPar {
+enum VarOrPar<'a> {
     Var(Var),
-    ArcPar(Arc<Par>)
+    ParRef(&'a Par)
 }
 
-fn may_substitute_var(var : Var, depth : i32, env : &Env) -> Result<VarOrPar, ExecutionError> {
+fn may_substitute_var<'a>(var : Var, depth : i32, env : &'a Env) -> Result<VarOrPar<'a>, ExecutionError> {
     if depth != 0{
         Ok(VarOrPar::Var(var))
     } else {
         match var.var_instance {
             Some(VarInstance::BoundVar(index)) => {
                 match env.get(index) {
-                    Some(par) => Ok(VarOrPar::ArcPar(par)),
+                    Some(par) => Ok(VarOrPar::ParRef(par)),
                     None => Ok(VarOrPar::Var(var)),
                 }
             },
@@ -62,7 +62,9 @@ fn may_substitute_var(var : Var, depth : i32, env : &Env) -> Result<VarOrPar, Ex
     
 }
 
-fn substitute_expressions_in_par(par : &mut Par, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+fn substitute_expressions_in_par<S>(par : &mut Par, context : &InterpreterContext<S>, depth : i32, env : &Env) -> Result<(), ExecutionError> 
+    where S : Storage + std::marker::Send + std::marker::Sync
+{
     // the scala code use fold(), here we use imperative style instead to avoid extra allocation
  
     // move exprs into a new vector, consider replace Vec with SmallVec after benchmark
@@ -91,8 +93,8 @@ fn substitute_expressions_in_par(par : &mut Par, context : &InterpreterContext, 
                                     , depth 
                                 );
                             },
-                            VarOrPar::ArcPar(p) => {
-                                par.append(&*p);
+                            VarOrPar::ParRef(p) => {
+                                par.append(p);
                             }
                         };
                     },
@@ -113,7 +115,9 @@ fn substitute_expressions_in_par(par : &mut Par, context : &InterpreterContext, 
 }
 
 
-fn substitute_connectives_in_par(par : &mut Par, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+fn substitute_connectives_in_par<S>(par : &mut Par, _context : &InterpreterContext<S>, _depth : i32, _env : &Env) -> Result<(), ExecutionError>
+    where S : Storage  + std::marker::Send + std::marker::Sync
+{
 
     if !par.connectives.is_empty() {
         unimplemented!("substitute_connectives() is not implemented");

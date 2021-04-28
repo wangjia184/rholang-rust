@@ -1,8 +1,8 @@
 use super::*;
 
-impl Substitutable for Bundle {
+impl<S : Storage + std::marker::Send + std::marker::Sync> Substitutable<S> for Bundle {
 
-    fn substitute(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute(&mut self, _context : &InterpreterContext<S>, _depth : i32, _env : &Env) -> Result<(), ExecutionError> {
        
         // substitutePar[M].substitute(term.body).map { subBundle =>
         //     subBundle.singleBundle() match {
@@ -15,7 +15,7 @@ impl Substitutable for Bundle {
     }
 
 
-    fn substitute_no_sort(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute_no_sort(&mut self, _context : &InterpreterContext<S>, _depth : i32, _env : &Env) -> Result<(), ExecutionError> {
 
 
         // substitutePar[M].substituteNoSort(term.body).map { subBundle =>

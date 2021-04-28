@@ -1,8 +1,8 @@
 use super::*;
 
-impl Substitutable for Receive {
+impl<S : Storage + std::marker::Send + std::marker::Sync> Substitutable<S> for Receive {
 
-    fn substitute(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute(&mut self, context : &InterpreterContext<S>, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
         self.substitute_no_sort(context, depth, env)?;
         self.sort();
@@ -10,10 +10,8 @@ impl Substitutable for Receive {
     }
 
 
-    fn substitute_no_sort(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute_no_sort(&mut self, context : &InterpreterContext<S>, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
-
-        // for {
         //     bindsSub <- term.binds.toVector.traverse {
         //                  case ReceiveBind(patterns, chan, rem, freeCount) =>
         //                    for {
@@ -25,24 +23,31 @@ impl Substitutable for Receive {
         //                                    )
         //                    } yield ReceiveBind(subPatterns, subChannel, rem, freeCount)
         //                }
+        for bind in &mut self.binds {
+            if let Some(source) = &mut bind.source {
+                source.substitute_no_sort(context, depth, env)?;   
+            }
+
+            for pattern in &mut bind.patterns {
+                pattern.substitute_no_sort(context, depth + 1, env)?;
+            }
+        }
+
         //     bodySub <- substitutePar[M].substituteNoSort(term.body)(
         //                 depth,
         //                 env.shift(term.bindCount)
         //               )
-        //     rec = Receive(
-        //       binds = bindsSub,
-        //       body = bodySub,
-        //       persistent = term.persistent,
-        //       peek = term.peek,
-        //       bindCount = term.bindCount,
-        //       locallyFree = term.locallyFree.until(env.shift),
-        //       connectiveUsed = term.connectiveUsed
-        //     )
-        //   } yield rec
+        let sub_env = env.clone_then_shift(self.bind_count as usize);
+        if let Some(body) = &mut self.body {
+            body.substitute_no_sort(context, depth, &sub_env)?;
+        }
 
-        unimplemented!("Receive::substitute_no_sort")
+        //     locallyFree = term.locallyFree.until(env.shift),
+        if let Some(bitset) = &mut self.locally_free {
+            bitset.truncate(env.shift);
+        }
 
-        //Ok(self)
+        Ok(())
     }
     
 }

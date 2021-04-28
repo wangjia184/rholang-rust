@@ -1,9 +1,9 @@
 use super::*;
 
 
-#[async_trait]
-impl AsyncEvaluator for Receive {
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext>, env : &Env) -> Result<(), ExecutionError> {
+
+impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> Evaluator<S> for Receive {
+    fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
         context.may_raise_aborted_error()?;
 
         
@@ -13,7 +13,7 @@ impl AsyncEvaluator for Receive {
         for receive_bind in &mut self.binds {
             let unbundled_source = match receive_bind.source.take() {
                 Some(mut source) => {
-                    source.evaluate_nested_expressions(context, env).await?;
+                    source.evaluate_nested_expressions(context, env)?;
 
                     // substituteAndCharge
                     source.substitute(context, 0, env)?;
@@ -68,8 +68,12 @@ impl AsyncEvaluator for Receive {
         //     receive.peek
         //   )
 
-        println!("{:#?}", &binds);
-        println!("{:#?}", &body);
+        let mut par_with_rand = ParWithRandom::default();
+        par_with_rand.body = Some(body);
+
+
+        context.consume(binds, par_with_rand, self.persistent, self.peek);
+
 
         Ok(())
     }

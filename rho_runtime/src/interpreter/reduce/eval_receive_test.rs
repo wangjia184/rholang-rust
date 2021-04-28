@@ -68,9 +68,9 @@ fn eval_of_single_channel_should_place_something_in_tuplespace() {
     });
     
 
-    let context = Arc::new(InterpreterContext::default());
-    let env = Env::<Par>::default();
-    tokio_test::block_on( par.evaluate(&context, &env) ).unwrap();
+    //let context = Arc::new(InterpreterContext::default());
+    //let env = Env::<Par>::default();
+    //tokio_test::block_on( par.evaluate(&context, &env) ).unwrap();
 
     
 }

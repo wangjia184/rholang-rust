@@ -2,8 +2,8 @@ use super::*;
 
 
 
-#[async_trait]
-impl AsyncEvaluator for Par {
+
+impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> Evaluator<S> for Par {
 
    /** Algorithm as follows:
     *
@@ -18,7 +18,7 @@ impl AsyncEvaluator for Par {
     * @param env An execution context
     *
     */
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext>, env : &Env) -> Result<(), ExecutionError> {
+    fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
  
         context.may_raise_aborted_error()?;
 
@@ -58,23 +58,40 @@ impl AsyncEvaluator for Par {
         //     }
         //   }
 
-        let mut handles = Vec::new();
+        let count = self.sends.len() + self.receives.len() + self.news.len() + self.matches.len() +
+            self.bundles.len() + self.exprs.len();
 
-        while let Some(s) = self.sends.pop() {
-            handles.push(context.spawn_evaluation(s, &env));
-        }
-        while let Some(r) = self.receives.pop() {
-            handles.push(context.spawn_evaluation(r, &env));
-        }
-
-        for handle in handles {
-            let result = handle.await;
-            match result {
-                Ok(Err(err)) => return Err(err),
-                Err(err) => panic!("{}", err),
-                _ => (),
+        if count == 1 {
+            if let Some(mut s) = self.sends.pop() {
+                s.evaluate(context, env)?;
+            }
+            else if let Some(mut r) = self.receives.pop() {
+                r.evaluate(context, env)?
+            }
+            else if let Some(mut n) = self.news.pop() {
+                n.evaluate(context, env)?;
+            }
+            else if let Some(mut m) = self.matches.pop() {
+                m.evaluate(context, env)?;
             }
         }
+        else if count > 1 {
+            while let Some(s) = self.sends.pop() {
+                context.spawn_evaluation(s, &env);
+            }
+            while let Some(r) = self.receives.pop() {
+                context.spawn_evaluation(r, &env);
+            }
+            while let Some(n) = self.news.pop() {
+                context.spawn_evaluation(n, &env);
+            }
+            while let Some(m) = self.matches.pop() {
+                context.spawn_evaluation(m, &env);
+            }
+        }
+
+        
+
 
 
         Ok(())

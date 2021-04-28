@@ -13,16 +13,17 @@ use super::context::*;
 use super::bnfc;
 
 
-mod rho_name;
-mod rho_new;
-mod rho_send;
-mod rho_ground;
-mod rho_par;
-mod rho_pvar;
-mod rho_input;
-mod rho_reminder;
-mod rho_eval;
-
+mod norm_name;
+mod norm_new;
+mod norm_send;
+mod norm_ground;
+mod norm_par;
+mod norm_pvar;
+mod norm_input;
+mod norm_reminder;
+mod norm_eval;
+mod norm_binary_expression;
+mod norm_ifelse;
 
 //include!("rho_par_test.rs");
 //include!("rho_send_test.rs");
@@ -62,10 +63,20 @@ struct ProcVisitInputs {
 
 impl Default for ProcVisitInputs {
     fn default() -> Self { 
-        ProcVisitInputs {
+        Self {
             par : Par::default(),
             env : Rc::new(IndexMapChain::empty()),
             known_free : Rc::new(DeBruijnLevelMap::empty()),
+        }
+    }
+}
+
+impl ProcVisitInputs {
+    pub fn clone_with_empty_par(&self) -> Self {
+        Self {
+            par : Par::default(),
+            env : self.env.clone(),
+            known_free : self.known_free.clone(),
         }
     }
 }
@@ -180,13 +191,117 @@ impl Normalizer {
             bnfc::Proc__is_PEval => {
                 self.normalize_eval(&proc, input)
             },
+            bnfc::Proc__is_PAdd => {
+                self.normalize_binary_expression(unsafe { proc.u.padd_.proc_1 }, unsafe { proc.u.padd_.proc_2 }, input, 
+                    |left, right| 
+                    Expr {
+                        expr_instance : Some(expr::ExprInstance::EPlusBody(EPlus {
+                            p1 : Some(left),
+                            p2 : Some(right)
+                        }))
+                    }
+                )
+            },
+            bnfc::Proc__is_PLt => {
+                self.normalize_binary_expression(unsafe { proc.u.plt_.proc_1 }, unsafe { proc.u.plt_.proc_2 }, input, 
+                    |left, right| 
+                    Expr {
+                        expr_instance : Some(expr::ExprInstance::ELtBody(ELt {
+                            p1 : Some(left),
+                            p2 : Some(right)
+                        }))
+                    }
+                )
+            },
+            bnfc::Proc__is_PLte => {
+                self.normalize_binary_expression(unsafe { proc.u.plte_.proc_1 }, unsafe { proc.u.plte_.proc_2 }, input, 
+                    |left, right| 
+                    Expr {
+                        expr_instance : Some(expr::ExprInstance::ELteBody(ELte {
+                            p1 : Some(left),
+                            p2 : Some(right)
+                        }))
+                    }
+                )
+            },
+            bnfc::Proc__is_PGt => {
+                self.normalize_binary_expression(unsafe { proc.u.pgt_.proc_1 }, unsafe { proc.u.pgt_.proc_2 }, input, 
+                    |left, right| 
+                    Expr {
+                        expr_instance : Some(expr::ExprInstance::EGtBody(EGt {
+                            p1 : Some(left),
+                            p2 : Some(right)
+                        }))
+                    }
+                )
+            },
+            bnfc::Proc__is_PGte => {
+                self.normalize_binary_expression(unsafe { proc.u.pgte_.proc_1 }, unsafe { proc.u.pgte_.proc_2 }, input, 
+                    |left, right| 
+                    Expr {
+                        expr_instance : Some(expr::ExprInstance::EGteBody(EGte {
+                            p1 : Some(left),
+                            p2 : Some(right)
+                        }))
+                    }
+                )
+            },
+            bnfc::Proc__is_PEq => {
+                self.normalize_binary_expression(unsafe { proc.u.peq_.proc_1 }, unsafe { proc.u.peq_.proc_2 }, input, 
+                    |left, right| 
+                    Expr {
+                        expr_instance : Some(expr::ExprInstance::EEqBody(EEq {
+                            p1 : Some(left),
+                            p2 : Some(right)
+                        }))
+                    }
+                )
+            },
+            bnfc::Proc__is_PNeq => {
+                self.normalize_binary_expression(unsafe { proc.u.pneq_.proc_1 }, unsafe { proc.u.pneq_.proc_2 }, input, 
+                    |left, right| 
+                    Expr {
+                        expr_instance : Some(expr::ExprInstance::ENeqBody(ENeq {
+                            p1 : Some(left),
+                            p2 : Some(right)
+                        }))
+                    }
+                )
+            },
+            bnfc::Proc__is_PAnd => {
+                self.normalize_binary_expression(unsafe { proc.u.pand_.proc_1 }, unsafe { proc.u.pand_.proc_2 }, input, 
+                    |left, right| 
+                    Expr {
+                        expr_instance : Some(expr::ExprInstance::EAndBody(EAnd {
+                            p1 : Some(left),
+                            p2 : Some(right)
+                        }))
+                    }
+                )
+            },
+            bnfc::Proc__is_POr => {
+                self.normalize_binary_expression(unsafe { proc.u.por_.proc_1 }, unsafe { proc.u.por_.proc_2 }, input, 
+                    |left, right| 
+                    Expr {
+                        expr_instance : Some(expr::ExprInstance::EOrBody(EOr {
+                            p1 : Some(left),
+                            p2 : Some(right)
+                        }))
+                    }
+                )
+            },
             bnfc::Proc__is_PNil => {
                 Ok(ProcVisitOutputs {
                     par : input.par.clone(),
                     known_free : (*input.known_free).clone(),
                 })
             },
-
+            bnfc::Proc__is_PIf => {
+                self.normalize_ifelse(unsafe { proc.u.pif_.proc_1 }, unsafe { proc.u.pif_.proc_2 }, 0 as bnfc::Proc, input)
+            },
+            bnfc::Proc__is_PIfElse => {
+                self.normalize_ifelse(unsafe { proc.u.pifelse_.proc_1 }, unsafe { proc.u.pifelse_.proc_2 }, unsafe { proc.u.pifelse_.proc_3 }, input)
+            },
             
     
             

@@ -1,6 +1,7 @@
 use super::*;
 
 impl<'a> Scorable<'a> for &'a Par {
+    #[inline]
     fn score_tree_iter(self) -> ScoreTreeIter<'a> {
         ParScoreTreeIter{
             term : self,
@@ -9,6 +10,7 @@ impl<'a> Scorable<'a> for &'a Par {
             receives_slice : &self.receives[..],
             exprs_slice : &self.exprs[..],
             news_slice : &self.news[..],
+            unforgeable_slice : &self.unforgeables[..],
         }.into()
     }
 }
@@ -28,6 +30,7 @@ pub(super) struct ParScoreTreeIter<'a> {
     receives_slice : &'a [Receive],
     exprs_slice : &'a [Expr],
     news_slice : &'a [New],
+    unforgeable_slice : &'a [GUnforgeable],
 }
 
 
@@ -159,8 +162,14 @@ impl<'a> ParScoreTreeIter<'a> {
     }
 
     fn unforgeables_score<'b>(&'b mut self) -> Option<Node<'a>> {
-        self.stage += 1;
-        self.connective_used_score()
+        if !self.unforgeable_slice.is_empty() {
+            let sub_iter = self.unforgeable_slice[0].score_tree_iter();
+            self.unforgeable_slice = &self.unforgeable_slice[1..];
+            Some(Node::Children(sub_iter.into()))
+        } else {
+            self.stage += 1;
+            self.connective_used_score()
+        }
     }
 
     #[inline]
@@ -182,7 +191,7 @@ impl Sortable for Par {
         for r in &mut self.receives { r.sort(); }
         for e in &mut self.exprs { e.sort(); }
         for n in &mut self.news { n.sort(); }
-        // for m in &mut self.matches { m.sort(); }
+        for m in &mut self.matches { m.sort(); }
         // for b in &mut self.bundles { b.sort(); }
         // for c in &mut self.connectives { c.sort(); }
         // for u in &mut self.unforgeables { u.sort(); }
@@ -200,9 +209,9 @@ impl Sortable for Par {
         self.news.sort_by( |left, right| {
             comparer(left.score_tree_iter(), right.score_tree_iter() )
         });
-        // self.matches.sort_by( |left, right| {
-        //     comparer(left.score_tree_iter(), right.score_tree_iter() )
-        // });
+        self.matches.sort_by( |left, right| {
+            comparer(left.score_tree_iter(), right.score_tree_iter() )
+        });
         // self.bundles.sort_by( |left, right| {
         //     comparer(left.score_tree_iter(), right.score_tree_iter() )
         // });
@@ -218,6 +227,7 @@ impl Sortable for Par {
 
 
 impl Sortable for Vec<Par> {
+    #[inline]
     fn sort(&mut self) {
         for p in &mut *self {
             p.sort();

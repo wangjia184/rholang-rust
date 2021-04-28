@@ -2,6 +2,7 @@ use super::*;
 
 
 impl<'a> Scorable<'a> for &'a New {
+    #[inline]
     fn score_tree_iter(self) -> ScoreTreeIter<'a> {
         let mut injections : Vec<&Par> = self.injections.values().collect();
         injections.sort_by( |left, right| {
@@ -122,8 +123,7 @@ impl<'a> NewScoreTreeIter<'a> {
             let sub_iter = par.score_tree_iter();
             Some(Node::Children(sub_iter.into()))
         } else {
-            warn!("NewScoreTreeIter::par_score() returns None");
-            None
+            Some(Node::Leaf(ScoreAtom::IntAtom(Score::ABSENT as i64)))
         }
     }
 }
@@ -131,6 +131,7 @@ impl<'a> NewScoreTreeIter<'a> {
 
 
 impl Sortable for New {
+    #[inline]
     fn sort(&mut self) {
         if let Some(ref mut p) = self.p {
             p.sort();

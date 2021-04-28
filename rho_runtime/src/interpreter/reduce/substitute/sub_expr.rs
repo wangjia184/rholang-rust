@@ -1,8 +1,8 @@
 use super::*;
 
-impl Substitutable for Expr {
+impl<S : Storage + std::marker::Send + std::marker::Sync> Substitutable<S> for Expr {
 
-    fn substitute(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute(&mut self, context : &InterpreterContext<S>, depth : i32, env : &Env) -> Result<(), ExecutionError> {
         
         let func = |par : &mut Par| { 
             par.substitute(context, depth, env)
@@ -12,7 +12,7 @@ impl Substitutable for Expr {
     }
 
 
-    fn substitute_no_sort(&mut self, context : &InterpreterContext, depth : i32, env : &Env) -> Result<(), ExecutionError> {
+    fn substitute_no_sort(&mut self, context : &InterpreterContext<S>, depth : i32, env : &Env) -> Result<(), ExecutionError> {
 
         let func = |par : &mut Par| {
             par.substitute_no_sort(context, depth, env)
@@ -51,6 +51,16 @@ fn dispatch<F>(expression : &mut Expr,  func : F) -> Result<(), ExecutionError>
 {
 
     match expression.expr_instance {
+        Some(ExprInstance::GBool(_)) => {
+        },
+        Some(ExprInstance::GInt(_)) => {
+        },
+        Some(ExprInstance::GString(_)) => {
+        },
+        Some(ExprInstance::GUri(_)) => {
+        },
+        Some(ExprInstance::GByteArray(_)) => {
+        },
         Some(ExprInstance::ENotBody(ref mut instance)) => {
             unary_expr!(instance, func)
         },
@@ -181,7 +191,7 @@ fn dispatch<F>(expression : &mut Expr,  func : F) -> Result<(), ExecutionError>
         },
 
         _ => {
-            warn!("Uncaptrued expression in substitue. Usually this is a bug! {:#?}", &expression.expr_instance);
+            warn!("Uncaptured expression in substitue. Usually this is a bug! {:#?}", &expression.expr_instance);
         }
     }
     

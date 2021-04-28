@@ -1,34 +1,45 @@
-mod hash;
-mod space_matcher;
-mod space_ops;
-mod space;
-mod hot_store;
 
-pub trait ITuplespace { 
-    fn consume();
-    fn produce();
+
+use async_trait::async_trait;
+use smallvec::{ SmallVec, smallvec };
+use tokio::sync::oneshot;
+
+use model::*;
+
+mod coordinator;
+mod transit;
+
+use transit::*;
+pub use coordinator::*;
+
+pub type ShortVector<T> = SmallVec<[T; 3]>;
+
+
+
+
+pub type Reply = Option<ShortVector<(TaggedContinuation, ShortVector<ListParWithRandom>)>>;
+
+pub type RustCallbacFunction = fn(ShortVector<ListParWithRandom>) -> ();
+
+#[derive(Clone)]
+pub enum TaggedContinuation {
+    ParBody(ParWithRandom),
+    Callback(RustCallbacFunction)
 }
 
-trait ISpace : ITuplespace {
-    //fn create_checkpoint();
-    //fn create_soft_checkpoint();
 
-    fn reset();
-    //fn get_data();
-    //fn get_waiting_continuations();
-    //fn clear();
-    //fn to_map();
+
+#[async_trait]
+pub trait Storage { 
+    fn install(&self, channel : Par, bind_pattern : BindPattern, func : RustCallbacFunction) -> Reply;
+
+    fn uninstall(&self) -> Reply;
+
+    async fn produce(&self, channel : Par, data : ListParWithRandom, persistent : bool) -> Reply;
+
+    async fn consume(&self, binds : Vec<(BindPattern, Par)>,body : ParWithRandom, persistent : bool, peek : bool) -> Reply;
 }
 
-trait ISpaceMatcher : ISpace {
-    fn find_matching_data_candidate();
-    fn extract_data_candidates();
-    fn extract_first_match();
-}
-
-trait ISpaceOps : ISpaceMatcher {
-    fn produce_with_lock();
-}
 
 
 

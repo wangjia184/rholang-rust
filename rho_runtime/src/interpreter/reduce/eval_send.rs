@@ -4,8 +4,8 @@ use super::*;
 
 
 
-#[async_trait]
-impl AsyncEvaluator for Send {
+
+impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> Evaluator<S> for Send {
 
    /** Algorithm as follows:
     *
@@ -20,7 +20,7 @@ impl AsyncEvaluator for Send {
     * @param env An execution context
     *
     */
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext>, env : &Env) -> Result<(), ExecutionError> {
+    fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<(), ExecutionError> {
  
         context.may_raise_aborted_error()?;
 
@@ -33,7 +33,7 @@ impl AsyncEvaluator for Send {
         let channel = match self.chan.take() {
             Some(mut chan) => {
                 // evalChan <- evalExpr(send.chan)
-                chan.evaluate_nested_expressions(context, env).await?;
+                chan.evaluate_nested_expressions(context, env)?;
 
                 // subChan  <- substituteAndCharge[Par, M](evalChan, 0, env)
                 chan.substitute(&context, 0, &env)?;
@@ -56,7 +56,7 @@ impl AsyncEvaluator for Send {
 
 
         for dataum in &mut self.data {
-            dataum.evaluate_nested_expressions(context, env).await?;
+            dataum.evaluate_nested_expressions(context, env)?;
             // substituteAndCharge
             dataum.substitute(context, 0, env)?;
         }
@@ -64,8 +64,10 @@ impl AsyncEvaluator for Send {
 
         //_         <- produce(channel, ListParWithRandom(substData, rand), send.persistent)
 
-        println!("{:#?}", &self);
+        let mut list_par_with_random = ListParWithRandom::default();
+        list_par_with_random.pars.append(&mut self.data);
 
+        context.produce(channel, list_par_with_random, self.persistent);
         Ok(())
     }
 }

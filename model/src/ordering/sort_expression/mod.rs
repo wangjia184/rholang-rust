@@ -7,7 +7,7 @@ mod sort_var_instance;
 use sort_var_instance::VarInstanceScoreTreeIter;
 
 // To avoid Box<dyn trait> and heap allocation
-// use enum here for polymorphism
+// use enum for compile-time polymorphism
 pub(super) enum ExprUnderlyingIterWapper<'a>{
     GInt(GIntScoreTreeIter<'a>),
     VarInstance(VarInstanceScoreTreeIter<'a>),

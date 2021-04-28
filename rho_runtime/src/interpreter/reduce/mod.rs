@@ -1,9 +1,8 @@
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
-use crossbeam::queue::SegQueue;
 
-use async_trait::async_trait;
-use tokio::task;
+
+use super::*;
+
 
 use model::*;
 
@@ -12,64 +11,31 @@ pub mod eval_par;
 mod eval_send;
 mod eval_receive;
 mod eval_expression;
+mod eval_new;
+mod eval_var;
+mod eval_match;
 mod environment;
+
 
 #[cfg(test)] mod eval_receive_test;
 
 
-use eval_expression::AsyncParExpressionEvaluator;
+use eval_expression::ParExpressionEvaluator;
 use substitute::*;
 pub use environment::*;
 
-#[async_trait]
-pub trait AsyncEvaluator {
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext>, env : &Env) -> Result<(), ExecutionError>;
-}
+use crate::storage::Storage;
 
-
-
-#[derive(Default)]
-pub struct InterpreterContext {
-
-    aborted : AtomicBool,
-    errors : SegQueue<ExecutionError>,
+pub trait Evaluator<S, T = ()> 
+    where S : Storage + std::marker::Send + std::marker::Sync, T : 'static
+{
+    fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<T, ExecutionError>;
 }
 
 
 
 
 
-impl InterpreterContext {
 
-    fn spawn_evaluation<T>(self : &Arc<Self>, t : T, env : &Env) -> tokio::task::JoinHandle<Result<(), ExecutionError>>
-        where T : AsyncEvaluator + std::marker::Send + 'static
-    {
-        let cloned_context = self.clone();
-        let cloned_env = env.clone();
-        task::spawn( async move {
-            let mut evaluator = t;
-            let reference = &mut evaluator;
-            if let Err(err) = reference.evaluate(&cloned_context, &cloned_env).await {
-                if err.kind != ExecutionErrorKind::Aborted as i32 {
-                    cloned_context.aborted.store(true, Ordering::Relaxed);
-                    cloned_context.errors.push(err.clone());
-                }
-                return Err(err);
-            }
-            Ok(())
-        })
-    }
 
-    
-    #[inline]
-    pub fn may_raise_aborted_error(&self) -> Result<(), ExecutionError> {
-        if self.aborted.load(Ordering::Relaxed) {
-            Err(ExecutionError{
-                kind : ExecutionErrorKind::Aborted as i32,
-                message : "aborted".to_string(),
-            })
-        } else {
-            Ok(())
-        }
-    }
-}
+

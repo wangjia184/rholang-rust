@@ -94,6 +94,9 @@ enum ExecutionErrorKind {
     NonWritableChannel = 9;
     NonReadableChannel = 10;
     IllegalSubstitution = 11;
+    UnboundVariable = 12;
+    IllegalComparison = 13;
+    SystemFailure = 999;
 }
 
 message ExecutionError {
@@ -130,13 +133,14 @@ message Par {
 /**
  * Either rholang code or code built in to the interpreter.
  */
+/*
 message TaggedContinuation {
     oneof tagged_cont {
         ParWithRandom par_body = 1;
         int64 scala_body_ref = 2;
     }
 }
-
+*/
 /**
  * Rholang code along with the state of a split random number
  * generator for generating new unforgeable names.

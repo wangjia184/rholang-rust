@@ -37,3 +37,15 @@ While `rho_par.rs` defines `normalize::rho_par` module.
 ```
 cargo test --all
 ```
+
+## Build for Release
+
+```
+CARGO_PROFILE_RELEASE_LTO=true cargo build --release
+```
+
+## Profile
+
+```
+CARGO_PROFILE_RELEASE_DEBUG=true cargo flamegraph --bin=rho_runtime
+```

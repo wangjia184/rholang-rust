@@ -31,7 +31,7 @@ pub trait Sortable{
 enum ScoreAtom<'s> {
     IntAtom(i64),
     StringAtom(&'s String),
-    BytesAtom,
+    BytesAtom(&'s [u8]),
 }
 
 
@@ -47,8 +47,12 @@ pub mod sort_receive;
 pub mod sort_receive_bind;
 pub mod sort_var;
 pub mod sort_new;
+pub mod sort_unforgeable;
 pub mod sort_expression;
-
+pub mod sort_match;
+pub mod sort_match_case;
+mod hash;
+pub use hash::*;
 
 mod sort_send_test;
 mod sort_new_test;
@@ -68,7 +72,10 @@ enum ScoreTreeIter<'a>{
     Send(sort_send::SendScoreTreeIter<'a>),
     Receive(sort_receive::ReceiveScoreTreeIter<'a>),
     ReceiveBind(sort_receive_bind::ReceiveBindScoreTreeIter<'a>),
+    Match(sort_match::MatchScoreTreeIter<'a>),
+    MatchCase(sort_match_case::MatchCaseScoreTreeIter<'a>),
     Var(sort_var::VarScoreTreeIter<'a>),
+    Unforgeable(sort_unforgeable::UnforgeableScoreTreeIter<'a>),
     Expr(sort_expression::ExprScoreTreeIter<'a>),
     ExprUnderlying(sort_expression::ExprUnderlyingIterWapper<'a>),
 }
@@ -85,7 +92,10 @@ impl<'a> Iterator for ScoreTreeIter<'a> {
             ScoreTreeIter::Send(iter) => iter.next(),
             ScoreTreeIter::Receive(iter) => iter.next(),
             ScoreTreeIter::ReceiveBind(iter) => iter.next(),
+            ScoreTreeIter::Match(iter) => iter.next(),
+            ScoreTreeIter::MatchCase(iter) => iter.next(),
             ScoreTreeIter::Var(iter) => iter.next(),
+            ScoreTreeIter::Unforgeable(iter) => iter.next(),
             ScoreTreeIter::Expr(iter) => iter.next(),
             ScoreTreeIter::ExprUnderlying(iter) => iter.next(),
             _ => unreachable!("Bug! Some branch in ScoreTreeIter::score_tree_iter() is not implemented.")
@@ -133,7 +143,7 @@ impl Ord for ScoreAtom<'_> {
             (ScoreAtom::StringAtom(str1), ScoreAtom::StringAtom(str2)) => str1.cmp(str2),
             (ScoreAtom::StringAtom(_), _) => Ordering::Less,
             (_, ScoreAtom::StringAtom(_)) => Ordering::Greater,
-            (ScoreAtom::BytesAtom, ScoreAtom::BytesAtom) => todo!("Implement bytes"),
+            (ScoreAtom::BytesAtom(buf1), ScoreAtom::BytesAtom(buf2)) => buf1.cmp(buf2),
         }
     }
 }
@@ -233,3 +243,5 @@ enum Score {
 
     PAR = 999,
 }
+
+

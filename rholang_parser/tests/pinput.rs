@@ -179,6 +179,20 @@ fn pinput_should_handle_peek() {
 
 
 #[test]
+fn pinput_should_handle_persistent() {
+    let rholang_code = "for ( x, y <= @Nil ) { x!(*y) }";
+
+    let mut result = common::run_normalizer(rholang_code);
+    let root_par = result.par.take().unwrap();
+
+    assert_eq!( root_par.receives.len(), 1);
+    let rho_receive = &root_par.receives[0];
+    assert_eq!( rho_receive.persistent, true);
+}
+
+
+
+#[test]
 fn pinput_should_handle_a_more_complicated_receive() {
     let rholang_code = "for ( x1, @y1 <- @Nil ; x2, @y2 <- @1) { x1!(y2) | x2!(y1) }";
 

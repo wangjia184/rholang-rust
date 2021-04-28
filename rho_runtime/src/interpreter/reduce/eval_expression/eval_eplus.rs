@@ -1,12 +1,12 @@
 use super::*;
 
-#[async_trait]
-impl AsyncExprInstanceEvaluator for EPlus {
-    async fn evaluate(&mut self, context : &Arc<InterpreterContext>, env : &Env) -> Result<ExprInstance, ExecutionError> {
+
+impl<S : Storage + std::marker::Send + std::marker::Sync> ExprInstanceEvaluator<S> for EPlus {
+    fn evaluate(&mut self, context : &Arc<InterpreterContext<S>>, env : &Env) -> Result<ExprInstance, ExecutionError> {
 
         let v1 = match self.p1 {
             Some(ref mut par) => {
-                par.evaluate_single_expression(context, env).await?
+                par.evaluate_single_expression(context, env)?
             },
             None => {
                 return Err((ExecutionErrorKind::InvalidExpression, "EPlus::p1 is None").into());
@@ -15,7 +15,7 @@ impl AsyncExprInstanceEvaluator for EPlus {
 
         let v2 = match self.p2 {
             Some(ref mut par) => {
-                par.evaluate_single_expression(context, env).await?
+                par.evaluate_single_expression(context, env)?
             },
             None => {
                 return Err((ExecutionErrorKind::InvalidExpression, "EPlus::p2 is None").into());
@@ -25,8 +25,12 @@ impl AsyncExprInstanceEvaluator for EPlus {
         match (v1.expr_instance, v2.expr_instance) {
             (Some(ExprInstance::GInt(left)), Some(ExprInstance::GInt(right))) => {
                 // charge[M](SUM_COST)
-                let (sum, _) = left.overflowing_add(right);
-                Ok(ExprInstance::GInt(sum))
+                if cfg!(overflow_checks) {
+                    let (sum, _) = left.overflowing_add(right);
+                    Ok(ExprInstance::GInt(sum))
+                } else {
+                    Ok(ExprInstance::GInt(left + right))
+                }
             },
             (Some(ExprInstance::GInt(_)), Some(right)) => {
                 let msg = format!("Unexpected operand {} for `+` operator", print_type_of(&right));

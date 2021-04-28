@@ -2,6 +2,7 @@ use super::*;
 
 
 impl<'a> Scorable<'a> for &'a Var {
+    #[inline]
     fn score_tree_iter(self) -> ScoreTreeIter<'a> {
         VarScoreTreeIter{
             term : self,
@@ -46,7 +47,7 @@ impl<'a> Iterator for VarScoreTreeIter<'a> {
 // case Empty           => Leaf(Score.ABSENT)
 
 impl<'a> VarScoreTreeIter<'a> {
-
+    #[inline]
     fn var_score(&mut self) -> Option<Node<'a>> {
         self.stage += 1;
         if let Some(ref var) = self.term.var_instance {

@@ -96,23 +96,17 @@ pub struct Par {
     #[prost(bool, tag="10")]
     pub connective_used: bool,
 }
-///*
-/// Either rholang code or code built in to the interpreter.
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct TaggedContinuation {
-    #[prost(oneof="tagged_continuation::TaggedCont", tags="1, 2")]
-    pub tagged_cont: ::core::option::Option<tagged_continuation::TaggedCont>,
-}
-/// Nested message and enum types in `TaggedContinuation`.
-pub mod tagged_continuation {
-    #[derive(Clone, PartialEq, ::prost::Oneof)]
-    pub enum TaggedCont {
-        #[prost(message, tag="1")]
-        ParBody(super::ParWithRandom),
-        #[prost(int64, tag="2")]
-        ScalaBodyRef(i64),
-    }
-}
+//*
+// Either rholang code or code built in to the interpreter.
+
+//
+//message TaggedContinuation {
+//oneof tagged_cont {
+//ParWithRandom par_body = 1;
+//int64 scala_body_ref = 2;
+//}
+//}
+
 ///*
 /// Rholang code along with the state of a split random number
 /// generator for generating new unforgeable names.
@@ -121,8 +115,8 @@ pub struct ParWithRandom {
     #[prost(message, optional, tag="1")]
     pub body: ::core::option::Option<Par>,
     ///[(scalapb.field).type = "coop.rchain.crypto.hash.Blake2b512Random"];
-    #[prost(bytes="vec", tag="2")]
-    pub random_state: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes="bytes", tag="2")]
+    pub random_state: ::prost::bytes::Bytes,
 }
 ///*
 /// Cost of the performed operations.
@@ -136,8 +130,8 @@ pub struct ListParWithRandom {
     #[prost(message, repeated, tag="1")]
     pub pars: ::prost::alloc::vec::Vec<Par>,
     ///[(scalapb.field).type = "coop.rchain.crypto.hash.Blake2b512Random"];
-    #[prost(bytes="vec", tag="2")]
-    pub random_state: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes="bytes", tag="2")]
+    pub random_state: ::prost::bytes::Bytes,
 }
 /// While we use vars in both positions, when producing the normalized
 /// representation we need a discipline to track whether a var is a name or a
@@ -307,7 +301,7 @@ pub mod expr {
         #[prost(string, tag="4")]
         GUri(::prost::alloc::string::String),
         #[prost(bytes, tag="25")]
-        GByteArray(::prost::alloc::vec::Vec<u8>),
+        GByteArray(::prost::bytes::Bytes),
         #[prost(message, tag="5")]
         ENotBody(super::ENot),
         #[prost(message, tag="6")]
@@ -621,13 +615,13 @@ pub struct ConnectiveBody {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeployId {
-    #[prost(bytes="vec", tag="1")]
-    pub sig: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes="bytes", tag="1")]
+    pub sig: ::prost::bytes::Bytes,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeployerId {
-    #[prost(bytes="vec", tag="1")]
-    pub public_key: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes="bytes", tag="1")]
+    pub public_key: ::prost::bytes::Bytes,
 }
 /// Unforgeable names resulting from `new x { ... }`
 /// These should only occur as the program is being evaluated. There is no way in
@@ -653,18 +647,18 @@ pub mod g_unforgeable {
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GPrivate {
-    #[prost(bytes="vec", tag="1")]
-    pub id: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes="bytes", tag="1")]
+    pub id: ::prost::bytes::Bytes,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GDeployId {
-    #[prost(bytes="vec", tag="1")]
-    pub sig: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes="bytes", tag="1")]
+    pub sig: ::prost::bytes::Bytes,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GDeployerId {
-    #[prost(bytes="vec", tag="1")]
-    pub public_key: ::prost::alloc::vec::Vec<u8>,
+    #[prost(bytes="bytes", tag="1")]
+    pub public_key: ::prost::bytes::Bytes,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GSysAuthToken {
@@ -707,4 +701,7 @@ pub enum ExecutionErrorKind {
     NonWritableChannel = 9,
     NonReadableChannel = 10,
     IllegalSubstitution = 11,
+    UnboundVariable = 12,
+    IllegalComparison = 13,
+    SystemFailure = 999,
 }
