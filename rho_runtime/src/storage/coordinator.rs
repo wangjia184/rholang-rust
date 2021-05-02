@@ -173,10 +173,18 @@ impl<'a> Coordinator {
                         self.handle_produce(produce)
                     },
                     PendingTask::Consume(consume) => {
-                        self.handle_consume(consume);
+                        match consume.channels.len() {
+                            1 => self.handle_consume_single(consume),
+                            2 => self.handle_consume_double(consume),
+                            _ => self.handle_consume(consume),
+                        } 
+                       
                     },
                     PendingTask::Join(join_task) => {
-                        self.handle_join(join_task);
+                        match join_task.consumer.channels.len() {
+                            2 => self.handle_join_double(join_task),
+                            _ => self.handle_join(join_task),
+                        } 
                     }
                     PendingTask::Uninstall => {
                         return;
@@ -290,6 +298,130 @@ impl<'a> Coordinator {
         transit_port.borrow_mut().completed_signal = Some(current_signal.into());
     }
 
+
+    fn handle_consume_single(&mut self, consume_task : ConsumeTask) {
+
+        assert_eq!(consume_task.channels.len(), 1);
+        
+        let (hash, _) = &consume_task.channels[0];
+
+        // get the transit port of this channel
+        let transit_port0 = self.get_or_create_transit_port(*hash);
+        let prev_rx0 = match transit_port0.borrow_mut().completed_signal.take() {
+            Some(signal) => {
+                signal
+            },
+            None => {
+                // no previous Receiver, this is a fresh new channel
+                // simulate one
+                let (prev_tx, prev_rx) = oneshot::channel();
+                if let Err(_) = prev_tx.send(Transit::default()) {
+                    warn!("prev_tx.send(Transit::default()) failed but shouldn't!");
+                }
+                prev_rx.into()
+            }
+        };
+
+
+        
+        let current_signal = task::spawn( async move {
+
+            let mut transit0 = match prev_rx0.await {
+                Err(e) => {
+                    panic!("{} - {:?}", &e, &e);
+                },
+                Ok(t) => t
+            };
+
+            // now handle it
+            {
+                Transit::consume_single(&mut transit0, consume_task);
+            };
+
+            transit0
+        });// task::spawn()
+        transit_port0.borrow_mut().completed_signal = Some(current_signal.into());
+                
+    }// handle_consume_double()
+
+
+    fn handle_consume_double(&mut self, consume_task : ConsumeTask) {
+
+        assert_eq!(consume_task.channels.len(), 2);
+        
+        let (hash, _) = &consume_task.channels[0];
+
+        // get the transit port of this channel
+        let transit_port0 = self.get_or_create_transit_port(*hash);
+        let prev_rx0 = match transit_port0.borrow_mut().completed_signal.take() {
+            Some(signal) => {
+                signal
+            },
+            None => {
+                // no previous Receiver, this is a fresh new channel
+                // simulate one
+                let (prev_tx, prev_rx) = oneshot::channel();
+                if let Err(_) = prev_tx.send(Transit::default()) {
+                    warn!("prev_tx.send(Transit::default()) failed but shouldn't!");
+                }
+                prev_rx.into()
+            }
+        };
+
+
+        let (hash, _) = &consume_task.channels[1];
+
+        // get the transit port of this channel
+        let transit_port1 = self.get_or_create_transit_port(*hash);
+        let (tx1, rx1) = oneshot::channel();
+        let prev_rx1 = match transit_port1.borrow_mut().completed_signal.replace(rx1.into()) {
+            Some(signal) => {
+                signal
+            },
+            None => {
+                // no previous Receiver, this is a fresh new channel
+                // simulate one
+                let (prev_tx, prev_rx) = oneshot::channel();
+                if let Err(_) = prev_tx.send(Transit::default()) {
+                    warn!("prev_tx.send(Transit::default()) failed but shouldn't!");
+                }
+                prev_rx.into()
+            }
+        };
+
+
+        
+        let current_signal = task::spawn( async move {
+
+            let mut transit0 = match prev_rx0.await {
+                Err(e) => {
+                    panic!("{} - {:?}", &e, &e);
+                },
+                Ok(t) => t
+            };
+            let mut transit1 = match prev_rx1.await {
+                Err(e) => {
+                    panic!("{} - {:?}", &e, &e);
+                },
+                Ok(t) => t
+            };
+
+            // now handle it
+            {
+                let transits = smallvec![&mut transit0, &mut transit1];
+                Transit::consume_multiple(transits, consume_task);
+            };
+
+    
+            if let Err(_) = tx1.send(transit1) {
+                warn!("tx1.send(transit1) failed but it should not!");
+            }
+            transit0
+        });// task::spawn()
+        transit_port0.borrow_mut().completed_signal = Some(current_signal.into());
+                
+    }// handle_consume_double()
+
     fn handle_consume(&mut self, consume_task : ConsumeTask) {
 
         let mut rx_tx_pairs = ShortVector::with_capacity(consume_task.channels.len());
@@ -323,60 +455,118 @@ impl<'a> Coordinator {
         
         task::spawn( async move {
 
-            if rx_tx_pairs.len() == 1 { // optimize for frequent execution path
 
-                let (rx, tx) = rx_tx_pairs.pop().unwrap();
-                let mut transit = match rx.await {
+            let mut pairs : ShortVector<(Transit, oneshot::Sender<Transit>)> = ShortVector::with_capacity(rx_tx_pairs.len());
+            
+    
+            for (rx, tx) in rx_tx_pairs {
+                match rx.await {
                     Err(e) => {
                         warn!("Error in oneshot::Receiver<Transit>. {} - {:?}", &e, &e);
                         return;
                     },
-                    Ok(t) => t
-                };
+                    Ok(transit) => {
+                        pairs.push((transit, tx));
+                    }
+                }
+            }
 
-                Transit::consume_single(&mut transit, consume_task);
+            // now handle it
+            {
+                let transits = pairs.iter_mut().map(|pair| &mut pair.0).collect();
+                Transit::consume_multiple(transits, consume_task);
+            };
 
-                
+    
+            // now send the signals
+            for (transit, tx) in pairs {
                 if let Err(_) = tx.send(transit) {
                     warn!("tx.send(transit) failed but it should not!");
                 }
-
-            } 
-            else {
-                let mut pairs : ShortVector<(Transit, oneshot::Sender<Transit>)> = ShortVector::with_capacity(rx_tx_pairs.len());
-                
-        
-                for (rx, tx) in rx_tx_pairs {
-                    match rx.await {
-                        Err(e) => {
-                            warn!("Error in oneshot::Receiver<Transit>. {} - {:?}", &e, &e);
-                            return;
-                        },
-                        Ok(transit) => {
-                            pairs.push((transit, tx));
-                        }
-                    }
-                }
-
-                // now handle it
-                {
-                    let transits = pairs.iter_mut().map(|pair| &mut pair.0).collect();
-                    Transit::consume_multiple(transits, consume_task);
-                };
-
-        
-                // now send the signals
-                for (transit, tx) in pairs {
-                    if let Err(_) = tx.send(transit) {
-                        warn!("tx.send(transit) failed but it should not!");
-                    }
-                }
-            }// if_else
-            
+            }
 
         });// task::spawn()
                 
     }// handle_consume()
+
+
+
+    fn handle_join_double(&mut self, join_task : JoinChannelTask) {
+
+        assert_eq!( join_task.consumer.channels.len(), 2);
+
+        let iter = &mut join_task.consumer.channels.iter();
+        let hash0 = *(iter.next().unwrap().0);
+
+        let transit_port0 = self.get_or_create_transit_port(hash0);
+        let prev_rx0 = match transit_port0.borrow_mut().completed_signal.take() {
+            Some(signal) => {
+                signal
+            },
+            None => {
+                // no previous Receiver, this is a fresh new channel
+                // simulate one
+                let (prev_tx, prev_rx) = oneshot::channel();
+                if let Err(_) = prev_tx.send(Transit::default()) {
+                    warn!("prev_tx.send(Transit::default()) failed but shouldn't!");
+                }
+                prev_rx.into()
+            }
+        };
+
+        let hash1 = *iter.next().unwrap().0;
+
+        // get the transit port of this channel
+        let transit_port1 = self.get_or_create_transit_port(hash1);
+        let (tx1, rx1) = oneshot::channel();
+        let prev_rx1 = match transit_port1.borrow_mut().completed_signal.replace(rx1.into()) {
+            Some(signal) => {
+                signal
+            },
+            None => {
+                // no previous Receiver, this is a fresh new channel
+                // simulate one
+                let (prev_tx, prev_rx) = oneshot::channel();
+                if let Err(_) = prev_tx.send(Transit::default()) {
+                    warn!("prev_tx.send(Transit::default()) failed but shouldn't!");
+                }
+                prev_rx.into()
+            }
+        };
+        drop(iter);
+
+        let current_signal = task::spawn( async move {
+
+            let mut transit0 = match prev_rx0.await {
+                Err(e) => {
+                    panic!("{} - {:?}", &e, &e);
+                },
+                Ok(t) => t
+            };
+            let mut transit1 = match prev_rx1.await {
+                Err(e) => {
+                    panic!("{} - {:?}", &e, &e);
+                },
+                Ok(t) => t
+            };
+
+            // now handle it
+            {
+                let transits : ShortVector<_> = smallvec![(hash0, &mut transit0), (hash1, &mut transit1)];
+                Transit::join(transits, join_task);
+            };
+
+    
+            // now send the signals
+            if let Err(_) = tx1.send(transit1) {
+                warn!("tx.send(transit) failed but it should not!");
+            }
+            
+            transit0
+        });// task::spawn()
+        transit_port0.borrow_mut().completed_signal = Some(current_signal.into());
+    }
+
 
     fn handle_join(&mut self, join_task : JoinChannelTask) {
 
