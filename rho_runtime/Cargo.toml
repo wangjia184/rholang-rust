@@ -27,6 +27,7 @@ tempfile = "3.2"
 lazy_static = "1.4"
 clap = "2.33"
 num_cpus = "1.13"
+futures = "0.3"
 
 [build-dependencies]
 bindgen = "0.57"

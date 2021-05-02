@@ -6,9 +6,11 @@ use tokio::sync::oneshot;
 
 use model::*;
 
+mod signal;
 mod coordinator;
 mod transit;
 
+use signal::*;
 use transit::*;
 pub use coordinator::*;
 

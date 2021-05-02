@@ -2,8 +2,9 @@ use std::collections::hash_map::Entry;
 use std::cell::{ RefCell };
 use std::rc::Rc;
 use std::sync::Arc;
-use tokio::task;
+use tokio::task::{self, JoinHandle};
 use tokio::sync::Notify;
+use futures::future::Either;
 
 use rustc_hash::{ FxHashMap };
 
@@ -63,9 +64,10 @@ pub struct Coordinator {
     transit_port_map : FxHashMap<Hash, Rc<RefCell<TransitPort>>>
 }
 
+
 #[derive(Default)]
-pub struct TransitPort {
-    pub(super) completed_signal : Option<oneshot::Receiver<Transit>>,
+struct TransitPort {
+    completed_signal : Option<CompletionSignal>,
 }
 
 #[derive(Clone)]
@@ -204,7 +206,7 @@ impl<'a> Coordinator {
         let (tx, rx) = oneshot::channel();
         
         // replace receiver which will be signaled when current coroutine completes
-        let prev_signal = match transit_port.borrow_mut().completed_signal.replace(rx) {
+        let prev_signal = match transit_port.borrow_mut().completed_signal.replace(rx.into()) {
             Some(signal) => {
                 signal
             },
@@ -215,7 +217,7 @@ impl<'a> Coordinator {
                 if let Err(_) = prev_tx.send(Transit::default()) {
                     warn!("prev_tx.send(Transit::default()) failed but shouldn't!");
                 }
-                prev_rx
+                prev_rx.into()
             }
         };
         
@@ -245,11 +247,9 @@ impl<'a> Coordinator {
 
         // get the transit port of this channel
         let transit_port = self.get_or_create_transit_port(produce.channel.0);
-        // create a pair of sender + receiver
-        let (tx, rx) = oneshot::channel();
         
         // replace receiver which will be signaled when current coroutine completes
-        let prev_signal = match transit_port.borrow_mut().completed_signal.replace(rx) {
+        let prev_signal = match transit_port.borrow_mut().completed_signal.take() {
             Some(signal) => {
                 signal
             },
@@ -260,18 +260,17 @@ impl<'a> Coordinator {
                 if let Err(_) = prev_tx.send(Transit::default()) {
                     warn!("prev_tx.send(Transit::default()) failed but shouldn't!");
                 }
-                prev_rx
+                prev_rx.into()
             }
         };
 
         let cloned_share = self.share.clone();
         
-        task::spawn( async move {
+        let current_signal = task::spawn(async move {
             // first ensure previous coroutines are completed
             let mut transit = match prev_signal.await {
                 Err(e) => {
-                    warn!("Error in oneshot::Receiver<Transit>. {} - {:?}", &e, &e);
-                    return;
+                    panic!("{} - {:?}", &e, &e);
                 },
                 Ok(t) => t
             };
@@ -286,12 +285,9 @@ impl<'a> Coordinator {
                 cloned_share.notify.notify_one();
             }
 
-            // now send the signal
-            if let Err(_) = tx.send(transit) {
-                warn!("tx.send(transit) failed but shouldn't!");
-            }
+            transit
         });
-
+        transit_port.borrow_mut().completed_signal = Some(current_signal.into());
     }
 
     fn handle_consume(&mut self, consume_task : ConsumeTask) {
@@ -307,7 +303,7 @@ impl<'a> Coordinator {
 
             rx_tx_pairs.push(
                 // replace receiver which will be signaled when current coroutine completes
-                match transit_port.borrow_mut().completed_signal.replace(rx) {
+                match transit_port.borrow_mut().completed_signal.replace(rx.into()) {
                     Some(signal) => {
                         (signal, tx)
                     },
@@ -318,7 +314,7 @@ impl<'a> Coordinator {
                         if let Err(_) = prev_tx.send(Transit::default()) {
                             warn!("prev_tx.send(Transit::default()) must not fail");
                         }
-                        (prev_rx, tx)
+                        (prev_rx.into(), tx)
                     }
                 }
             );
@@ -395,7 +391,7 @@ impl<'a> Coordinator {
 
             tuples.push(
                 // replace receiver which will be signaled when current coroutine completes
-                match transit_port.borrow_mut().completed_signal.replace(rx) {
+                match transit_port.borrow_mut().completed_signal.replace(rx.into()) {
                     Some(signal) => {
                         (*hash, signal, tx)
                     },
@@ -406,7 +402,7 @@ impl<'a> Coordinator {
                         if let Err(_) = prev_tx.send(Transit::default()) {
                             warn!("prev_tx.send(Transit::default()) must not fail");
                         }
-                        (*hash, prev_rx, tx)
+                        (*hash, prev_rx.into(), tx)
                     }
                 }
             );
