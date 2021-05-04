@@ -4,11 +4,11 @@ use std::rc::Rc;
 use std::sync::Arc;
 use tokio::task;
 use tokio::sync::Notify;
+use flume;
 
 use rustc_hash::{ FxHashMap };
 
 use super::*;
-use crossbeam::queue::ArrayQueue;
 use blake3::Hash;
 
 enum PendingTask{
@@ -53,13 +53,11 @@ pub(super) struct JoinChannelTask {
     pub(super) consumer : Arc<super::transit::SharedJoinedConsumer>,
 }
 
-struct ThreadSafeShare {
-    notify : Notify,
-    queue : ArrayQueue<PendingTask>,
-}
 
 pub struct Coordinator {
-    share : Arc<ThreadSafeShare>,
+    tx : flume::Sender<PendingTask>,
+    rx : flume::Receiver<PendingTask>,
+    congregator : Congregator,
     transit_port_map : FxHashMap<Hash, Rc<RefCell<TransitPort>>>
 }
 
@@ -70,7 +68,7 @@ pub struct TransitPort {
 
 #[derive(Clone)]
 pub struct  AsyncStore {
-    share : Arc<ThreadSafeShare>,
+    tx : flume::Sender<PendingTask>,
 }
 
 #[async_trait]
@@ -82,18 +80,16 @@ impl Storage for AsyncStore {
             callback : func,
         };
 
-        if let Err(_) = self.share.queue.push(PendingTask::Install(install_task)) {
+        if let Err(_) = self.tx.send(PendingTask::Install(install_task)) {
             panic!("Coordinator queue is full!");
         }
-        self.share.notify.notify_one();
         None
     }
 
     fn uninstall(&self) -> Reply {
-        if let Err(_) = self.share.queue.push(PendingTask::Uninstall) {
+        if let Err(_) = self.tx.send(PendingTask::Uninstall) {
             panic!("Coordinator queue is full!");
         }
-        self.share.notify.notify_one();
         None
     }
 
@@ -107,10 +103,9 @@ impl Storage for AsyncStore {
             data : data,
             persistent : persistent,
         };
-        if let Err(_) = self.share.queue.push(PendingTask::Produce(produce_task)) {
+        if let Err(_) = self.tx.send(PendingTask::Produce(produce_task)) {
             panic!("Coordinator queue is full!");
         }
-        self.share.notify.notify_one();
         match rx.await {
             Err(e) => {
                 warn!("Unable to send. {}.", e);
@@ -129,10 +124,9 @@ impl Storage for AsyncStore {
             persistent : persistent,
             peek : peek,
         };
-        if let Err(_) = self.share.queue.push(PendingTask::Consume(consume_task)) {
+        if let Err(_) = self.tx.send(PendingTask::Consume(consume_task)) {
             panic!("Coordinator queue is full!");
         }
-        self.share.notify.notify_one();
         match rx.await {
             Err(e) => {
                 debug!("Unable to receive. Reason {}.", e);
@@ -147,22 +141,20 @@ impl Storage for AsyncStore {
 impl<'a> Coordinator {
 
     pub fn create() -> (AsyncStore, Self) {
-        let share = Arc::new(ThreadSafeShare {
-            notify : Notify::new(),
-            queue : ArrayQueue::new(1000000), 
-        });
-        
+        let (tx, rx) = flume::unbounded();
         let coordinator = Self { 
-            share : share.clone(),
+            tx : tx.clone(),
+            rx : rx,
+            congregator : Congregator::default(),
             transit_port_map : FxHashMap::with_capacity_and_hasher( 100000, Default::default()) 
         };
-        let hot_store = AsyncStore { share : share };
+        let hot_store = AsyncStore { tx : tx };
         (hot_store, coordinator)
     }
 
     pub async fn run(&mut self) {
         loop {
-            while let Some(pending_task) = self.share.queue.pop() {
+            while let Ok(pending_task) = self.rx.recv_async().await {
                 match  pending_task {
                     PendingTask::Install(install) => {
                         self.handle_install(install)
@@ -181,7 +173,6 @@ impl<'a> Coordinator {
                     }
                 }
             }
-            self.share.notify.notified().await;
         }
         
     }
@@ -264,7 +255,7 @@ impl<'a> Coordinator {
             }
         };
 
-        let cloned_share = self.share.clone();
+        let cloned_tx = self.tx.clone();
         
         task::spawn( async move {
             // first ensure previous coroutines are completed
@@ -280,10 +271,9 @@ impl<'a> Coordinator {
             if let Some(joined_consumer) = Transit::produce(&mut transit, produce) {
                 // join is required
                 
-                if let Err(_) = cloned_share.queue.push(PendingTask::Join(joined_consumer)) {
+                if let Err(_) = cloned_tx.send(PendingTask::Join(joined_consumer)) {
                     error!("Coordinator queue is full!");
                 }
-                cloned_share.notify.notify_one();
             }
 
             // now send the signal

@@ -7,8 +7,10 @@ use tokio::sync::oneshot;
 use model::*;
 
 mod coordinator;
+mod congregator;
 mod transit;
 
+use congregator::*;
 use transit::*;
 pub use coordinator::*;
 
