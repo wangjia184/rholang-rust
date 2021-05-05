@@ -41,7 +41,7 @@ cargo test --all
 ## Build for Release
 
 ```
-CARGO_PROFILE_RELEASE_LTO=true CARGO_PROFILE_RELEASE_PANIC=abort cargo build --release
+CARGO_PROFILE_RELEASE_LTO=true CARGO_PROFILE_RELEASE_PANIC=abort RUSTFLAGS="--emit=asm" cargo build --release
 ```
 
 ## Profile
