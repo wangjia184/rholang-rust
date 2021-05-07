@@ -34,7 +34,8 @@ pub(super) struct  SharedJoinedConsumer {
     persistent : bool,
 }
 
-pub(super) struct  Transit {
+pub(super) struct  TupleCell {
+    hash : blake3::Hash,
     id_base : usize,
     dataums : ShortVector<Dataum>,
 
@@ -49,9 +50,15 @@ pub (super) struct  Dataum {
     data : ListParWithRandom,
 }
 
-impl Default for Transit {
-    fn default() -> Self {
+
+
+// only allow to update the passed-in cell(s)
+// coordinator ensured there is no others are working on them when we are called here
+impl TupleCell {
+
+    pub(super) fn new(hash : blake3::Hash) -> Self {
         Self {
+            hash : hash,
             id_base : 1,
             dataums : ShortVector::default(),
             consumers : ShortVector::default(),
@@ -59,38 +66,30 @@ impl Default for Transit {
             joined_consumers : ShortVector::default(),
         }
     }
-}
 
-
-
-
-// only allow to update the passed-in transit(s)
-// coordinator ensured there is no others are working on them when we are called here
-impl Transit {
-
-    pub(super) fn install(transit : &mut Transit, task : InstallTask) {
+    pub(super) fn install(cell : &mut TupleCell, task : InstallTask) {
 
         let independent_consumer = IndependentConsumer {
             bind_pattern : task.channel.1,
             continuation : TaggedContinuation::Callback(task.callback),
         };
-        transit.persistented_consumers.push(independent_consumer);
+        cell.persistented_consumers.push(independent_consumer);
 
     }
 
     // first check single consumers, if no match, then check joined consumers
-    pub(super) fn produce(transit : &mut Transit, task : ProduceTask) -> Option<JoinChannelTask> {
+    pub(super) fn produce(cell : &mut TupleCell, task : ProduceTask) -> Option<JoinChannelTask> {
 
         //println!("produce {:?} ==> {:?}", &task.data.pars[0].exprs[0], &task.channel.0);
 
         // first try to search in temp consumers
-        match transit.consumers.iter().position( |consumer| {
-            Transit::is_matched(&task.data, &consumer.bind_pattern)
+        match cell.consumers.iter().position( |consumer| {
+            TupleCell::is_matched(&task.data, &consumer.bind_pattern)
         }) 
         {
             Some(idx) => {
                 // a match is found
-                let consumer = transit.consumers.remove(idx);
+                let consumer = cell.consumers.remove(idx);
 
                 let reply = Some(smallvec![(consumer.continuation, smallvec![task.data])]);
                 if let Err(_) = task.replier.send(reply) {
@@ -100,8 +99,8 @@ impl Transit {
             },
             None => {
                 // then search in persistented consumers
-                match transit.persistented_consumers.iter().find( |persistented_consumer| {
-                    Transit::is_matched(&task.data, &persistented_consumer.bind_pattern)
+                match cell.persistented_consumers.iter().find( |persistented_consumer| {
+                    TupleCell::is_matched(&task.data, &persistented_consumer.bind_pattern)
                 }) 
                 {
                     Some(persistented_consumer) => {
@@ -114,21 +113,21 @@ impl Transit {
                     },
                     None => {
                         // store it for later match
-                        transit.id_base += 1;
+                        cell.id_base += 1;
                         let dataum = Dataum {
-                            id : transit.id_base,
+                            id : cell.id_base,
                             data : task.data,
                         };
-                        transit.dataums.push(dataum);
+                        cell.dataums.push(dataum);
 
-                        let dataums = &transit.dataums;
+                        let dataums = &cell.dataums;
                         // check joined consumers
                         // here we only need find an eligibile joined consumer, then notify coordinator to schedual on that again
                         for JoinedConsumer { ref mut last_dataum_id, ref bind_pattern, ref share} 
-                            in &mut transit.joined_consumers 
+                            in &mut cell.joined_consumers 
                         {
                             let mut idx = 0; // TODO : here should be more smart to determine index from ID
-                            if Transit::find_first_dataum_position(&dataums, bind_pattern, &mut idx, last_dataum_id) {
+                            if TupleCell::find_first_dataum_position(&dataums, bind_pattern, &mut idx, last_dataum_id) {
                                 return Some(JoinChannelTask {
                                     replier : task.replier,
                                     consumer : share.clone(),
@@ -150,29 +149,21 @@ impl Transit {
     }
 
 
-    // A dedicated implementation for performance
-    #[inline]
-    pub(super) fn consume_single( transit : &mut Transit, task : ConsumeTask){
-
-        // TODO: implement a dedicated version
-        Transit::consume_multiple(smallvec![transit], task);
-    }
-
     // temporary consumer -
     //     1. try to match one dataum
     //     2. if no match, store the consumer
     // persistent consumer -
     //     1. try to match all dataums
     //     2. store the consumer
-    pub(super) fn consume_multiple( mut transits : ShortVector<&mut Transit>, task : ConsumeTask){
+    pub(super) fn consume_multiple( mut cells : ShortVector<&mut TupleCell>, task : ConsumeTask){
 
         // Not only the count are the same, their order must be the same!
-        assert_eq!(transits.len(), task.channels.len());
+        assert_eq!(cells.len(), task.channels.len());
 
         // first we need find out the position of matched dataums in each channel
         // the first u64 represents dataum_index last accessed (might be matched)
         // the second u64 represents unmatched dataum's id  
-        let mut dataum_indexes: SmallVec<[[usize;2]; 5]> = smallvec![[0;2]; transits.len()];
+        let mut dataum_indexes: SmallVec<[[usize;2]; 5]> = smallvec![[0;2]; cells.len()];
 
         
 
@@ -182,10 +173,10 @@ impl Transit {
 
             let mut matched = true;
             while matched {
-                for ( (transit, (_, bind_pattern) ), [dataum_index, dataum_id]  ) 
-                    in transits.iter_mut().zip(&task.channels).zip(&mut dataum_indexes)
+                for ( (cell, (_, bind_pattern) ), [dataum_index, dataum_id]  ) 
+                    in cells.iter_mut().zip(&task.channels).zip(&mut dataum_indexes)
                 {
-                    matched = Transit::find_first_dataum_position( &transit.dataums, bind_pattern, dataum_index, dataum_id);
+                    matched = TupleCell::find_first_dataum_position( &cell.dataums, bind_pattern, dataum_index, dataum_id);
                     if !matched {
                         
                         break;
@@ -196,11 +187,11 @@ impl Transit {
                     break;
                 }
 
-                let data_list = transits
+                let data_list = cells
                     .iter_mut()
                     .zip(&dataum_indexes)
-                    .map( |(transit, [idx, _]) | {
-                        transit.dataums.remove(*idx).data
+                    .map( |(cell, [idx, _]) | {
+                        cell.dataums.remove(*idx).data
                     })
                     .collect();
 
@@ -214,9 +205,9 @@ impl Transit {
                 }
             }
 
-            if transits.len() == 1 {
+            if cells.len() == 1 {
                 assert_eq!(task.channels.len(), 1);
-                transits[0].persistented_consumers.push(IndependentConsumer {
+                cells[0].persistented_consumers.push(IndependentConsumer {
                     bind_pattern : task.channels.into_iter().next().unwrap().1,
                     continuation : task.continuation,
                 });
@@ -227,25 +218,25 @@ impl Transit {
                     continuation : task.continuation,
                     persistent : true,
                 } );
-                for ( (transit, (_, bind_pattern) ), [_, dataum_id]  ) 
-                    in transits.iter_mut().zip(task.channels).zip(&mut dataum_indexes)
+                for ( (cell, (_, bind_pattern) ), [_, dataum_id]  ) 
+                    in cells.iter_mut().zip(task.channels).zip(&mut dataum_indexes)
                 {
                     let joined_consumer = JoinedConsumer {
                         bind_pattern : bind_pattern,
                         last_dataum_id : *dataum_id,
                         share : share.clone(),
                     };
-                    transit.joined_consumers.push(joined_consumer);
+                    cell.joined_consumers.push(joined_consumer);
                 }
             }
         }
         else {
 
             let mut matched = true;
-            for ( (transit, (_, bind_pattern) ), [dataum_index, dataum_id]  ) 
-                    in transits.iter_mut().zip(&task.channels).zip(&mut dataum_indexes)
+            for ( (cell, (_, bind_pattern) ), [dataum_index, dataum_id]  ) 
+                    in cells.iter_mut().zip(&task.channels).zip(&mut dataum_indexes)
             {
-                matched = Transit::find_first_dataum_position( &transit.dataums, bind_pattern, dataum_index, dataum_id);
+                matched = TupleCell::find_first_dataum_position( &cell.dataums, bind_pattern, dataum_index, dataum_id);
                 if !matched {
                     break;
                 }
@@ -253,11 +244,11 @@ impl Transit {
 
             // for temporary consumer, send the dataum immediately if matches; otherwise store the continuation
             if matched {
-                let data_list = transits
+                let data_list = cells
                     .iter_mut()
                     .zip(&dataum_indexes)
-                    .map( |(transit, [idx, _]) | {
-                        transit.dataums.remove(*idx).data
+                    .map( |(cell, [idx, _]) | {
+                        cell.dataums.remove(*idx).data
                     })
                     .collect();
 
@@ -267,9 +258,9 @@ impl Transit {
                 }
             } else {
 
-                if transits.len() == 1 {
+                if cells.len() == 1 {
                     assert_eq!(task.channels.len(), 1);
-                    transits[0].consumers.push(IndependentConsumer {
+                    cells[0].consumers.push(IndependentConsumer {
                         bind_pattern : task.channels.into_iter().next().unwrap().1,
                         continuation : task.continuation,
                     });
@@ -280,15 +271,15 @@ impl Transit {
                         continuation : task.continuation,
                         persistent : false,
                     } );
-                    for ( (transit, (_, bind_pattern) ), [_, dataum_id]  ) 
-                        in transits.iter_mut().zip(task.channels).zip(&mut dataum_indexes)
+                    for ( (cell, (_, bind_pattern) ), [_, dataum_id]  ) 
+                        in cells.iter_mut().zip(task.channels).zip(&mut dataum_indexes)
                     {
                         let joined_consumer = JoinedConsumer {
                             bind_pattern : bind_pattern,
                             last_dataum_id : *dataum_id,
                             share : share.clone(),
                         };
-                        transit.joined_consumers.push(joined_consumer);
+                        cell.joined_consumers.push(joined_consumer);
                     }
                 }
                 if let Err(_) = task.replier.send(None) {
@@ -313,7 +304,7 @@ impl Transit {
         while *start_index < dataums.len() {
             let current_id = dataums[*start_index].id;
             if *dataum_id < current_id { // this dataum was not scanned
-                if Transit::is_matched(&dataums[*start_index].data, bind_pattern) {
+                if TupleCell::is_matched(&dataums[*start_index].data, bind_pattern) {
                     return true;
                 }
                 *dataum_id = current_id;
@@ -331,9 +322,9 @@ impl Transit {
     }
 
 
-    pub(super) fn join( mut transits : ShortVector<(Hash, &mut Transit)>, join_task : JoinChannelTask){
+    pub(super) fn join( mut cells : ShortVector<&mut TupleCell>, join_task : JoinChannelTask){
 
-        let match_result = Transit::match_one( &mut transits, &join_task);
+        let match_result = TupleCell::match_one( &mut cells, &join_task);
         match match_result {
             MatchResult::NoMatch => {
                 if let Err(_) = join_task.replier.send(None) {
@@ -341,19 +332,19 @@ impl Transit {
                 }
             },
             MatchResult::Matched(shared_consumer,index_pairs) => {
-                // the returned order of elements in index_pairs is the same as the order of transits
+                // the returned order of elements in index_pairs is the same as the order of cells
                 // but it might be different from the order of the continuation
                 // hence need resort it.
-                let mut data_list: ShortVector<(usize, ListParWithRandom)> = transits
+                let mut data_list: ShortVector<(usize, ListParWithRandom)> = cells
                     .iter_mut()
                     .zip(&index_pairs)
-                    .map( |(transit, [ consumer_idx, dataum_idx]) | { 
+                    .map( |(cell, [ consumer_idx, dataum_idx]) | { 
                         if !shared_consumer.persistent {
-                            transit.1.joined_consumers.remove(*consumer_idx);
+                            cell.joined_consumers.remove(*consumer_idx);
                         }
                         (
-                            *shared_consumer.channels.get(&transit.0).unwrap(),
-                            transit.1.dataums.remove(*dataum_idx).data
+                            *shared_consumer.channels.get(&cell.hash).unwrap(),
+                            cell.dataums.remove(*dataum_idx).data
                         )
                     })
                     .collect();
@@ -373,24 +364,24 @@ impl Transit {
 
     }
 
-    fn match_one( transits : &mut ShortVector<(Hash, &mut Transit)>, join_task : &JoinChannelTask) -> MatchResult {
+    fn match_one( cells : &mut ShortVector<&mut TupleCell>, join_task : &JoinChannelTask) -> MatchResult {
         // the value records the index of joined_consumer and dataum
         let mut full_joined_consumers : FxHashMap<*const SharedJoinedConsumer, ShortVector<[usize;2]>> = FxHashMap::default();
-        for (_, transit) in transits 
+        for cell in cells 
         {
-            if transit.dataums.is_empty() {
+            if cell.dataums.is_empty() {
                 
                 return MatchResult::NoMatch;
             }
 
             for (consumer_idx, JoinedConsumer { last_dataum_id, bind_pattern, share }) 
-                in transit.joined_consumers.iter_mut().enumerate()
+                in cell.joined_consumers.iter_mut().enumerate()
             {
                 let mut dataum_idx = 0; // TODO : should be more smart to determine the start index by id
-                if Transit::find_first_dataum_position(&transit.dataums, bind_pattern, &mut dataum_idx, last_dataum_id) {
+                if TupleCell::find_first_dataum_position(&cell.dataums, bind_pattern, &mut dataum_idx, last_dataum_id) {
                     if share.channels.len() == join_task.consumer.channels.len() &&
                        share.channels.iter().all(|(h, _)| join_task.consumer.channels.contains_key(h) ) {
-                        // all transits are joined
+                        // all cells are joined
                         match full_joined_consumers.entry(Arc::as_ptr(share) ) {
                             Entry::Occupied(o) => {
                                 let borrow = o.into_mut();
@@ -409,7 +400,7 @@ impl Transit {
                             },
                         };
                     } else {
-                        // not all transit are joined, but current one is qualified
+                        // not all cell are joined, but current one is qualified
                         unimplemented!("partial join are not implemented yet");
                     }
                 } else {

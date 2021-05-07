@@ -1,0 +1,33 @@
+new cnt, x, sumx, y, sumy, z, sumz, v, sumv, u, sumu, q, sumq, w, sumw, stdout(`rho:io:stdout`) in {
+    cnt!(0) |
+    sumx!(0) | sumy!(0) | sumz!(0) | sumv!(0) | sumu!(0) | sumq!(0) | sumw!(0) |
+    for( num <= cnt ) {
+        if( *num < 10000 ) {
+            cnt!(*num+1) |
+            x!(*num+1) | y!(*num+1) | z!(*num+1) | v!(*num+1) | u!(*num+1) | q!(*num+1) | w!(*num+1)
+        } else {
+            stdout!(*num)
+        }
+    } |
+    for( a <= x; sum1 <= sumx ){
+        if( *sum1+*a < 50005000 ) { sumx!(*sum1+*a) } else { stdout!(*sum1+*a) }
+    } |
+    for( a <= y; sum <= sumy ){
+        if( *sum+*a < 50005000 ) { sumy!(*sum+*a) } else { stdout!(*sum+*a) }
+    } |
+    for( a <= z; sum <= sumz ){
+        if( *sum+*a < 50005000 ) { sumz!(*sum+*a) } else { stdout!(*sum+*a) }
+    } |
+    for( a <= v; sum <= sumv ){
+        if( *sum+*a < 50005000 ) { sumv!(*sum+*a) } else { stdout!(*sum+*a) }
+    } |
+    for( a <= u; sum <= sumu ){
+        if( *sum+*a < 50005000 ) { sumu!(*sum+*a) } else { stdout!(*sum+*a) }
+    } |
+    for( a <= q; sum <= sumq ){
+        if( *sum+*a < 50005000 ) { sumq!(*sum+*a) } else { stdout!(*sum+*a) }
+    } |
+    for( a <= w; sum <= sumw ){
+       if( *sum+*a < 50005000 ) { sumw!(*sum+*a) } else { stdout!(*sum+*a) }
+    }
+}
