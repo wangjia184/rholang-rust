@@ -120,7 +120,14 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterC
         let cloned_self = self.clone();
         self.wait_group.acquire();
         task::spawn( async move {
-            let reply = cloned_self.storage.produce(channel, data, persistent).await;
+            let reply = match cloned_self.storage.produce(channel, data, persistent).await {
+                Err(e) => {
+                    warn!("Unable to get response of produce. {}.", e);
+                    cloned_self.wait_group.release();
+                    return;
+                },
+                Ok(reply) => reply,
+            };
             cloned_self.handle_comm_events(reply);
             cloned_self.wait_group.release();
         });
@@ -131,7 +138,14 @@ impl<S : Storage + std::marker::Send + std::marker::Sync + 'static> InterpreterC
         let cloned_self = self.clone();
         self.wait_group.acquire();
         task::spawn( async move {
-            let reply = cloned_self.storage.consume(binds, body, persistent, peek).await;
+            let reply = match cloned_self.storage.consume(binds, body, persistent, peek).await {
+                Err(e) => {
+                    debug!("Unable to get response of consume. {}.", e);
+                    cloned_self.wait_group.release();
+                    return;
+                },
+                Ok(reply) => reply,
+            };
             cloned_self.handle_comm_events(reply);
             cloned_self.wait_group.release();
         });

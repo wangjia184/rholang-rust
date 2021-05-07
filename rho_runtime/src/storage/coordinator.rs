@@ -2,9 +2,9 @@ use std::collections::hash_map::Entry;
 use std::cell::{ RefCell };
 use std::rc::Rc;
 use std::sync::Arc;
-use tokio::task::{self, JoinHandle};
+use tokio::task;
 use tokio::sync::Notify;
-use futures::future::Either;
+
 
 use rustc_hash::{ FxHashMap };
 
@@ -12,7 +12,7 @@ use super::*;
 use crossbeam::queue::ArrayQueue;
 use blake3::Hash;
 
-enum PendingTask{
+pub(super) enum PendingTask{
     Install(InstallTask),
     Uninstall,
     Produce(ProduceTask),
@@ -51,120 +51,64 @@ pub(super) struct ConsumeTask {
 
 pub(super) struct JoinChannelTask {
     pub(super) replier : oneshot::Sender<Reply>,
-    pub(super) consumer : Arc<super::transit::SharedJoinedConsumer>,
+    pub(super) consumer : Arc<super::tuplecell::SharedJoinedConsumer>,
 }
 
-struct ThreadSafeShare {
-    notify : Notify,
-    queue : ArrayQueue<PendingTask>,
+pub(super) struct ThreadSafeQueue {
+    notifier : Notify,
+    inner : ArrayQueue<PendingTask>,
 }
+
+impl Default for ThreadSafeQueue {
+    #[inline]
+    fn default() -> Self {
+        Self {
+            notifier : Notify::new(),
+            inner : ArrayQueue::new(1000000), 
+        }
+    }
+}
+
+impl ThreadSafeQueue {
+    #[inline]
+    pub(super) fn push(&self, msg : PendingTask) {
+        if let Err(_) = self.inner.push(msg) {
+            panic!("Coordinator queue is full!");
+        }
+        self.notifier.notify_one();
+    }
+}
+
 
 pub struct Coordinator {
-    share : Arc<ThreadSafeShare>,
-    transit_port_map : FxHashMap<Hash, Rc<RefCell<TransitPort>>>
+    queue : Arc<ThreadSafeQueue>,
+    cell_slot_map : FxHashMap<Hash, Rc<RefCell<TupleCellSlot>>>
 }
 
 
 #[derive(Default)]
-struct TransitPort {
+struct TupleCellSlot {
     completed_signal : Option<CompletionSignal>,
 }
 
-#[derive(Clone)]
-pub struct  AsyncStore {
-    share : Arc<ThreadSafeShare>,
-}
-
-#[async_trait]
-impl Storage for AsyncStore {
-
-    fn install(&self, channel : Par, bind_pattern : BindPattern, func : RustCallbacFunction) -> Reply {
-        let install_task = InstallTask{
-            channel : (channel.blake3_hash(), bind_pattern),
-            callback : func,
-        };
-
-        if let Err(_) = self.share.queue.push(PendingTask::Install(install_task)) {
-            panic!("Coordinator queue is full!");
-        }
-        self.share.notify.notify_one();
-        None
-    }
-
-    fn uninstall(&self) -> Reply {
-        if let Err(_) = self.share.queue.push(PendingTask::Uninstall) {
-            panic!("Coordinator queue is full!");
-        }
-        self.share.notify.notify_one();
-        None
-    }
-
-
-    
-    async fn produce(&self, channel : Par, data : ListParWithRandom, persistent : bool) -> Reply {
-        let (tx, rx) = oneshot::channel();
-        let produce_task = ProduceTask{
-            replier : tx,
-            channel : (channel.blake3_hash(), channel),
-            data : data,
-            persistent : persistent,
-        };
-        if let Err(_) = self.share.queue.push(PendingTask::Produce(produce_task)) {
-            panic!("Coordinator queue is full!");
-        }
-        self.share.notify.notify_one();
-        match rx.await {
-            Err(e) => {
-                warn!("Unable to send. {}.", e);
-                None
-            },
-            Ok(reply) => reply,
-        }
-    }
-
-    async fn consume(&self, binds : Vec<(BindPattern, Par)>, body : ParWithRandom, persistent : bool, peek : bool) -> Reply {
-        let (tx, rx) = oneshot::channel();
-        let consume_task = ConsumeTask{
-            replier : tx,
-            channels : binds.into_iter().map(|tuple| (tuple.1.blake3_hash(), tuple.0)).collect(),
-            continuation : TaggedContinuation::ParBody(body),
-            persistent : persistent,
-            peek : peek,
-        };
-        if let Err(_) = self.share.queue.push(PendingTask::Consume(consume_task)) {
-            panic!("Coordinator queue is full!");
-        }
-        self.share.notify.notify_one();
-        match rx.await {
-            Err(e) => {
-                debug!("Unable to receive. Reason {}.", e);
-                None
-            },
-            Ok(reply) => reply,
-        }
-    }
-}
 
 
 impl<'a> Coordinator {
 
     pub fn create() -> (AsyncStore, Self) {
-        let share = Arc::new(ThreadSafeShare {
-            notify : Notify::new(),
-            queue : ArrayQueue::new(1000000), 
-        });
+        let queue = Arc::new(ThreadSafeQueue::default());
         
         let coordinator = Self { 
-            share : share.clone(),
-            transit_port_map : FxHashMap::with_capacity_and_hasher( 100000, Default::default()) 
+            queue : queue.clone(),
+            cell_slot_map : FxHashMap::with_capacity_and_hasher( 100000, Default::default()) 
         };
-        let hot_store = AsyncStore { share : share };
+        let hot_store = AsyncStore::new(queue);
         (hot_store, coordinator)
     }
 
     pub async fn run(&mut self) {
         loop {
-            while let Some(pending_task) = self.share.queue.pop() {
+            while let Some(pending_task) = self.queue.inner.pop() {
                 match  pending_task {
                     PendingTask::Install(install) => {
                         self.handle_install(install)
@@ -191,16 +135,17 @@ impl<'a> Coordinator {
                     }
                 }
             }
-            self.share.notify.notified().await;
+            self.queue.notifier.notified().await;
         }
         
     }
 
-    fn get_or_create_transit_port(&mut self, channel_hash : Hash) -> Rc<RefCell<TransitPort>> {
-        match self.transit_port_map.entry(channel_hash) {
+    #[inline]
+    fn get_or_create_cell_port(&mut self, channel_hash : Hash) -> Rc<RefCell<TupleCellSlot>> {
+        match self.cell_slot_map.entry(channel_hash) {
             Entry::Occupied(o) => o.into_mut().clone(),
             Entry::Vacant(v) => {
-                v.insert(Rc::new(RefCell::new(TransitPort::default()))).clone()
+                v.insert(Rc::new(RefCell::new(TupleCellSlot::default()))).clone()
             },
         }
     }
@@ -208,13 +153,13 @@ impl<'a> Coordinator {
 
     fn handle_install(&mut self, install : InstallTask) {
 
-        // get the transit port of this channel
-        let transit_port = self.get_or_create_transit_port(install.channel.0);
+        // get the cell_slot of this channel
+        let cell_slot = self.get_or_create_cell_port(install.channel.0);
         // create a pair of sender + receiver
         let (tx, rx) = oneshot::channel();
         
         // replace receiver which will be signaled when current coroutine completes
-        let prev_signal = match transit_port.borrow_mut().completed_signal.replace(rx.into()) {
+        let prev_signal = match cell_slot.borrow_mut().completed_signal.replace(rx.into()) {
             Some(signal) => {
                 signal
             },
@@ -222,8 +167,8 @@ impl<'a> Coordinator {
                 // no previous Receiver, this is a fresh new channel
                 // simulate one
                 let (prev_tx, prev_rx) = oneshot::channel();
-                if let Err(_) = prev_tx.send(Transit::default()) {
-                    warn!("prev_tx.send(Transit::default()) failed but shouldn't!");
+                if let Err(_) = prev_tx.send(TupleCell::new(install.channel.0)) {
+                    warn!("prev_tx.send(TupleCell::new(install.channel.0)) failed but shouldn't!");
                 }
                 prev_rx.into()
             }
@@ -231,20 +176,20 @@ impl<'a> Coordinator {
         
         task::spawn( async move {
             // first ensure previous coroutines are completed
-            let mut transit = match prev_signal.await {
+            let mut cell = match prev_signal.await {
                 Err(e) => {
-                    error!("Error in oneshot::Receiver<Transit>. {} - {:?}", &e, &e);
+                    error!("Error in oneshot::Receiver<TupleCell>. {} - {:?}", &e, &e);
                     return;
                 },
                 Ok(t) => t
             };
 
             // now handle it
-            Transit::install(&mut transit, install);
+            TupleCell::install(&mut cell, install);
 
             // now send the signal
-            if let Err(_) = tx.send(transit) {
-                error!("tx.send(transit) failed but shouldn't!");
+            if let Err(_) = tx.send(cell) {
+                error!("tx.send(cell) failed but shouldn't!");
             }
         });
 
@@ -253,11 +198,11 @@ impl<'a> Coordinator {
 
     fn handle_produce(&mut self, produce : ProduceTask) {
 
-        // get the transit port of this channel
-        let transit_port = self.get_or_create_transit_port(produce.channel.0);
+        // get the cell_slot of this channel
+        let cell_slot = self.get_or_create_cell_port(produce.channel.0);
         
         // replace receiver which will be signaled when current coroutine completes
-        let prev_signal = match transit_port.borrow_mut().completed_signal.take() {
+        let prev_signal = match cell_slot.borrow_mut().completed_signal.take() {
             Some(signal) => {
                 signal
             },
@@ -265,18 +210,18 @@ impl<'a> Coordinator {
                 // no previous Receiver, this is a fresh new channel
                 // simulate one
                 let (prev_tx, prev_rx) = oneshot::channel();
-                if let Err(_) = prev_tx.send(Transit::default()) {
-                    warn!("prev_tx.send(Transit::default()) failed but shouldn't!");
+                if let Err(_) = prev_tx.send(TupleCell::new(produce.channel.0)) {
+                    warn!("prev_tx.send(TupleCell::new(produce.channel.0)) failed but shouldn't!");
                 }
                 prev_rx.into()
             }
         };
 
-        let cloned_share = self.share.clone();
+        let cloned_share = self.queue.clone();
         
         let current_signal = task::spawn(async move {
             // first ensure previous coroutines are completed
-            let mut transit = match prev_signal.await {
+            let mut cell = match prev_signal.await {
                 Err(e) => {
                     panic!("{} - {:?}", &e, &e);
                 },
@@ -284,18 +229,18 @@ impl<'a> Coordinator {
             };
 
             // now handle it
-            if let Some(joined_consumer) = Transit::produce(&mut transit, produce) {
+            if let Some(joined_consumer) = TupleCell::produce(&mut cell, produce) {
                 // join is required
                 
-                if let Err(_) = cloned_share.queue.push(PendingTask::Join(joined_consumer)) {
+                if let Err(_) = cloned_share.inner.push(PendingTask::Join(joined_consumer)) {
                     error!("Coordinator queue is full!");
                 }
-                cloned_share.notify.notify_one();
+                cloned_share.notifier.notify_one();
             }
 
-            transit
+            cell
         });
-        transit_port.borrow_mut().completed_signal = Some(current_signal.into());
+        cell_slot.borrow_mut().completed_signal = Some(current_signal.into());
     }
 
 
@@ -305,18 +250,18 @@ impl<'a> Coordinator {
         
         let (hash, _) = &consume_task.channels[0];
 
-        // get the transit port of this channel
-        let transit_port0 = self.get_or_create_transit_port(*hash);
-        let prev_rx0 = match transit_port0.borrow_mut().completed_signal.take() {
-            Some(signal) => {
-                signal
+        // get the cell_slot0 of this channel
+        let cell_slot0 = self.get_or_create_cell_port(*hash);
+        let prev_rx0 = match cell_slot0.borrow_mut().completed_signal.take() {
+            Some(prev_rx) => {
+                prev_rx
             },
             None => {
                 // no previous Receiver, this is a fresh new channel
                 // simulate one
                 let (prev_tx, prev_rx) = oneshot::channel();
-                if let Err(_) = prev_tx.send(Transit::default()) {
-                    warn!("prev_tx.send(Transit::default()) failed but shouldn't!");
+                if let Err(_) = prev_tx.send(TupleCell::new(*hash)) {
+                    warn!("prev_tx.send(TupleCell::new(*hash)) failed but shouldn't!");
                 }
                 prev_rx.into()
             }
@@ -326,7 +271,7 @@ impl<'a> Coordinator {
         
         let current_signal = task::spawn( async move {
 
-            let mut transit0 = match prev_rx0.await {
+            let mut cell0 = match prev_rx0.await {
                 Err(e) => {
                     panic!("{} - {:?}", &e, &e);
                 },
@@ -335,12 +280,12 @@ impl<'a> Coordinator {
 
             // now handle it
             {
-                Transit::consume_single(&mut transit0, consume_task);
+                TupleCell::consume_single(&mut cell0, consume_task);
             };
 
-            transit0
+            cell0
         });// task::spawn()
-        transit_port0.borrow_mut().completed_signal = Some(current_signal.into());
+        cell_slot0.borrow_mut().completed_signal = Some(current_signal.into());
                 
     }// handle_consume_double()
 
@@ -351,9 +296,9 @@ impl<'a> Coordinator {
         
         let (hash, _) = &consume_task.channels[0];
 
-        // get the transit port of this channel
-        let transit_port0 = self.get_or_create_transit_port(*hash);
-        let prev_rx0 = match transit_port0.borrow_mut().completed_signal.take() {
+        // get the cell slot of this channel
+        let cell_slot0 = self.get_or_create_cell_port(*hash);
+        let prev_rx0 = match cell_slot0.borrow_mut().completed_signal.take() {
             Some(signal) => {
                 signal
             },
@@ -361,8 +306,8 @@ impl<'a> Coordinator {
                 // no previous Receiver, this is a fresh new channel
                 // simulate one
                 let (prev_tx, prev_rx) = oneshot::channel();
-                if let Err(_) = prev_tx.send(Transit::default()) {
-                    warn!("prev_tx.send(Transit::default()) failed but shouldn't!");
+                if let Err(_) = prev_tx.send(TupleCell::new(*hash)) {
+                    warn!("prev_tx.send(TupleCell::new(*hash))  failed but shouldn't!");
                 }
                 prev_rx.into()
             }
@@ -371,10 +316,10 @@ impl<'a> Coordinator {
 
         let (hash, _) = &consume_task.channels[1];
 
-        // get the transit port of this channel
-        let transit_port1 = self.get_or_create_transit_port(*hash);
+        // get the cell slot of this channel
+        let cell_slot1 = self.get_or_create_cell_port(*hash);
         let (tx1, rx1) = oneshot::channel();
-        let prev_rx1 = match transit_port1.borrow_mut().completed_signal.replace(rx1.into()) {
+        let prev_rx1 = match cell_slot1.borrow_mut().completed_signal.replace(rx1.into()) {
             Some(signal) => {
                 signal
             },
@@ -382,8 +327,8 @@ impl<'a> Coordinator {
                 // no previous Receiver, this is a fresh new channel
                 // simulate one
                 let (prev_tx, prev_rx) = oneshot::channel();
-                if let Err(_) = prev_tx.send(Transit::default()) {
-                    warn!("prev_tx.send(Transit::default()) failed but shouldn't!");
+                if let Err(_) = prev_tx.send(TupleCell::new(*hash)) {
+                    warn!("prev_tx.send(TupleCell::new(*hash)) failed but shouldn't!");
                 }
                 prev_rx.into()
             }
@@ -393,13 +338,13 @@ impl<'a> Coordinator {
         
         let current_signal = task::spawn( async move {
 
-            let mut transit0 = match prev_rx0.await {
+            let mut cell0 = match prev_rx0.await {
                 Err(e) => {
                     panic!("{} - {:?}", &e, &e);
                 },
                 Ok(t) => t
             };
-            let mut transit1 = match prev_rx1.await {
+            let mut cell1 = match prev_rx1.await {
                 Err(e) => {
                     panic!("{} - {:?}", &e, &e);
                 },
@@ -408,17 +353,17 @@ impl<'a> Coordinator {
 
             // now handle it
             {
-                let transits = smallvec![&mut transit0, &mut transit1];
-                Transit::consume_multiple(transits, consume_task);
+                let cells = smallvec![&mut cell0, &mut cell1];
+                TupleCell::consume_multiple(cells, consume_task);
             };
 
     
-            if let Err(_) = tx1.send(transit1) {
-                warn!("tx1.send(transit1) failed but it should not!");
+            if let Err(_) = tx1.send(cell1) {
+                warn!("tx1.send(cell1) failed but it should not!");
             }
-            transit0
+            cell0
         });// task::spawn()
-        transit_port0.borrow_mut().completed_signal = Some(current_signal.into());
+        cell_slot0.borrow_mut().completed_signal = Some(current_signal.into());
                 
     }// handle_consume_double()
 
@@ -428,14 +373,14 @@ impl<'a> Coordinator {
 
         // get all signals
         for (hash, _) in &consume_task.channels {
-            // get the transit port of this channel
-            let transit_port = self.get_or_create_transit_port(*hash);
+            // get the cell_slot of this channel
+            let cell_slot = self.get_or_create_cell_port(*hash);
             // create a pair of sender + receiver
             let (tx, rx) = oneshot::channel();
 
             rx_tx_pairs.push(
                 // replace receiver which will be signaled when current coroutine completes
-                match transit_port.borrow_mut().completed_signal.replace(rx.into()) {
+                match cell_slot.borrow_mut().completed_signal.replace(rx.into()) {
                     Some(signal) => {
                         (signal, tx)
                     },
@@ -443,8 +388,8 @@ impl<'a> Coordinator {
                         // no previous Receiver, this is a fresh new channel
                         // simulate one
                         let (prev_tx, prev_rx) = oneshot::channel();
-                        if let Err(_) = prev_tx.send(Transit::default()) {
-                            warn!("prev_tx.send(Transit::default()) must not fail");
+                        if let Err(_) = prev_tx.send(TupleCell::new(*hash)) {
+                            warn!("prev_tx.send(TupleCell::new(*hash)) must not fail");
                         }
                         (prev_rx.into(), tx)
                     }
@@ -456,32 +401,32 @@ impl<'a> Coordinator {
         task::spawn( async move {
 
 
-            let mut pairs : ShortVector<(Transit, oneshot::Sender<Transit>)> = ShortVector::with_capacity(rx_tx_pairs.len());
+            let mut pairs : ShortVector<(TupleCell, oneshot::Sender<TupleCell>)> = ShortVector::with_capacity(rx_tx_pairs.len());
             
     
             for (rx, tx) in rx_tx_pairs {
                 match rx.await {
                     Err(e) => {
-                        warn!("Error in oneshot::Receiver<Transit>. {} - {:?}", &e, &e);
+                        warn!("Error in oneshot::Receiver<TupleCell>. {} - {:?}", &e, &e);
                         return;
                     },
-                    Ok(transit) => {
-                        pairs.push((transit, tx));
+                    Ok(cell) => {
+                        pairs.push((cell, tx));
                     }
                 }
             }
 
             // now handle it
             {
-                let transits = pairs.iter_mut().map(|pair| &mut pair.0).collect();
-                Transit::consume_multiple(transits, consume_task);
+                let cells = pairs.iter_mut().map(|pair| &mut pair.0).collect();
+                TupleCell::consume_multiple(cells, consume_task);
             };
 
     
             // now send the signals
-            for (transit, tx) in pairs {
-                if let Err(_) = tx.send(transit) {
-                    warn!("tx.send(transit) failed but it should not!");
+            for (cell, tx) in pairs {
+                if let Err(_) = tx.send(cell) {
+                    warn!("tx.send(cell) failed but it should not!");
                 }
             }
 
@@ -498,8 +443,8 @@ impl<'a> Coordinator {
         let iter = &mut join_task.consumer.channels.iter();
         let hash0 = *(iter.next().unwrap().0);
 
-        let transit_port0 = self.get_or_create_transit_port(hash0);
-        let prev_rx0 = match transit_port0.borrow_mut().completed_signal.take() {
+        let cell_slot0 = self.get_or_create_cell_port(hash0);
+        let prev_rx0 = match cell_slot0.borrow_mut().completed_signal.take() {
             Some(signal) => {
                 signal
             },
@@ -507,8 +452,8 @@ impl<'a> Coordinator {
                 // no previous Receiver, this is a fresh new channel
                 // simulate one
                 let (prev_tx, prev_rx) = oneshot::channel();
-                if let Err(_) = prev_tx.send(Transit::default()) {
-                    warn!("prev_tx.send(Transit::default()) failed but shouldn't!");
+                if let Err(_) = prev_tx.send(TupleCell::new(hash0)) {
+                    warn!("prev_tx.send(TupleCell::new(hash0)) failed but shouldn't!");
                 }
                 prev_rx.into()
             }
@@ -516,10 +461,10 @@ impl<'a> Coordinator {
 
         let hash1 = *iter.next().unwrap().0;
 
-        // get the transit port of this channel
-        let transit_port1 = self.get_or_create_transit_port(hash1);
+        // get the cell_slot of this channel
+        let cell_slot1 = self.get_or_create_cell_port(hash1);
         let (tx1, rx1) = oneshot::channel();
-        let prev_rx1 = match transit_port1.borrow_mut().completed_signal.replace(rx1.into()) {
+        let prev_rx1 = match cell_slot1.borrow_mut().completed_signal.replace(rx1.into()) {
             Some(signal) => {
                 signal
             },
@@ -527,8 +472,8 @@ impl<'a> Coordinator {
                 // no previous Receiver, this is a fresh new channel
                 // simulate one
                 let (prev_tx, prev_rx) = oneshot::channel();
-                if let Err(_) = prev_tx.send(Transit::default()) {
-                    warn!("prev_tx.send(Transit::default()) failed but shouldn't!");
+                if let Err(_) = prev_tx.send(TupleCell::new(hash1)) {
+                    warn!("prev_tx.send(TupleCell::new(hash1)) failed but shouldn't!");
                 }
                 prev_rx.into()
             }
@@ -537,13 +482,13 @@ impl<'a> Coordinator {
 
         let current_signal = task::spawn( async move {
 
-            let mut transit0 = match prev_rx0.await {
+            let mut cell0 = match prev_rx0.await {
                 Err(e) => {
                     panic!("{} - {:?}", &e, &e);
                 },
                 Ok(t) => t
             };
-            let mut transit1 = match prev_rx1.await {
+            let mut cell1 = match prev_rx1.await {
                 Err(e) => {
                     panic!("{} - {:?}", &e, &e);
                 },
@@ -552,19 +497,19 @@ impl<'a> Coordinator {
 
             // now handle it
             {
-                let transits : ShortVector<_> = smallvec![(hash0, &mut transit0), (hash1, &mut transit1)];
-                Transit::join(transits, join_task);
+                let cells : ShortVector<_> = smallvec![&mut cell0, &mut cell1];
+                TupleCell::join(cells, join_task);
             };
 
     
             // now send the signals
-            if let Err(_) = tx1.send(transit1) {
-                warn!("tx.send(transit) failed but it should not!");
+            if let Err(_) = tx1.send(cell1) {
+                warn!("tx1.send(cell1) failed but it should not!");
             }
             
-            transit0
+            cell0
         });// task::spawn()
-        transit_port0.borrow_mut().completed_signal = Some(current_signal.into());
+        cell_slot0.borrow_mut().completed_signal = Some(current_signal.into());
     }
 
 
@@ -574,25 +519,25 @@ impl<'a> Coordinator {
 
         // get all signals
         for (hash, _) in &join_task.consumer.channels {
-            // get the transit port of this channel
-            let transit_port = self.get_or_create_transit_port(*hash);
+            // get the cell slot of this channel
+            let cell_slot = self.get_or_create_cell_port(*hash);
             // create a pair of sender + receiver
             let (tx, rx) = oneshot::channel();
 
             tuples.push(
                 // replace receiver which will be signaled when current coroutine completes
-                match transit_port.borrow_mut().completed_signal.replace(rx.into()) {
+                match cell_slot.borrow_mut().completed_signal.replace(rx.into()) {
                     Some(signal) => {
-                        (*hash, signal, tx)
+                        (signal, tx)
                     },
                     None => {
                         // no previous Receiver, this is a fresh new channel
                         // simulate one
                         let (prev_tx, prev_rx) = oneshot::channel();
-                        if let Err(_) = prev_tx.send(Transit::default()) {
-                            warn!("prev_tx.send(Transit::default()) must not fail");
+                        if let Err(_) = prev_tx.send(TupleCell::new(*hash)) {
+                            warn!("prev_tx.send(TupleCell::new(*hash)) must not fail");
                         }
-                        (*hash, prev_rx.into(), tx)
+                        (prev_rx.into(), tx)
                     }
                 }
             );
@@ -601,44 +546,34 @@ impl<'a> Coordinator {
 
         task::spawn( async move {
 
-            let mut vector : ShortVector<(Hash, Transit, oneshot::Sender<Transit>)> = ShortVector::with_capacity(tuples.len());
+            let mut vector : ShortVector<(TupleCell, oneshot::Sender<TupleCell>)> = ShortVector::with_capacity(tuples.len());
                 
         
-            for (hash, rx, tx) in tuples {
+            for (rx, tx) in tuples {
                 match rx.await {
                     Err(e) => {
-                        warn!("Error in oneshot::Receiver<Transit>. {} - {:?}", &e, &e);
+                        warn!("Error in oneshot::Receiver<TupleCell>. {} - {:?}", &e, &e);
                         return;
                     },
-                    Ok(transit) => {
-                        vector.push((hash, transit, tx));
+                    Ok(cell) => {
+                        vector.push((cell, tx));
                     }
                 }
             }
 
-            // we dont need sort the order of pairs/channels because they are the same
-            // but later when storing the consumer, they must be stored
-            /*
-            // sort pairs & channels to make them in the same order
-            pairs.sort_by( |(_,_,left), (_, _, right)| {
-                left.as_bytes().cmp(right.as_bytes())
-            });
-            channels.sort_by( |(_,left), (_, right)| {
-                left.as_bytes().cmp(right.as_bytes())
-            });
-            */
+
 
             // now handle it
             {
-                let transits : ShortVector<_> = vector.iter_mut().map(|pair| (pair.0, &mut pair.1)).collect();
-                Transit::join(transits, join_task);
+                let cells : ShortVector<_> = vector.iter_mut().map(|pair| &mut pair.0).collect();
+                TupleCell::join(cells, join_task);
             };
 
     
             // now send the signals
-            for (_, transit, tx) in vector {
-                if let Err(_) = tx.send(transit) {
-                    warn!("tx.send(transit) failed but it should not!");
+            for (cell, tx) in vector {
+                if let Err(_) = tx.send(cell) {
+                    warn!("tx.send(cell) failed but it should not!");
                 }
             }
             

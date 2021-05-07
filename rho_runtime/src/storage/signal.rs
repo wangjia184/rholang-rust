@@ -10,21 +10,21 @@ use tokio::sync::oneshot::error::RecvError;
 // The result after coroutine execution
 pub(super) enum CompletionSignal {
     // if coroutine only gains one Transit, its return value is the Transit
-    JoinHandle(JoinHandle<Transit>),
-    // when there are multiple Transits joined in a coroutine execution
-    OneshotReceiver(oneshot::Receiver<Transit>),
+    JoinHandle(JoinHandle<TupleCell>),
+    // when there are multiple cells joined in a coroutine execution
+    OneshotReceiver(oneshot::Receiver<TupleCell>),
 }
 
-impl From<oneshot::Receiver<Transit>> for CompletionSignal {
+impl From<oneshot::Receiver<TupleCell>> for CompletionSignal {
     #[inline]
-    fn from(receiver : oneshot::Receiver<Transit>) -> Self {
+    fn from(receiver : oneshot::Receiver<TupleCell>) -> Self {
         Self::OneshotReceiver(receiver)
     }
 }
 
-impl From<JoinHandle<Transit>> for CompletionSignal {
+impl From<JoinHandle<TupleCell>> for CompletionSignal {
     #[inline]
-    fn from(join_handle : JoinHandle<Transit>) -> Self {
+    fn from(join_handle : JoinHandle<TupleCell>) -> Self {
         Self::JoinHandle(join_handle)
     }
 }
@@ -42,7 +42,7 @@ pub(super) enum SignalError {
 
 impl Future for CompletionSignal
 {
-    type Output = Result<Transit, SignalError>;
+    type Output = Result<TupleCell, SignalError>;
 
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         unsafe {
