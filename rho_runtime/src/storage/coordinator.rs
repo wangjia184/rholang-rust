@@ -141,7 +141,7 @@ impl<'a> Coordinator {
     }
 
     #[inline]
-    fn get_or_create_cell_port(&mut self, channel_hash : Hash) -> Rc<RefCell<TupleCellSlot>> {
+    fn get_or_create_cell_slot(&mut self, channel_hash : Hash) -> Rc<RefCell<TupleCellSlot>> {
         match self.cell_slot_map.entry(channel_hash) {
             Entry::Occupied(o) => o.into_mut().clone(),
             Entry::Vacant(v) => {
@@ -154,7 +154,7 @@ impl<'a> Coordinator {
     fn handle_install(&mut self, install : InstallTask) {
 
         // get the cell_slot of this channel
-        let cell_slot = self.get_or_create_cell_port(install.channel.0);
+        let cell_slot = self.get_or_create_cell_slot(install.channel.0);
         // create a pair of sender + receiver
         let (tx, rx) = oneshot::channel();
         
@@ -199,7 +199,7 @@ impl<'a> Coordinator {
     fn handle_produce(&mut self, produce : ProduceTask) {
 
         // get the cell_slot of this channel
-        let cell_slot = self.get_or_create_cell_port(produce.channel.0);
+        let cell_slot = self.get_or_create_cell_slot(produce.channel.0);
         
         // replace receiver which will be signaled when current coroutine completes
         let prev_signal = match cell_slot.borrow_mut().completed_signal.take() {
@@ -251,7 +251,7 @@ impl<'a> Coordinator {
         let (hash, _) = &consume_task.channels[0];
 
         // get the cell_slot0 of this channel
-        let cell_slot0 = self.get_or_create_cell_port(*hash);
+        let cell_slot0 = self.get_or_create_cell_slot(*hash);
         let prev_rx0 = match cell_slot0.borrow_mut().completed_signal.take() {
             Some(prev_rx) => {
                 prev_rx
@@ -297,7 +297,7 @@ impl<'a> Coordinator {
         let (hash, _) = &consume_task.channels[0];
 
         // get the cell slot of this channel
-        let cell_slot0 = self.get_or_create_cell_port(*hash);
+        let cell_slot0 = self.get_or_create_cell_slot(*hash);
         let prev_rx0 = match cell_slot0.borrow_mut().completed_signal.take() {
             Some(signal) => {
                 signal
@@ -317,7 +317,7 @@ impl<'a> Coordinator {
         let (hash, _) = &consume_task.channels[1];
 
         // get the cell slot of this channel
-        let cell_slot1 = self.get_or_create_cell_port(*hash);
+        let cell_slot1 = self.get_or_create_cell_slot(*hash);
         let (tx1, rx1) = oneshot::channel();
         let prev_rx1 = match cell_slot1.borrow_mut().completed_signal.replace(rx1.into()) {
             Some(signal) => {
@@ -338,18 +338,10 @@ impl<'a> Coordinator {
         
         let current_signal = task::spawn( async move {
 
-            let mut cell0 = match prev_rx0.await {
-                Err(e) => {
-                    panic!("{} - {:?}", &e, &e);
-                },
-                Ok(t) => t
-            };
-            let mut cell1 = match prev_rx1.await {
-                Err(e) => {
-                    panic!("{} - {:?}", &e, &e);
-                },
-                Ok(t) => t
-            };
+            let (result0, result1) = tokio::join!( prev_rx0, prev_rx1);
+
+            let mut cell0 = result0.unwrap();
+            let mut cell1 = result1.unwrap();
 
             // now handle it
             {
@@ -374,7 +366,7 @@ impl<'a> Coordinator {
         // get all signals
         for (hash, _) in &consume_task.channels {
             // get the cell_slot of this channel
-            let cell_slot = self.get_or_create_cell_port(*hash);
+            let cell_slot = self.get_or_create_cell_slot(*hash);
             // create a pair of sender + receiver
             let (tx, rx) = oneshot::channel();
 
@@ -443,7 +435,7 @@ impl<'a> Coordinator {
         let iter = &mut join_task.consumer.channels.iter();
         let hash0 = *(iter.next().unwrap().0);
 
-        let cell_slot0 = self.get_or_create_cell_port(hash0);
+        let cell_slot0 = self.get_or_create_cell_slot(hash0);
         let prev_rx0 = match cell_slot0.borrow_mut().completed_signal.take() {
             Some(signal) => {
                 signal
@@ -462,7 +454,7 @@ impl<'a> Coordinator {
         let hash1 = *iter.next().unwrap().0;
 
         // get the cell_slot of this channel
-        let cell_slot1 = self.get_or_create_cell_port(hash1);
+        let cell_slot1 = self.get_or_create_cell_slot(hash1);
         let (tx1, rx1) = oneshot::channel();
         let prev_rx1 = match cell_slot1.borrow_mut().completed_signal.replace(rx1.into()) {
             Some(signal) => {
@@ -482,18 +474,10 @@ impl<'a> Coordinator {
 
         let current_signal = task::spawn( async move {
 
-            let mut cell0 = match prev_rx0.await {
-                Err(e) => {
-                    panic!("{} - {:?}", &e, &e);
-                },
-                Ok(t) => t
-            };
-            let mut cell1 = match prev_rx1.await {
-                Err(e) => {
-                    panic!("{} - {:?}", &e, &e);
-                },
-                Ok(t) => t
-            };
+            let (result0, result1) = tokio::join!( prev_rx0, prev_rx1);
+
+            let mut cell0 = result0.unwrap();
+            let mut cell1 = result1.unwrap();
 
             // now handle it
             {
@@ -520,7 +504,7 @@ impl<'a> Coordinator {
         // get all signals
         for (hash, _) in &join_task.consumer.channels {
             // get the cell slot of this channel
-            let cell_slot = self.get_or_create_cell_port(*hash);
+            let cell_slot = self.get_or_create_cell_slot(*hash);
             // create a pair of sender + receiver
             let (tx, rx) = oneshot::channel();
 
