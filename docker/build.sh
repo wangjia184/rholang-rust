@@ -1,6 +1,6 @@
 #!/bin/bash
 
-CARGO_PROFILE_RELEASE_LTO=true CARGO_PROFILE_RELEASE_PANIC=abort RUSTFLAGS="--emit=asm" cargo build --release
+CARGO_PROFILE_RELEASE_LTO=true CARGO_PROFILE_RELEASE_PANIC=abort CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1  cargo build --release
 
 mkdir -p ./app
 cp ../target/release/rho_runtime -f ./app/rho_runtime

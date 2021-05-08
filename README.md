@@ -44,8 +44,10 @@ cargo test --all
 CARGO_PROFILE_RELEASE_LTO=true CARGO_PROFILE_RELEASE_PANIC=abort RUSTFLAGS="--emit=asm" cargo build --release
 ```
 
-## Profile
+## Generate Flame graph
 
 ```
-CARGO_PROFILE_RELEASE_DEBUG=true CARGO_PROFILE_RELEASE_PANIC=abort cargo flamegraph --bin=rho_runtime
+sudo sh -c " echo 0 > /proc/sys/kernel/kptr_restrict"
+sudo sh -c 'echo 1 >/proc/sys/kernel/perf_event_paranoid'
+CARGO_PROFILE_RELEASE_DEBUG=true CARGO_PROFILE_RELEASE_LTO=true CARGO_PROFILE_RELEASE_PANIC=abort CARGO_PROFILE_RELEASE_CODEGEN_UNITS=1  cargo flamegraph --bin=rho_runtime /D/projects/rho_runtime_bench/bench2.rho
 ```
