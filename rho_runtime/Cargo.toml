@@ -17,7 +17,6 @@ libc = "0.2"
 bit-vec = "0.6"
 prost = "0.7"
 tokio = {version = "1.5", features = ["full"] }
-async-trait = "0.1"
 crossbeam = "0.8"
 blake3 = "0.3"
 smallvec = "1.6"
@@ -27,6 +26,7 @@ tempfile = "3.2"
 lazy_static = "1.4"
 clap = "2.33"
 num_cpus = "1.13"
+futures = "0.3"
 
 [build-dependencies]
 bindgen = "0.57"

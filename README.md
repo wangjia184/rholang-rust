@@ -41,11 +41,11 @@ cargo test --all
 ## Build for Release
 
 ```
-CARGO_PROFILE_RELEASE_LTO=true cargo build --release
+CARGO_PROFILE_RELEASE_LTO=true CARGO_PROFILE_RELEASE_PANIC=abort RUSTFLAGS="--emit=asm" cargo build --release
 ```
 
 ## Profile
 
 ```
-CARGO_PROFILE_RELEASE_DEBUG=true cargo flamegraph --bin=rho_runtime
+CARGO_PROFILE_RELEASE_DEBUG=true CARGO_PROFILE_RELEASE_PANIC=abort cargo flamegraph --bin=rho_runtime
 ```

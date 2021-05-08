@@ -1,15 +1,19 @@
 
 
-use async_trait::async_trait;
+use std::sync::Arc;
 use smallvec::{ SmallVec, smallvec };
 use tokio::sync::oneshot;
 
 use model::*;
 
+mod store;
+mod signal;
 mod coordinator;
-mod transit;
+mod tuplecell;
 
-use transit::*;
+use store::*;
+use signal::*;
+use tuplecell::*;
 pub use coordinator::*;
 
 pub type ShortVector<T> = SmallVec<[T; 3]>;
@@ -29,15 +33,14 @@ pub enum TaggedContinuation {
 
 
 
-#[async_trait]
 pub trait Storage { 
     fn install(&self, channel : Par, bind_pattern : BindPattern, func : RustCallbacFunction) -> Reply;
 
     fn uninstall(&self) -> Reply;
 
-    async fn produce(&self, channel : Par, data : ListParWithRandom, persistent : bool) -> Reply;
+    fn produce(&self, channel : Par, data : ListParWithRandom, persistent : bool) -> oneshot::Receiver<Reply>;
 
-    async fn consume(&self, binds : Vec<(BindPattern, Par)>,body : ParWithRandom, persistent : bool, peek : bool) -> Reply;
+    fn consume(&self, binds : Vec<(BindPattern, Par)>,body : ParWithRandom, persistent : bool, peek : bool) -> oneshot::Receiver<Reply>;
 }
 
 
