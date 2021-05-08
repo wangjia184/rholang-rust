@@ -167,7 +167,7 @@ impl<'a> Coordinator {
                 // no previous Receiver, this is a fresh new channel
                 // simulate one
                 let (prev_tx, prev_rx) = oneshot::channel();
-                if let Err(_) = prev_tx.send(TupleCell::new(install.channel.0)) {
+                if let Err(_) = prev_tx.send(TuplespaceChannel::new(install.channel.0)) {
                     warn!("prev_tx.send(TupleCell::new(install.channel.0)) failed but shouldn't!");
                 }
                 prev_rx.into()
@@ -185,7 +185,7 @@ impl<'a> Coordinator {
             };
 
             // now handle it
-            TupleCell::install(&mut cell, install);
+            TuplespaceChannel::install(cell.borrow_mut(), install);
 
             // now send the signal
             if let Err(_) = tx.send(cell) {
@@ -210,7 +210,7 @@ impl<'a> Coordinator {
                 // no previous Receiver, this is a fresh new channel
                 // simulate one
                 let (prev_tx, prev_rx) = oneshot::channel();
-                if let Err(_) = prev_tx.send(TupleCell::new(produce.channel.0)) {
+                if let Err(_) = prev_tx.send(TuplespaceChannel::new(produce.channel.0)) {
                     warn!("prev_tx.send(TupleCell::new(produce.channel.0)) failed but shouldn't!");
                 }
                 prev_rx.into()
@@ -229,7 +229,7 @@ impl<'a> Coordinator {
             };
 
             // now handle it
-            if let Some(joined_consumer) = TupleCell::produce(&mut cell, produce) {
+            if let Some(joined_consumer) = TuplespaceChannel::produce(cell.borrow_mut(), produce) {
                 // join is required
                 
                 if let Err(_) = cloned_share.inner.push(PendingTask::Join(joined_consumer)) {
@@ -260,7 +260,7 @@ impl<'a> Coordinator {
                 // no previous Receiver, this is a fresh new channel
                 // simulate one
                 let (prev_tx, prev_rx) = oneshot::channel();
-                if let Err(_) = prev_tx.send(TupleCell::new(*hash)) {
+                if let Err(_) = prev_tx.send(TuplespaceChannel::new(*hash)) {
                     warn!("prev_tx.send(TupleCell::new(*hash)) failed but shouldn't!");
                 }
                 prev_rx.into()
@@ -280,7 +280,7 @@ impl<'a> Coordinator {
 
             // now handle it
             {
-                TupleCell::consume_single(&mut cell0, consume_task);
+                TuplespaceChannel::consume_single(cell0.borrow_mut(), consume_task);
             };
 
             cell0
@@ -306,7 +306,7 @@ impl<'a> Coordinator {
                 // no previous Receiver, this is a fresh new channel
                 // simulate one
                 let (prev_tx, prev_rx) = oneshot::channel();
-                if let Err(_) = prev_tx.send(TupleCell::new(*hash)) {
+                if let Err(_) = prev_tx.send(TuplespaceChannel::new(*hash)) {
                     warn!("prev_tx.send(TupleCell::new(*hash))  failed but shouldn't!");
                 }
                 prev_rx.into()
@@ -327,7 +327,7 @@ impl<'a> Coordinator {
                 // no previous Receiver, this is a fresh new channel
                 // simulate one
                 let (prev_tx, prev_rx) = oneshot::channel();
-                if let Err(_) = prev_tx.send(TupleCell::new(*hash)) {
+                if let Err(_) = prev_tx.send(TuplespaceChannel::new(*hash)) {
                     warn!("prev_tx.send(TupleCell::new(*hash)) failed but shouldn't!");
                 }
                 prev_rx.into()
@@ -345,8 +345,8 @@ impl<'a> Coordinator {
 
             // now handle it
             {
-                let cells = smallvec![&mut cell0, &mut cell1];
-                TupleCell::consume_multiple(cells, consume_task);
+                let cells = smallvec![cell0.borrow_mut(), cell1.borrow_mut()];
+                TuplespaceChannel::consume_multiple(cells, consume_task);
             };
 
     
@@ -380,7 +380,7 @@ impl<'a> Coordinator {
                         // no previous Receiver, this is a fresh new channel
                         // simulate one
                         let (prev_tx, prev_rx) = oneshot::channel();
-                        if let Err(_) = prev_tx.send(TupleCell::new(*hash)) {
+                        if let Err(_) = prev_tx.send(TuplespaceChannel::new(*hash)) {
                             warn!("prev_tx.send(TupleCell::new(*hash)) must not fail");
                         }
                         (prev_rx.into(), tx)
@@ -410,8 +410,8 @@ impl<'a> Coordinator {
 
             // now handle it
             {
-                let cells = pairs.iter_mut().map(|pair| &mut pair.0).collect();
-                TupleCell::consume_multiple(cells, consume_task);
+                let cells = pairs.iter_mut().map(|pair| pair.0.borrow_mut()).collect();
+                TuplespaceChannel::consume_multiple(cells, consume_task);
             };
 
     
@@ -444,7 +444,7 @@ impl<'a> Coordinator {
                 // no previous Receiver, this is a fresh new channel
                 // simulate one
                 let (prev_tx, prev_rx) = oneshot::channel();
-                if let Err(_) = prev_tx.send(TupleCell::new(hash0)) {
+                if let Err(_) = prev_tx.send(TuplespaceChannel::new(hash0)) {
                     warn!("prev_tx.send(TupleCell::new(hash0)) failed but shouldn't!");
                 }
                 prev_rx.into()
@@ -464,7 +464,7 @@ impl<'a> Coordinator {
                 // no previous Receiver, this is a fresh new channel
                 // simulate one
                 let (prev_tx, prev_rx) = oneshot::channel();
-                if let Err(_) = prev_tx.send(TupleCell::new(hash1)) {
+                if let Err(_) = prev_tx.send(TuplespaceChannel::new(hash1)) {
                     warn!("prev_tx.send(TupleCell::new(hash1)) failed but shouldn't!");
                 }
                 prev_rx.into()
@@ -481,8 +481,8 @@ impl<'a> Coordinator {
 
             // now handle it
             {
-                let cells : ShortVector<_> = smallvec![&mut cell0, &mut cell1];
-                TupleCell::join(cells, join_task);
+                let cells : ShortVector<_> = smallvec![cell0.borrow_mut(), cell1.borrow_mut()];
+                TuplespaceChannel::join(cells, join_task);
             };
 
     
@@ -518,7 +518,7 @@ impl<'a> Coordinator {
                         // no previous Receiver, this is a fresh new channel
                         // simulate one
                         let (prev_tx, prev_rx) = oneshot::channel();
-                        if let Err(_) = prev_tx.send(TupleCell::new(*hash)) {
+                        if let Err(_) = prev_tx.send(TuplespaceChannel::new(*hash)) {
                             warn!("prev_tx.send(TupleCell::new(*hash)) must not fail");
                         }
                         (prev_rx.into(), tx)
@@ -549,8 +549,8 @@ impl<'a> Coordinator {
 
             // now handle it
             {
-                let cells : ShortVector<_> = vector.iter_mut().map(|pair| &mut pair.0).collect();
-                TupleCell::join(cells, join_task);
+                let cells : ShortVector<_> = vector.iter_mut().map(|pair| pair.0.borrow_mut()).collect();
+                TuplespaceChannel::join(cells, join_task);
             };
 
     

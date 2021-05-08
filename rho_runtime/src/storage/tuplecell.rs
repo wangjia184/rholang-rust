@@ -1,7 +1,8 @@
 
 
 use super::*;
-use std::sync::Arc;
+use std::{cell::RefMut, sync::Arc};
+use std::cell::RefCell;
 use std::collections::hash_map::Entry;
 use blake3::Hash;
 use rustc_hash::{ FxHashMap };
@@ -34,14 +35,16 @@ pub(super) struct  SharedJoinedConsumer {
     persistent : bool,
 }
 
-pub(super) struct  TupleCell {
+pub(super) type TupleCell = RefCell<Box<TuplespaceChannel>>;
+
+pub(super) struct  TuplespaceChannel {
     hash : Hash,
     id_base : usize,
-    dataums : ShortVector<Dataum>,
+    dataums : RefCell<ShortVector<Dataum>>,
 
     consumers : ShortVector<IndependentConsumer>,
     persistented_consumers : ShortVector<IndependentConsumer>,
-    joined_consumers : ShortVector<JoinedConsumer>,
+    joined_consumers : RefCell<ShortVector<JoinedConsumer>>,
 }
 
 #[derive(Debug)]
@@ -56,20 +59,26 @@ pub (super) struct  Dataum {
 
 // only allow to update the passed-in cell(s)
 // coordinator ensured there is no others are working on them when we are called here
-impl TupleCell {
+impl TuplespaceChannel {
 
-    pub(super) fn new(hash : Hash) -> Self {
-        Self {
-            hash : hash,
-            id_base : 1,
-            dataums : ShortVector::default(),
-            consumers : ShortVector::default(),
-            persistented_consumers : ShortVector::default(),
-            joined_consumers : ShortVector::default(),
-        }
+    #[inline]
+    pub(super) fn new(hash : Hash) -> RefCell<Box<Self>> {
+        RefCell::new(
+            Box::new(
+                Self {
+                    hash : hash,
+                    id_base : 1,
+                    dataums : RefCell::new( ShortVector::default() ),
+                    consumers : ShortVector::default(),
+                    persistented_consumers : ShortVector::default(),
+                    joined_consumers : RefCell::new( ShortVector::default() ),
+                }
+            )
+        )
+        
     }
 
-    pub(super) fn install(cell : &mut TupleCell, task : InstallTask) {
+    pub(super) fn install(mut cell : RefMut<Box<TuplespaceChannel>>, task : InstallTask) {
 
         let independent_consumer = IndependentConsumer {
             bind_pattern : task.channel.1,
@@ -80,13 +89,13 @@ impl TupleCell {
     }
 
     // first check single consumers, if no match, then check joined consumers
-    pub(super) fn produce(cell : &mut TupleCell, task : ProduceTask) -> Option<JoinChannelTask> {
+    pub(super) fn produce(mut cell : RefMut<Box<TuplespaceChannel>>, task : ProduceTask) -> Option<JoinChannelTask> {
 
         //println!("produce {:?} ==> {:?}", &task.data.pars[0].exprs[0], &task.channel.0);
 
         // first try to search in temp consumers
         match cell.consumers.iter().position( |consumer| {
-            TupleCell::is_matched(&task.data, &consumer.bind_pattern)
+            TuplespaceChannel::is_matched(&task.data, &consumer.bind_pattern)
         }) 
         {
             Some(idx) => {
@@ -102,7 +111,7 @@ impl TupleCell {
             None => {
                 // then search in persistented consumers
                 match cell.persistented_consumers.iter().find( |persistented_consumer| {
-                    TupleCell::is_matched(&task.data, &persistented_consumer.bind_pattern)
+                    TuplespaceChannel::is_matched(&task.data, &persistented_consumer.bind_pattern)
                 }) 
                 {
                     Some(persistented_consumer) => {
@@ -120,16 +129,16 @@ impl TupleCell {
                             id : cell.id_base,
                             data : task.data,
                         };
-                        cell.dataums.push(dataum);
+                        let mut dataums = cell.dataums.borrow_mut();
+                        dataums.push(dataum);
 
-                        let dataums = &cell.dataums;
                         // check joined consumers
                         // here we only need find an eligibile joined consumer, then notify coordinator to schedual on that again
                         for JoinedConsumer { ref mut last_dataum_id, ref bind_pattern, ref share} 
-                            in &mut cell.joined_consumers 
+                            in cell.joined_consumers.borrow_mut().iter_mut()
                         {
                             let mut idx = 0; // TODO : here should be more smart to determine index from ID
-                            if TupleCell::find_first_dataum_position(&dataums, bind_pattern, &mut idx, last_dataum_id) {
+                            if TuplespaceChannel::find_first_dataum_position(&dataums, bind_pattern, &mut idx, last_dataum_id) {
                                 return Some(JoinChannelTask {
                                     replier : task.replier,
                                     consumer : share.clone(),
@@ -153,10 +162,10 @@ impl TupleCell {
 
     // A dedicated implementation for performance
     #[inline]
-    pub(super) fn consume_single( cell : &mut TupleCell, task : ConsumeTask){
+    pub(super) fn consume_single( cell : RefMut<Box<TuplespaceChannel>>, task : ConsumeTask){
 
         // TODO: implement a dedicated version
-        TupleCell::consume_multiple(smallvec![cell], task);
+        TuplespaceChannel::consume_multiple(smallvec![cell], task);
     }
 
     // temporary consumer -
@@ -165,7 +174,7 @@ impl TupleCell {
     // persistent consumer -
     //     1. try to match all dataums
     //     2. store the consumer
-    pub(super) fn consume_multiple( mut cells : ShortVector<&mut TupleCell>, task : ConsumeTask){
+    pub(super) fn consume_multiple( mut cells : ShortVector<RefMut<Box<TuplespaceChannel>>>, task : ConsumeTask){
 
         // Not only the count are the same, their order must be the same!
         assert_eq!(cells.len(), task.channels.len());
@@ -186,7 +195,7 @@ impl TupleCell {
                 for ( (cell, (_, bind_pattern) ), [dataum_index, dataum_id]  ) 
                     in cells.iter_mut().zip(&task.channels).zip(&mut dataum_indexes)
                 {
-                    matched = TupleCell::find_first_dataum_position( &cell.dataums, bind_pattern, dataum_index, dataum_id);
+                    matched = TuplespaceChannel::find_first_dataum_position( &cell.dataums.borrow(), bind_pattern, dataum_index, dataum_id);
                     if !matched {
                         
                         break;
@@ -201,7 +210,7 @@ impl TupleCell {
                     .iter_mut()
                     .zip(&dataum_indexes)
                     .map( |(cell, [idx, _]) | {
-                        cell.dataums.remove(*idx).data
+                        cell.dataums.borrow_mut().remove(*idx).data
                     })
                     .collect();
 
@@ -236,7 +245,7 @@ impl TupleCell {
                         last_dataum_id : *dataum_id,
                         share : share.clone(),
                     };
-                    cell.joined_consumers.push(joined_consumer);
+                    cell.joined_consumers.borrow_mut().push(joined_consumer);
                 }
             }
         }
@@ -246,7 +255,7 @@ impl TupleCell {
             for ( (cell, (_, bind_pattern) ), [dataum_index, dataum_id]  ) 
                     in cells.iter_mut().zip(&task.channels).zip(&mut dataum_indexes)
             {
-                matched = TupleCell::find_first_dataum_position( &cell.dataums, bind_pattern, dataum_index, dataum_id);
+                matched = TuplespaceChannel::find_first_dataum_position( &cell.dataums.borrow(), bind_pattern, dataum_index, dataum_id);
                 if !matched {
                     break;
                 }
@@ -258,7 +267,7 @@ impl TupleCell {
                     .iter_mut()
                     .zip(&dataum_indexes)
                     .map( |(cell, [idx, _]) | {
-                        cell.dataums.remove(*idx).data
+                        cell.dataums.borrow_mut().remove(*idx).data
                     })
                     .collect();
 
@@ -289,7 +298,7 @@ impl TupleCell {
                             last_dataum_id : *dataum_id,
                             share : share.clone(),
                         };
-                        cell.joined_consumers.push(joined_consumer);
+                        cell.joined_consumers.borrow_mut().push(joined_consumer);
                     }
                 }
                 if let Err(_) = task.replier.send(None) {
@@ -314,7 +323,7 @@ impl TupleCell {
         while *start_index < dataums.len() {
             let current_id = dataums[*start_index].id;
             if *dataum_id < current_id { // this dataum was not scanned
-                if TupleCell::is_matched(&dataums[*start_index].data, bind_pattern) {
+                if TuplespaceChannel::is_matched(&dataums[*start_index].data, bind_pattern) {
                     return true;
                 }
                 *dataum_id = current_id;
@@ -332,9 +341,9 @@ impl TupleCell {
     }
 
 
-    pub(super) fn join( mut cells : ShortVector<&mut TupleCell>, join_task : JoinChannelTask){
+    pub(super) fn join( mut cells : ShortVector<RefMut<Box<TuplespaceChannel>>>, join_task : JoinChannelTask){
 
-        let match_result = TupleCell::match_one( &mut cells, &join_task);
+        let match_result = TuplespaceChannel::match_one( &mut cells, &join_task);
         match match_result {
             MatchResult::NoMatch => {
                 if let Err(_) = join_task.replier.send(None) {
@@ -350,11 +359,11 @@ impl TupleCell {
                     .zip(&index_pairs)
                     .map( |(cell, [ consumer_idx, dataum_idx]) | { 
                         if !shared_consumer.persistent {
-                            cell.joined_consumers.remove(*consumer_idx);
+                            cell.joined_consumers.borrow_mut().remove(*consumer_idx);
                         }
                         (
                             *shared_consumer.channels.get(&cell.hash).unwrap(),
-                            cell.dataums.remove(*dataum_idx).data
+                            cell.dataums.borrow_mut().remove(*dataum_idx).data
                         )
                     })
                     .collect();
@@ -374,21 +383,21 @@ impl TupleCell {
 
     }
 
-    fn match_one( cells : &mut ShortVector<&mut TupleCell>, join_task : &JoinChannelTask) -> MatchResult {
+    fn match_one( cells : &mut ShortVector<RefMut<Box<TuplespaceChannel>>>, join_task : &JoinChannelTask) -> MatchResult {
         // the value records the index of joined_consumer and dataum
         let mut full_joined_consumers : FxHashMap<*const SharedJoinedConsumer, ShortVector<[usize;2]>> = FxHashMap::default();
         for cell in cells 
         {
-            if cell.dataums.is_empty() {
+            if cell.dataums.borrow().is_empty() {
                 
                 return MatchResult::NoMatch;
             }
 
             for (consumer_idx, JoinedConsumer { last_dataum_id, bind_pattern, share }) 
-                in cell.joined_consumers.iter_mut().enumerate()
+                in cell.joined_consumers.borrow_mut().iter_mut().enumerate()
             {
                 let mut dataum_idx = 0; // TODO : should be more smart to determine the start index by id
-                if TupleCell::find_first_dataum_position(&cell.dataums, bind_pattern, &mut dataum_idx, last_dataum_id) {
+                if TuplespaceChannel::find_first_dataum_position(&cell.dataums.borrow_mut(), bind_pattern, &mut dataum_idx, last_dataum_id) {
                     if share.channels.len() == join_task.consumer.channels.len() &&
                        share.channels.iter().all(|(h, _)| join_task.consumer.channels.contains_key(h) ) {
                         // all cells are joined
