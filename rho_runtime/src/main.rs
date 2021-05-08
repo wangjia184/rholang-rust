@@ -3,19 +3,15 @@ extern crate clap;
 #[macro_use] extern crate log;
 #[macro_use] extern crate lazy_static;
 
-#[cfg(not(any(
-    target_env = "msvc", 
-    target_vendor="apple"
-)))]
 #[global_allocator]
-static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
+
 
 use std::time::Instant;
 use std::path::PathBuf;
 use std::env;
 use std::io::prelude::*;
 use std::fs::{ File };
-use std::io::{Write};
 use std::process::{ self, Command };
 use std::io::Cursor;
 use std::fs;
