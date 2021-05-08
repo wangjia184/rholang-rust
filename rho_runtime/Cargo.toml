@@ -9,6 +9,7 @@ edition = "2018"
 [dependencies]
 model = { path = "../model" }
 rholang_parser = { path = "../rholang_parser" }
+mimalloc = { version = "*", default-features = false }
 log = "0.4"
 pretty_env_logger = "0.4"
 bytes = "1.0"
@@ -37,8 +38,4 @@ prost-types = "0.7" # Only necessary if using Protobuf well-known types
 
 [dev-dependencies]
 tokio-test = "0.4"
-
-[target.'cfg(not(target_env = "msvc"))'.dependencies]
-jemallocator = "0.3"
-
 
